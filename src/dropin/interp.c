@@ -148,6 +148,8 @@ void __cdecl brr_before_tick(void)
     brr_debug_before_tick();
 }
 
+static int race_reached;
+
 void __cdecl brr_after_tick(void)
 {
     brr_prof_ticks += brr_qpc() - prof_mark;
@@ -158,6 +160,22 @@ void __cdecl brr_after_tick(void)
         brr_log("interpolation: race screen restarted at tick %ld", (long)tick);
     }
     last_tick_seen = tick;
+    if (!race_reached) {
+        race_reached = 1;
+        brr_log("race: first race tick (tick %ld)", (long)tick);
+    }
+    if (cfg.debug_dump_count > 0 && tick >= cfg.debug_dump_tick && tick < cfg.debug_dump_tick + cfg.debug_dump_count) {
+        /* diagnostic: every vehicle record, raw, after this tick (BRRFIX-RECORDS.BIN: tick, then the records) */
+        char path[MAX_PATH];
+        FILE *f;
+        brr_path_beside_dll(path, sizeof path, "BRRFIX-RECORDS.BIN");
+        f = fopen(path, tick == cfg.debug_dump_tick ? "wb" : "ab");
+        if (f) {
+            fwrite(&tick, sizeof tick, 1, f);
+            fwrite(vehicle(0), GAME_VEHICLE_SIZE, GAME_VEHICLE_COUNT, f);
+            fclose(f);
+        }
+    }
     if (cfg.debug_camera_mode >= 0 && cfg.debug_camera_mode <= 5)
         *(uint16_t *)camera_records[0] = (uint16_t)cfg.debug_camera_mode;  /* as a finished view change does */
     if (state_csv)

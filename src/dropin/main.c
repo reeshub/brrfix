@@ -105,6 +105,8 @@ static void load_config(void)
     GetPrivateProfileStringA("debug", "input", "", cfg.debug_input, sizeof cfg.debug_input, path);
     cfg.debug_writeset_frames = ini_int(path, "debug", "writeset_frames", 0);
     cfg.debug_writeset_from_tick = ini_int(path, "debug", "writeset_from_tick", 0);
+    cfg.debug_dump_tick = ini_int(path, "debug", "dump_records_tick", 0);
+    cfg.debug_dump_count = ini_int(path, "debug", "dump_records_count", 0);
     cfg.debug_hold_pitch = ini_int(path, "debug", "hold_pitch", 0);
     cfg.debug_hold_roll = ini_int(path, "debug", "hold_roll", 0);
     cfg.debug_prove_fine_angles = ini_int(path, "debug", "prove_fine_angles", 0);

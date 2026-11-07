@@ -157,6 +157,7 @@ static int enabled(const char *fix)
         return cfg.fix_interpolation || cfg.log_state || cfg.log_camera || cfg.check_restore
             || cfg.camera_roll_fix || cfg.camera_smoothing > 0
             || cfg.debug_capture_frames > 0 || cfg.debug_input[0] || cfg.debug_writeset_frames > 0
+            || cfg.debug_dump_count > 0
             || cfg.debug_hold_pitch || cfg.debug_hold_roll || cfg.fine_angles || cfg.debug_prove_fine_angles;
     if (!strcmp(fix, "camera_view"))  /* experimental, off by default */
         return cfg.camera_roll_fix || cfg.camera_smoothing > 0 || cfg.debug_hold_pitch || cfg.debug_hold_roll
