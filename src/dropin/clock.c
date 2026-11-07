@@ -92,12 +92,12 @@ void brr_clock_start(void)
 {
     start_qpc = qpc_raw();
     stats_since = brr_qpc();
-    timeBeginPeriod(1);
     running = 1;
-    if (cfg.clock_original) {
+    if (cfg.clock_original) {  /* exactly as the 1996 DLL: no timeBeginPeriod */
         event_id = timeSetEvent(14, 1000, original_tick, 0, TIME_PERIODIC);
         return;
     }
+    timeBeginPeriod(1);
     thread = CreateThread(NULL, 0, updater, NULL, 0, NULL);
     if (thread)
         SetThreadPriority(thread, THREAD_PRIORITY_TIME_CRITICAL);
@@ -114,7 +114,8 @@ void brr_clock_stop(void)
         CloseHandle(thread);
         thread = NULL;
     }
-    timeEndPeriod(1);
+    if (!cfg.clock_original)
+        timeEndPeriod(1);
 }
 
 /* Sleep in 1 ms steps, then spin for the last 2 ms, so waits end within a few

@@ -28,6 +28,7 @@ struct brr_config {
     int frame_limit;         /* frames per second; 0 = display refresh, -1 = none */
     int interp_delay_milli;  /* display delay in thousandths of a tick (2000) */
     int log, log_clock, log_state, log_camera, check_restore;
+    int debug_ignore_exe_checksum;  /* tests only: check the patch sites even if the file differs */
 };
 
 extern struct brr_config cfg;

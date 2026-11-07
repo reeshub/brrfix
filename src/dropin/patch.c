@@ -256,8 +256,11 @@ void brr_patch_all(void)
     int bad = 0;
     size_t count = sizeof SITES / sizeof SITES[0];
     if (!exe_matches()) {
-        brr_log("result: no patches applied; running as a plain TIMER.DLL");
-        return;
+        if (!cfg.debug_ignore_exe_checksum) {
+            brr_log("result: no patches applied; running as a plain TIMER.DLL");
+            return;
+        }
+        brr_log("debug: ignore_exe_checksum=1, so checking the patch sites anyway");
     }
     for (size_t i = 0; i < count; i++) {
         const struct site_info *s = &SITES[i];

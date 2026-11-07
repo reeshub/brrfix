@@ -93,6 +93,7 @@ static void load_config(void)
     cfg.log_state = ini_int(path, "log", "state", 0);
     cfg.log_camera = ini_int(path, "log", "camera", 0);
     cfg.check_restore = ini_int(path, "log", "check_restore", 0);
+    cfg.debug_ignore_exe_checksum = ini_int(path, "debug", "ignore_exe_checksum", 0);
     if (cfg.clock_original)
         cfg.fix_clock = 0;
     if (!cfg.fix_clock && cfg.fix_interpolation) {
