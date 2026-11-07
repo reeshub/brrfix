@@ -312,8 +312,17 @@ void brr_patch_all(void)
         brr_log("patched %s at 0x%06lX (%s, %lu bytes)", s->name, (unsigned long)s->address,
                 s->fix, (unsigned long)s->length);
     }
-    if (cfg.fix_vga)
-        AddVectoredExceptionHandler(1, io_handler);
+    if (cfg.fix_vga) {
+        /* Windows XP onwards, so looked up at run time: on Windows 95/98/ME the game's
+         * port reads work natively, and the safety net isn't needed */
+        typedef PVOID (WINAPI *add_handler_fn)(ULONG, LONG (CALLBACK *)(EXCEPTION_POINTERS *));
+        add_handler_fn add_handler = (add_handler_fn)GetProcAddress(GetModuleHandleA("kernel32.dll"),
+                                                                    "AddVectoredExceptionHandler");
+        if (add_handler)
+            add_handler(1, io_handler);
+        else
+            brr_log("port safety net: not available on this Windows (not needed on Windows 95/98/ME)");
+    }
     brr_patched = 1;
     int changed = ranges_match("after patching");
     brr_log("result: %d of %u sites patched; %u protected game functions (vehicle_physics, "

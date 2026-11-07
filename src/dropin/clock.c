@@ -129,7 +129,7 @@ static void wait_until(int64_t target_raw)
         if (left * 1000 / freq > 2)
             Sleep(1);
         else
-            YieldProcessor();
+            Sleep(0);
     }
 }
 

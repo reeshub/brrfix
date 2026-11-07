@@ -1,6 +1,0 @@
-LIBRARY timer.dll
-EXPORTS
-    _TIMER_Count = brr_timer_count @1 DATA
-    _TIMER_Handler@20 = brr_TIMER_Handler @2
-    TIMER_Init_ = brr_TIMER_Init @3
-    TIMER_Shutdown_ = brr_TIMER_Shutdown @4

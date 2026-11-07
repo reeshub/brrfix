@@ -40,7 +40,8 @@ struct capture_header {             /* 64 bytes, little-endian */
     uint8_t interpolation, frame_ticks;
     uint8_t reserved[8];
 };
-_Static_assert(sizeof(struct capture_header) == 64, "capture header must be 64 bytes");
+/* the capture header must be 64 bytes: this array gets a negative size, and the build fails, if not */
+typedef char capture_header_is_64_bytes[sizeof(struct capture_header) == 64 ? 1 : -1];
 
 struct input_span { int index; int32_t first, last; };
 

@@ -1,6 +1,6 @@
 /* DLL start-up, configuration (BRRFIX.INI), logging (BRRFIX.LOG) and the
  * TIMER.DLL interface the game imports: TIMER_Init_, TIMER_Shutdown_, _TIMER_Count
- * and _TIMER_Handler@20 (thin register-preserving thunks in thunks.S call these). */
+ * and _TIMER_Handler@20 (thin register-preserving thunks in thunks.asm call these). */
 #include "brrfix.h"
 #include <stdio.h>
 #include <stdarg.h>
@@ -127,7 +127,7 @@ static void open_log(void)
     log_file = fopen(path, "w");
 }
 
-uint32_t __cdecl brr_timer_init(uint32_t instance)
+uint32_t __cdecl brr_timer_start(uint32_t instance)
 {
     (void)instance;
     brr_timer_count = 0;
@@ -141,7 +141,7 @@ uint32_t __cdecl brr_timer_init(uint32_t instance)
     return 1;
 }
 
-uint32_t __cdecl brr_timer_shutdown(void)
+uint32_t __cdecl brr_timer_stop(void)
 {
     if (timer_running) {
         timer_running = 0;

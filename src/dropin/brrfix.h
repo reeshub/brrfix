@@ -93,7 +93,7 @@ void brr_debug_before_draw(void);
 void brr_debug_after_draw(void);
 void brr_debug_end_of_draw(void);
 
-/* thunks.S */
+/* thunks.asm */
 void brr_hook_retrace(void);
 void brr_hook_clock_read(void);
 void brr_hook_race_tick(void);

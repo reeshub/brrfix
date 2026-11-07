@@ -3,14 +3,12 @@
 1. Checks work/game/WINRACE.EXE is the v2.25 file from the game manifest.
 2. Checks every patch site and protected range in data/dropin-patches.json against it
    by SHA-256 (recording the values the first time), and writes sites.h from them.
-3. Compiles src/dropin/ with the i686 MinGW-w64 GCC in the brr-dev distrobox,
-   statically, so the DLL needs only Windows system DLLs.
-4. Checks the result: the same exports and ordinals as the original TIMER.DLL, and no
-   imports beyond Windows system DLLs. Copies the default BRRFIX.INI beside it.
-5. Compiles the files written as plain, portable C with Open Watcom as well (compile
-   only), so they'll move to the Windows 95 toolchain unchanged.
-Install the compiler once with:  distrobox enter brr-dev -- sudo dnf install -y mingw32-gcc
-Open Watcom: the pinned snapshot in tools/open-watcom/ (see docs/KNOWLEDGE.md, Tools).
+3. Compiles src/dropin/ with Open Watcom v2 (the pinned snapshot in tools/open-watcom/,
+   see docs/KNOWLEDGE.md, Tools) for Windows 95 and later: 486 instructions, its own C
+   runtime linked in, so the DLL needs only Windows system DLLs (not msvcrt.dll).
+4. Checks the result: the same exports and ordinals as the original TIMER.DLL, imports
+   from Windows system DLLs only, and PE headers marked for Windows 4.0. Copies the
+   default BRRFIX.INI beside it.
 Example:
     python3 brr.py dropin-build
 """
@@ -22,7 +20,7 @@ import shutil
 import struct
 import subprocess
 
-from common import BOX, DATA, ROOT, WORK, box_exists, in_box
+from common import DATA, ROOT, WORK
 from prepkit import rel
 
 HELP = "build the drop-in fix (a replacement TIMER.DLL) into work/build/dropin/"
@@ -32,13 +30,16 @@ OUT = WORK / "build" / "dropin"
 PATCHES = DATA / "dropin-patches.json"
 MANIFEST = DATA / "game-manifest.json"
 GAME = WORK / "game"
-COMPILER = "i686-w64-mingw32-gcc"
-SYSTEM_DLLS = {"kernel32.dll", "user32.dll", "gdi32.dll", "winmm.dll", "msvcrt.dll",
-               "advapi32.dll"}
-C_FILES = ["main.c", "clock.c", "patch.c", "interp.c", "camera.c", "debug.c", "angles.c", "thunks.S",
-           "timer.def"]
-# Written as plain, portable C (docs/PROGRESS.md decision 2026-11-07): must compile with Open Watcom too
-PORTABLE = ["angles.c"]
+SYSTEM_DLLS = {"kernel32.dll", "user32.dll", "gdi32.dll", "winmm.dll", "advapi32.dll"}
+C_FILES = ["main.c", "clock.c", "patch.c", "interp.c", "camera.c", "debug.c", "angles.c"]
+ASM_FILES = ["thunks.asm"]
+# The original TIMER.DLL's exports: (ordinal, name, our symbol)
+EXPORTS = [(1, "_TIMER_Count", "_brr_timer_count"), (2, "_TIMER_Handler@20", "_brr_TIMER_Handler"),
+           (3, "TIMER_Init_", "_brr_TIMER_Init"), (4, "TIMER_Shutdown_", "_brr_TIMER_Shutdown")]
+# -ecc: C calling convention by default (the thunks call our C that way); -4 -fp3: 486
+# instructions and inline 387 maths; -zp8 -ei: structure layout and enums as MSVC/GCC do them
+CFLAGS = ["-q", "-bt=nt", "-bd", "-za99", "-ecc", "-4", "-fp3", "-zp8", "-ei", "-s", "-ox",
+          "-w4", "-we"]
 WATCOM = ROOT / "tools" / "open-watcom" / "2026-11-01"
 WATCOM_RELEASE = "https://github.com/open-watcom/open-watcom-v2/releases/tag/2026-11-01-Build"
 
@@ -92,6 +93,36 @@ class PE:
             named[struct.unpack_from("<H", self.data, self.offset(ords) + 2 * i)[0]] = name
         return sorted((base + i, named.get(i, "")) for i in range(nfunc))
 
+    def header(self):
+        """(machine, OS version, subsystem, subsystem version) from the PE headers."""
+        pe = struct.unpack_from("<I", self.data, 0x3C)[0]
+        machine = struct.unpack_from("<H", self.data, pe + 4)[0]
+        opt = pe + 24
+        os_major, os_minor = struct.unpack_from("<HH", self.data, opt + 40)
+        sub_major, sub_minor = struct.unpack_from("<HH", self.data, opt + 48)
+        subsystem = struct.unpack_from("<H", self.data, opt + 68)[0]
+        return machine, (os_major, os_minor), subsystem, (sub_major, sub_minor)
+
+    def imported_functions(self):
+        """{dll: [function names, or #ordinal]} from the import table."""
+        rva, size = self.dirs[1]
+        found, d = {}, self.offset(rva) if size else None
+        while d is not None:
+            lookup, _t, _f, name_rva, thunk = struct.unpack_from("<IIIII", self.data, d)
+            if not name_rva:
+                break
+            names, entry = [], self.offset(lookup or thunk)
+            while True:
+                value = struct.unpack_from("<I", self.data, entry)[0]
+                if not value:
+                    break
+                names.append(f"#{value & 0xFFFF}" if value & 0x80000000
+                             else self.cstring(value + 2))
+                entry += 4
+            found[self.cstring(name_rva)] = names
+            d += 20
+        return found
+
     def imports(self):
         rva, size = self.dirs[1]
         found, d = [], self.offset(rva) if size else None
@@ -144,9 +175,51 @@ def write_header(doc, exe_sha, exe_size):
     (OUT / "sites.h").write_text("\n".join(lines) + "\n")
 
 
+def watcom_env():
+    if not (WATCOM / "binl64" / "wcc386").exists():
+        raise BuildError(f"Open Watcom isn't in {rel(WATCOM)}: unpack ow-snapshot.tar.xz from "
+                         f"{WATCOM_RELEASE} there (SHA-256 in docs/KNOWLEDGE.md, Tools)")
+    return dict(os.environ, WATCOM=str(WATCOM), INCLUDE=f"{WATCOM / 'h'}:{WATCOM / 'h' / 'nt'}",
+                PATH=f"{WATCOM / 'binl64'}:{os.environ.get('PATH', '')}")
+
+
+def run_tool(command, env, what):
+    result = subprocess.run(command, capture_output=True, text=True, env=env)
+    output = (result.stdout + result.stderr).strip()
+    if result.returncode != 0:
+        raise BuildError(f"{what} failed:\n" + output[-4000:])
+
+
+def compile_dll(dll):
+    env = watcom_env()
+    objects = OUT / "obj"
+    objects.mkdir(exist_ok=True)
+    files = []
+    for name in C_FILES:
+        obj = objects / (name.rsplit(".", 1)[0] + ".obj")
+        run_tool([str(WATCOM / "binl64" / "wcc386"), *CFLAGS, f"-i={OUT}", f"-i={SOURCE}",
+                  f"-fo={obj}", str(SOURCE / name)], env, f"compiling {name}")
+        files.append(obj)
+    for name in ASM_FILES:
+        obj = objects / (name.rsplit(".", 1)[0] + ".obj")
+        run_tool([str(WATCOM / "binl64" / "wasm"), "-q", "-4", f"-fo={obj}", str(SOURCE / name)],
+                 env, f"assembling {name}")
+        files.append(obj)
+    script = OUT / "timer.lnk"
+    script.write_text("\n".join([
+        "system nt_dll initinstance terminstance",
+        f"name '{dll}'",
+        "option quiet, map, caseexact",
+        "option osversion=4.0",
+        "runtime windows=4.0",
+        "library winmm.lib",
+        *[f"file '{f}'" for f in files],
+        *[f"export '{name}'.{ordinal}={symbol}" for ordinal, name, symbol in EXPORTS],
+    ]) + "\n")
+    run_tool([str(WATCOM / "binl64" / "wlink"), f"@{script}"], env, "linking")
+
+
 def build():
-    if not box_exists():
-        raise BuildError(f"the {BOX} distrobox doesn't exist; see python3 brr.py doctor")
     manifest = json.loads(MANIFEST.read_text())["game"]["WINRACE.EXE"]
     exe_path = GAME / "WINRACE.EXE"
     if not exe_path.exists():
@@ -160,37 +233,14 @@ def build():
           f"{len(doc['protected'])} protected functions match")
     write_header(doc, manifest["sha256"], manifest["size"])
     dll = OUT / "TIMER.DLL"
-    command = [COMPILER, "-O2", "-std=gnu11", "-Wall", "-Wextra", "-Werror", "-march=i686",
-               "-shared", "-static-libgcc", "-static", "-s", "-I", str(OUT),
-               "-o", str(dll), *[str(SOURCE / f) for f in C_FILES],
-               "-Wl,--enable-stdcall-fixup", "-Wl,--dynamicbase", "-lwinmm", "-lgdi32"]
-    result = subprocess.run(in_box(command), capture_output=True, text=True)
-    if result.returncode != 0:
-        raise BuildError("compile failed:\n" + (result.stdout + result.stderr).strip()[-4000:])
-    shutil.copy2(SOURCE / "BRRFIX.INI", OUT / "BRRFIX.INI")
+    dll.unlink(missing_ok=True)
+    compile_dll(dll)
+    # Windows line endings, so Notepad on Windows 95/98 shows it properly
+    text = (SOURCE / "BRRFIX.INI").read_text().replace("\r\n", "\n")
+    (OUT / "BRRFIX.INI").write_bytes(text.replace("\n", "\r\n").encode("ascii"))
     check_dll(dll)
-    print(f"  built {rel(dll)} ({dll.stat().st_size:,} bytes) and {rel(OUT / 'BRRFIX.INI')}")
-    check_portable()
-
-
-def check_portable():
-    compiler = WATCOM / "binl64" / "wcc386"
-    if not compiler.exists():
-        raise BuildError(f"Open Watcom isn't in {rel(WATCOM)}: unpack ow-snapshot.tar.xz from "
-                         f"{WATCOM_RELEASE} there (SHA-256 in docs/KNOWLEDGE.md, Tools)")
-    objects = OUT / "watcom"
-    objects.mkdir(exist_ok=True)
-    env = dict(os.environ, WATCOM=str(WATCOM), INCLUDE=f"{WATCOM / 'h'}:{WATCOM / 'h' / 'nt'}",
-               PATH=f"{WATCOM / 'binl64'}:{os.environ.get('PATH', '')}")
-    for name in PORTABLE:
-        obj = objects / (name.rsplit(".", 1)[0] + ".obj")
-        command = [str(compiler), "-q", "-bt=nt", "-bd", "-za99", "-wx", "-we", f"-i={SOURCE}",
-                   f"-fo={obj}", str(SOURCE / name)]
-        result = subprocess.run(command, capture_output=True, text=True, env=env)
-        if result.returncode != 0:
-            raise BuildError(f"{name} doesn't compile with Open Watcom (it must stay portable C):\n"
-                             + (result.stdout + result.stderr).strip()[-3000:])
-    print(f"  portable C checked with Open Watcom: {', '.join(PORTABLE)}")
+    print(f"  built {rel(dll)} ({dll.stat().st_size:,} bytes) with Open Watcom, "
+          f"and {rel(OUT / 'BRRFIX.INI')}")
 
 
 def check_dll(dll):
@@ -202,8 +252,13 @@ def check_dll(dll):
     extra = [name for name in ours.imports() if name.lower() not in SYSTEM_DLLS]
     if extra:
         raise BuildError(f"the DLL imports non-system DLLs: {', '.join(extra)}")
+    machine, os_version, subsystem, sub_version = ours.header()
+    if machine != 0x14C or os_version != (4, 0) or sub_version != (4, 0) or subsystem != 2:
+        raise BuildError(f"PE header not marked for Windows 4.0: machine 0x{machine:X}, OS version "
+                         f"{os_version}, subsystem {subsystem} version {sub_version}")
     print(f"  exports match the original: {', '.join(f'{o}:{n}' for o, n in ours.exports())}")
     print(f"  imports only system DLLs: {', '.join(ours.imports())}")
+    print("  PE headers: i386, OS version 4.0, Windows GUI subsystem 4.0")
 
 
 def main(args):
