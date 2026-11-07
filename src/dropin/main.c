@@ -92,6 +92,7 @@ static void load_config(void)
     if (cfg.camera_smoothing < 0 || cfg.camera_smoothing > 1000)
         cfg.camera_smoothing = 0;
     cfg.camera_roll_fix = ini_int(path, "camera", "roll_fix", 0);
+    cfg.fine_angles = ini_int(path, "camera", "fine_angles", 0);
     cfg.log = ini_int(path, "log", "log", 1);
     cfg.log_clock = ini_int(path, "log", "clock", 1);
     cfg.log_state = ini_int(path, "log", "state", 0);
@@ -105,6 +106,7 @@ static void load_config(void)
     cfg.debug_writeset_frames = ini_int(path, "debug", "writeset_frames", 0);
     cfg.debug_writeset_from_tick = ini_int(path, "debug", "writeset_from_tick", 0);
     cfg.debug_hold_pitch = ini_int(path, "debug", "hold_pitch", 0);
+    cfg.debug_prove_fine_angles = ini_int(path, "debug", "prove_fine_angles", 0);
     if (cfg.clock_original)
         cfg.fix_clock = 0;
     if (!cfg.fix_clock && cfg.fix_interpolation) {
@@ -158,11 +160,11 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
         open_log();
         brr_log("Big Red Racing drop-in fix %s (TIMER.DLL replacement)", BRRFIX_VERSION);
         brr_log("config: vga=%d clock=%d cap=%d interpolation=%d camera=%d source=%s "
-                "tick_rate=%u.%03u catch_up_cap=%d frame_limit=%d delay=%d.%03u camera_smoothing=%d",
+                "tick_rate=%u.%03u catch_up_cap=%d frame_limit=%d delay=%d.%03u camera_smoothing=%d fine_angles=%d",
                 cfg.fix_vga, cfg.fix_clock, cfg.fix_cap, cfg.fix_interpolation, cfg.fix_camera,
                 cfg.clock_original ? "original" : "qpc", cfg.rate_milli / 1000,
                 cfg.rate_milli % 1000, cfg.cap, cfg.frame_limit,
-                cfg.interp_delay_milli / 1000, cfg.interp_delay_milli % 1000, cfg.camera_smoothing);
+                cfg.interp_delay_milli / 1000, cfg.interp_delay_milli % 1000, cfg.camera_smoothing, cfg.fine_angles);
         brr_patch_all();
         brr_interp_setup();
         brr_debug_setup();

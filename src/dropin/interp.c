@@ -209,7 +209,13 @@ void __cdecl brr_after_tick(void)
 /* Before race_draw (called by brr_hook_race_draw). */
 void __cdecl brr_before_draw(void)
 {
+    static int proved;
     prof_mark = brr_qpc();
+    if (cfg.debug_prove_fine_angles && !proved) {
+        proved = 1;
+        brr_prove_fine_angles();
+    }
+    brr_fine_angles_active = cfg.fine_angles;
     brr_camera_before_draw();
     brr_debug_before_draw();
     frames_drawn++;
@@ -305,7 +311,8 @@ void __cdecl brr_after_draw(void)
              ? (int)((followed - GAME_VEHICLES) / GAME_VEHICLE_SIZE) : -1;
     int32_t drawn_x = slot >= 0 ? *(int32_t *)vehicle(slot) : 0;
     int32_t drawn_z = slot >= 0 ? *(int32_t *)(vehicle(slot) + 8) : 0;
-    if (cfg.fix_interpolation && frames_drawn % 1400 == 0) {
+    if ((cfg.fix_interpolation || cfg.fine_angles) && frames_drawn % 1400 == 0) {
+        brr_fine_angles_report();
         brr_log("interpolation: last 1400 frames: vehicles blended %lu, current %lu, "
                 "changed outside a tick %lu, inactive %lu, jumped %lu", (unsigned long)n_blended,
                 (unsigned long)n_current, (unsigned long)n_changed, (unsigned long)n_inactive,
@@ -345,4 +352,5 @@ void __cdecl brr_after_draw(void)
     }
     brr_camera_restore();
     brr_debug_end_of_draw();  /* after every restore */
+    brr_fine_angles_active = 0;
 }

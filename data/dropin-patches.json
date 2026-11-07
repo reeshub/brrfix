@@ -85,6 +85,14 @@
    "length": 5,
    "patch": "render_view: CALL camera_update -> CALL brr_hook_camera_update (calls camera_update, then for drawing only recomputes the follow camera's roll over 7 ticks and applies camera smoothing; the game's values are restored after the draw)",
    "sha256": "d38fd5230997904d6230a4190294fda8effa7a5158a3771c2fd1e43cb7dbf81c"
+  },
+  {
+   "name": "rotation_builder",
+   "fix": "fine_angles",
+   "address": "0x446670",
+   "length": 5,
+   "patch": "FUN_00446670 (the 3D engine's rotation-matrix builder; drawing only, not reachable from the race tick): first 5 bytes (PUSH EDI; PUSH ESI; SHR EAX,5) -> JMP brr_hook_rotation. During the race draw with fine_angles, brr_rotation_fine builds the matrix from full 16-bit angles (bit-identical at multiples of 64); otherwise a trampoline repeats those three instructions and jumps to 0x446675, so the original runs",
+   "sha256": "9b6467fd8655ee2997f54ddc9241116021cc6cc8a42b4c632486535c3c405268"
   }
  ],
  "protected_about": "Game functions reachable from the race tick (direct calls, Phase 3 call graph) except approach_clamped, which is patched on purpose. The DLL hashes them before and after patching.",

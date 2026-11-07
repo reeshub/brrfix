@@ -83,6 +83,75 @@ _brr_hook_camera_update:
         add     esp, 4
         ret
 
+# FUN_00446670 (the 3D engine's rotation-matrix builder) is entered by a JMP to here.
+# EAX pitch, EBX yaw, ECX roll (low 16 bits), EBP the 3x3 matrix to fill. During the race
+# draw with fine angles on, our C version builds it; otherwise the original runs.
+        .globl  _brr_hook_rotation
+_brr_hook_rotation:
+        cmp     dword ptr [_brr_fine_angles_active], 0
+        je      _brr_rotation_original
+        push    edi
+        push    esi
+        sub     esp, 16                 # regs[4]: what the original leaves in EAX..EDX
+        mov     esi, esp
+        push    esi
+        push    ebp
+        push    ecx
+        push    ebx
+        push    eax
+        call    _brr_rotation_fine
+        add     esp, 20
+        mov     eax, [esp]
+        mov     ebx, [esp + 4]
+        mov     ecx, [esp + 8]
+        mov     edx, [esp + 12]
+        add     esp, 16
+        pop     esi
+        pop     edi
+        ret
+
+# The original routine: its first three instructions (the five bytes the JMP replaced),
+# then the rest of it in place.
+        .globl  _brr_rotation_original
+_brr_rotation_original:
+        push    edi
+        push    esi
+        shr     eax, 5
+        jmp     dword ptr [_brr_rotation_continue]
+
+# void brr_call_rotation_original(pitch, yaw, roll, int32_t *m, uint32_t *regs): for the proof
+        .globl  _brr_call_rotation_original
+_brr_call_rotation_original:
+        push    ebp
+        push    ebx
+        push    esi
+        push    edi
+        mov     eax, [esp + 20]
+        mov     ebx, [esp + 24]
+        mov     ecx, [esp + 28]
+        mov     ebp, [esp + 32]
+        call    _brr_rotation_original
+        mov     esi, [esp + 36]
+        mov     [esi], eax
+        mov     [esi + 4], ebx
+        mov     [esi + 8], ecx
+        mov     [esi + 12], edx
+        pop     edi
+        pop     esi
+        pop     ebx
+        pop     ebp
+        ret
+
+# int brr_call_game_atan(int y, int x): the game's FUN_00412a20 (EAX = y, EDX = x)
+        .globl  _brr_call_game_atan
+_brr_call_game_atan:
+        push    ebx
+        mov     eax, [esp + 8]
+        mov     edx, [esp + 12]
+        call    dword ptr [_brr_game_atan]
+        pop     ebx
+        ret
+
 # camera_mode4: AX = [ESI+0x10] as before, but "previous" ([ESI+0x46]) is only
 # updated when this frame ran at least one tick.
         .globl  _brr_hook_cam4

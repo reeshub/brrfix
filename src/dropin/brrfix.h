@@ -36,6 +36,8 @@ struct brr_config {
     char debug_input[256];          /* scheduled keys, e.g. accel:300-1200 */
     int debug_writeset_frames, debug_writeset_from_tick;  /* tick write-set measurement */
     int debug_hold_pitch;           /* diagnostic: hold the drawn pitch at its first race value */
+    int fine_angles;                /* [camera] fine_angles: draw with angles finer than 64 units */
+    int debug_prove_fine_angles;    /* run the proof against the original routine at the first race draw */
 };
 
 extern struct brr_config cfg;
@@ -70,6 +72,17 @@ void __cdecl brr_before_tick(void);
 void __cdecl brr_after_tick(void);
 void __cdecl brr_before_draw(void);
 void __cdecl brr_after_draw(void);
+
+/* angles.c */
+extern int brr_fine_angles_active;
+extern uint32_t brr_rotation_continue, brr_game_atan;
+void __cdecl brr_rotation_fine(uint32_t pitch, uint32_t yaw, uint32_t roll, int32_t *m, uint32_t *regs);
+void brr_fine_camera_angles(uint32_t record, int16_t *angles);
+void brr_fine_angles_report(void);
+void brr_prove_fine_angles(void);
+void brr_hook_rotation(void);
+void __cdecl brr_call_rotation_original(uint32_t pitch, uint32_t yaw, uint32_t roll, int32_t *m, uint32_t *regs);
+int __cdecl brr_call_game_atan(int32_t y, int32_t x);
 
 /* debug.c */
 void brr_debug_setup(void);

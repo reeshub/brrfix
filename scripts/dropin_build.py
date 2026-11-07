@@ -7,13 +7,17 @@
    statically, so the DLL needs only Windows system DLLs.
 4. Checks the result: the same exports and ordinals as the original TIMER.DLL, and no
    imports beyond Windows system DLLs. Copies the default BRRFIX.INI beside it.
+5. Compiles the files written as plain, portable C with Open Watcom as well (compile
+   only), so they'll move to the Windows 95 toolchain unchanged.
 Install the compiler once with:  distrobox enter brr-dev -- sudo dnf install -y mingw32-gcc
+Open Watcom: the pinned snapshot in tools/open-watcom/ (see docs/KNOWLEDGE.md, Tools).
 Example:
     python3 brr.py dropin-build
 """
 
 import hashlib
 import json
+import os
 import shutil
 import struct
 import subprocess
@@ -31,7 +35,12 @@ GAME = WORK / "game"
 COMPILER = "i686-w64-mingw32-gcc"
 SYSTEM_DLLS = {"kernel32.dll", "user32.dll", "gdi32.dll", "winmm.dll", "msvcrt.dll",
                "advapi32.dll"}
-C_FILES = ["main.c", "clock.c", "patch.c", "interp.c", "camera.c", "debug.c", "thunks.S", "timer.def"]
+C_FILES = ["main.c", "clock.c", "patch.c", "interp.c", "camera.c", "debug.c", "angles.c", "thunks.S",
+           "timer.def"]
+# Written as plain, portable C (docs/PROGRESS.md decision 2026-11-07): must compile with Open Watcom too
+PORTABLE = ["angles.c"]
+WATCOM = ROOT / "tools" / "open-watcom" / "2026-11-01"
+WATCOM_RELEASE = "https://github.com/open-watcom/open-watcom-v2/releases/tag/2026-11-01-Build"
 
 
 class BuildError(Exception):
@@ -161,6 +170,27 @@ def build():
     shutil.copy2(SOURCE / "BRRFIX.INI", OUT / "BRRFIX.INI")
     check_dll(dll)
     print(f"  built {rel(dll)} ({dll.stat().st_size:,} bytes) and {rel(OUT / 'BRRFIX.INI')}")
+    check_portable()
+
+
+def check_portable():
+    compiler = WATCOM / "binl64" / "wcc386"
+    if not compiler.exists():
+        raise BuildError(f"Open Watcom isn't in {rel(WATCOM)}: unpack ow-snapshot.tar.xz from "
+                         f"{WATCOM_RELEASE} there (SHA-256 in docs/KNOWLEDGE.md, Tools)")
+    objects = OUT / "watcom"
+    objects.mkdir(exist_ok=True)
+    env = dict(os.environ, WATCOM=str(WATCOM), INCLUDE=f"{WATCOM / 'h'}:{WATCOM / 'h' / 'nt'}",
+               PATH=f"{WATCOM / 'binl64'}:{os.environ.get('PATH', '')}")
+    for name in PORTABLE:
+        obj = objects / (name.rsplit(".", 1)[0] + ".obj")
+        command = [str(compiler), "-q", "-bt=nt", "-bd", "-za99", "-wx", "-we", f"-i={SOURCE}",
+                   f"-fo={obj}", str(SOURCE / name)]
+        result = subprocess.run(command, capture_output=True, text=True, env=env)
+        if result.returncode != 0:
+            raise BuildError(f"{name} doesn't compile with Open Watcom (it must stay portable C):\n"
+                             + (result.stdout + result.stderr).strip()[-3000:])
+    print(f"  portable C checked with Open Watcom: {', '.join(PORTABLE)}")
 
 
 def check_dll(dll):
