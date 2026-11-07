@@ -93,6 +93,8 @@ void __cdecl brr_after_camera_update(uint32_t record)
     if (cfg.fine_angles && brr_fine_angles_active)
         brr_fine_camera_angles(record, CAMERA_ANGLES);
     yaw16 = CAMERA_ANGLES[1];
+    if (cfg.debug_hold_roll && mode == 4)  /* stutter hunt H3: a diagnostic, never a fix */
+        CAMERA_ANGLES[2] = 0;
     float dt = now - v->last_time;
     v->unwrapped_yaw += (float)(int16_t)(yaw16 - v->last_yaw);
     v->last_yaw = yaw16;

@@ -36,6 +36,7 @@ struct brr_config {
     char debug_input[256];          /* scheduled keys, e.g. accel:300-1200 */
     int debug_writeset_frames, debug_writeset_from_tick;  /* tick write-set measurement */
     int debug_hold_pitch;           /* diagnostic: hold the drawn pitch at its first race value */
+    int debug_hold_roll;            /* diagnostic: draw the follow camera with no roll */
     int fine_angles;                /* [camera] fine_angles: draw with angles finer than 64 units */
     int debug_prove_fine_angles;    /* run the proof against the original routine at the first race draw */
 };
