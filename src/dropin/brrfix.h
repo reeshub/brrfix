@@ -27,7 +27,8 @@ struct brr_config {
     int cap;                 /* catch-up cap in ticks (original 35) */
     int frame_limit;         /* frames per second; 0 = display refresh, -1 = none */
     int interp_delay_milli;  /* display delay in thousandths of a tick (2000) */
-    int camera_smoothing;    /* 0 = off; time constant in tenths of a tick (50 = 71 ms) */
+    int camera_smoothing;    /* experimental, 0 = off; time constant in tenths of a tick */
+    int camera_roll_fix;     /* experimental, 0 = off: mode-4 roll over 7 ticks */
     int log, log_clock, log_state, log_camera, check_restore;
     int debug_ignore_exe_checksum;  /* tests only: check the patch sites even if the file differs */
     int debug_camera_mode;          /* diagnostics: request this camera mode each tick (-1 = off) */

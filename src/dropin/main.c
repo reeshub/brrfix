@@ -88,9 +88,10 @@ static void load_config(void)
     cfg.interp_delay_milli = ini_milli(path, "interpolation", "delay", 2000);
     if (cfg.interp_delay_milli < 0 || cfg.interp_delay_milli > 8000)
         cfg.interp_delay_milli = 2000;
-    cfg.camera_smoothing = ini_int(path, "camera", "smoothing", 50);
+    cfg.camera_smoothing = ini_int(path, "camera", "smoothing", 0);
     if (cfg.camera_smoothing < 0 || cfg.camera_smoothing > 1000)
-        cfg.camera_smoothing = 50;
+        cfg.camera_smoothing = 0;
+    cfg.camera_roll_fix = ini_int(path, "camera", "roll_fix", 0);
     cfg.log = ini_int(path, "log", "log", 1);
     cfg.log_clock = ini_int(path, "log", "clock", 1);
     cfg.log_state = ini_int(path, "log", "state", 0);

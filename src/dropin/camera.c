@@ -100,7 +100,7 @@ void __cdecl brr_after_camera_update(uint32_t record)
         v->hist_count++;
 
     float roll_target = CAMERA_ANGLES[2];
-    if (cfg.fix_camera && mode == 4) {
+    if (cfg.camera_roll_fix && mode == 4) {
         /* 4 x yaw change per tick, measured over the last 7 ticks (or what we have) */
         float oldest = v->hist_time[(v->hist_next + HISTORY - v->hist_count) % HISTORY];
         float span = now - oldest < ROLL_WINDOW ? now - oldest : ROLL_WINDOW;
@@ -120,7 +120,7 @@ void __cdecl brr_after_camera_update(uint32_t record)
         v->yaw = yaw16;
     }
     v->last_time = now;
-    if (cfg.fix_camera || cfg.camera_smoothing > 0) {
+    if (cfg.camera_roll_fix || cfg.camera_smoothing > 0) {
         CAMERA_POS[1] = (int32_t)(v->y >= 0 ? v->y + 0.5f : v->y - 0.5f);
         CAMERA_ANGLES[0] = (int16_t)(int32_t)wrap_angle(v->pitch);
         CAMERA_ANGLES[1] = (int16_t)(int32_t)wrap_angle(v->yaw);
