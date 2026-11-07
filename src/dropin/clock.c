@@ -17,7 +17,10 @@ static uint32_t frame_fraction_milli;  /* thousandths of a tick at the last cloc
 /* statistics, reported every 10 s and at shutdown */
 static int64_t stats_since, last_frame_qpc, pace_next;
 static uint32_t stats_frames, stats_ticks_run, stats_hist[5], frame_limit_hz;
-static uint32_t stats_cap_hits;
+static uint32_t stats_cap_hits, stats_clock_advanced, last_count;
+/* where the last frame's time went (QPC counts), for diagnosing long frames */
+int64_t brr_prof_draw, brr_prof_ticks;
+static int64_t prof_wait, prof_read_exit;
 static int64_t cb_last, cb_min = -1, cb_max, cb_sum;
 static uint32_t cb_count, cb_hist[4];
 
@@ -114,16 +117,16 @@ void brr_clock_stop(void)
     timeEndPeriod(1);
 }
 
-/* Sleep most of the way, then spin, so waits end within a few microseconds. */
+/* Sleep in 1 ms steps, then spin for the last 2 ms, so waits end within a few
+ * microseconds (one long Sleep can overshoot badly under Wine). */
 static void wait_until(int64_t target_raw)
 {
     for (;;) {
         int64_t left = target_raw - qpc_raw();
         if (left <= 0)
             return;
-        int64_t ms = left * 1000 / freq;
-        if (ms > 2)
-            Sleep((DWORD)(ms - 2));
+        if (left * 1000 / freq > 2)
+            Sleep(1);
         else
             YieldProcessor();
     }
@@ -149,11 +152,11 @@ void brr_clock_report(int final)
         int64_t tps_milli = (int64_t)stats_ticks_run * 1000000000 / span_us;
         int64_t fps_milli = (int64_t)stats_frames * 1000000000 / span_us;
         brr_log("clock: %ld.%03ld s, %lu frames (%ld.%03ld fps, limit %lu), game ran %lu ticks "
-                "(%ld.%03ld per s), ticks per frame 0:%lu 1:%lu 2:%lu 3:%lu 4+:%lu, cap hits %lu",
+                "(%ld.%03ld per s; clock advanced %lu), ticks per frame 0:%lu 1:%lu 2:%lu 3:%lu 4+:%lu, cap hits %lu",
                 (long)(span_us / 1000000), (long)(span_us / 1000 % 1000),
                 (unsigned long)stats_frames, (long)(fps_milli / 1000), (long)(fps_milli % 1000),
                 (unsigned long)frame_limit_hz, (unsigned long)stats_ticks_run,
-                (long)(tps_milli / 1000), (long)(tps_milli % 1000),
+                (long)(tps_milli / 1000), (long)(tps_milli % 1000), (unsigned long)stats_clock_advanced,
                 (unsigned long)stats_hist[0], (unsigned long)stats_hist[1],
                 (unsigned long)stats_hist[2], (unsigned long)stats_hist[3],
                 (unsigned long)stats_hist[4], (unsigned long)stats_cap_hits);
@@ -171,7 +174,7 @@ void brr_clock_report(int final)
         }
     }
     stats_since = now;
-    stats_frames = stats_ticks_run = stats_cap_hits = 0;
+    stats_frames = stats_ticks_run = stats_cap_hits = stats_clock_advanced = 0;
     for (int i = 0; i < 5; i++)
         stats_hist[i] = 0;
 }
@@ -194,6 +197,7 @@ uint32_t __cdecl brr_clock_read(void)
         if (ran >= (cfg.fix_cap ? cfg.cap : 35))
             stats_cap_hits++;
     }
+    int64_t wait_start = qpc_raw();
     if (frame_limit_hz) {
         int64_t period = freq / frame_limit_hz;
         int64_t now = qpc_raw();
@@ -204,13 +208,28 @@ uint32_t __cdecl brr_clock_read(void)
         pace_next = (pace_next && now - pace_next < period) ? pace_next + period : now + period;
     }
     int64_t now = qpc_raw();
+    int64_t this_wait = now - wait_start;
     uint32_t fraction;
     uint32_t count = ticks_at(now, &fraction);
     frame_fraction_milli = fraction;
+    if (started && last_count) {
+        stats_clock_advanced += count - last_count;
+        if (count - last_count > (uint32_t)(cfg.fix_cap ? cfg.cap : 35))
+            brr_log("clock: long frame (screen 0x%02X; usually a screen loading): %lu ticks since the last frame (cap %d); last frame: "
+                    "pacing wait %ld us, race ticks %ld us, race draw %ld us, everything else %ld us",
+                    *(volatile uint16_t *)0x4B13C0, (unsigned long)(count - last_count), cfg.fix_cap ? cfg.cap : 35,
+                    (long)(prof_wait * 1000000 / freq), (long)(brr_prof_ticks * 1000000 / freq),
+                    (long)(brr_prof_draw * 1000000 / freq),
+                    (long)((now - prof_read_exit - prof_wait - brr_prof_ticks - brr_prof_draw) * 1000000 / freq));
+    }
+    last_count = count;
     InterlockedExchange(&brr_timer_count, (LONG)count);
     last_frame_qpc = now;
+    prof_wait = this_wait;
+    brr_prof_draw = brr_prof_ticks = 0;
     if (cfg.log_clock && (brr_qpc() - stats_since) >= freq * 10)
         brr_clock_report(0);
+    prof_read_exit = qpc_raw();
     return count;
 }
 

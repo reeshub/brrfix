@@ -139,8 +139,14 @@ static void log_state(int32_t tick)
 }
 
 /* After every race tick (called by brr_hook_race_tick). */
+extern int64_t brr_prof_draw, brr_prof_ticks;
+static int64_t prof_mark;
+
+void __cdecl brr_before_tick(void) { prof_mark = brr_qpc(); }
+
 void __cdecl brr_after_tick(void)
 {
+    brr_prof_ticks += brr_qpc() - prof_mark;
     int32_t tick = *GAME_TICK_COUNT;
     if (tick < last_tick_seen) {  /* a new race screen: start again */
         memset(samples, 0, sizeof samples);
@@ -197,6 +203,7 @@ void __cdecl brr_after_tick(void)
 /* Before race_draw (called by brr_hook_race_draw). */
 void __cdecl brr_before_draw(void)
 {
+    prof_mark = brr_qpc();
     frames_drawn++;
     if (cfg.check_restore)
         for (int i = 0; i < GAME_VEHICLE_COUNT; i++)
@@ -282,6 +289,7 @@ void __cdecl brr_before_draw(void)
  * the vehicle records exactly as they were. */
 void __cdecl brr_after_draw(void)
 {
+    brr_prof_draw += brr_qpc() - prof_mark;
     uint8_t *camera = (uint8_t *)0x4529C0;  /* camera_view1 */
     uint32_t followed = *(uint32_t *)(camera + 0x40);
     int slot = (followed >= GAME_VEHICLES && followed < GAME_VEHICLES + GAME_VEHICLE_COUNT * GAME_VEHICLE_SIZE)

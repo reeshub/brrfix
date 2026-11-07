@@ -50,6 +50,9 @@ _brr_hook_retrace:                 # reached by JMP from vga_wait_retrace
 
         .globl  _brr_hook_race_tick
 _brr_hook_race_tick:
+        pushad
+        call    _brr_before_tick
+        popad
         call    dword ptr [_brr_orig_race_tick]
         pushad
         call    _brr_after_tick

@@ -58,6 +58,7 @@ void brr_sha256(const void *data, size_t size, uint8_t out[32]);
 /* interp.c */
 void brr_interp_setup(void);
 void brr_interp_close(void);
+void __cdecl brr_before_tick(void);
 void __cdecl brr_after_tick(void);
 void __cdecl brr_before_draw(void);
 void __cdecl brr_after_draw(void);
