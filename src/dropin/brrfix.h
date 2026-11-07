@@ -27,6 +27,9 @@ struct brr_config {
     uint32_t rate_milli;     /* ticks per 1000 s: 70000 = 70.0 Hz */
     int cap;                 /* catch-up cap in ticks (original 35) */
     int frame_limit;         /* frames per second; FRAME_LIMIT_AUTO = display refresh, 0 = unlocked */
+    int window_scale;        /* 0 = auto (largest whole number that fits), else 1..8 */
+    int window_aspect43;     /* stretch the height by 1.2, as a 4:3 monitor showed 320x200 */
+    int display_mode;        /* DISPLAY_WINDOWED, DISPLAY_FULLSCREEN or DISPLAY_ASK */
     int vsync;               /* wait for the vertical blank before the windowed present */
     int pacing_dropin;       /* 1 = the drop-in paces frames (default); 0 = leave it to cnc-ddraw if present */
     int interp_delay_milli;  /* display delay in thousandths of a tick (2000) */
@@ -79,6 +82,18 @@ void __cdecl brr_before_draw(void);
 void __cdecl brr_after_draw(void);
 
 #define FRAME_LIMIT_AUTO (-2)
+#define DISPLAY_WINDOWED 0
+#define DISPLAY_FULLSCREEN 1
+#define DISPLAY_ASK 2
+
+/* display.c */
+extern uint32_t brr_display_windowed, brr_display_fullscreen, brr_display_prompt;
+int __cdecl brr_display_choice(uint32_t depth);
+int __cdecl brr_present_gdi(void);
+void brr_hook_present(void);
+extern int brr_gdi_present;
+extern uint32_t brr_present_continue;
+void brr_hook_display_choice(void);
 
 /* clock.c: frame pacing, decided at the first frame */
 extern int brr_cnc_ddraw, brr_vsync_active;

@@ -101,6 +101,22 @@
    "length": 5,
    "patch": "The DirectDraw present (0x42CE78) calls the windowed blit 0x42CD2C here (CALL rel32). With [clock] vsync=1 (and cnc-ddraw not pacing), the call goes to brr_hook_present_window, which waits for the vertical blank (IDirectDraw::WaitForVerticalBlank) and then continues into 0x42CD2C",
    "sha256": "db6336c28881b2624a5fe3c3ca5bbcfda7b1a0c69e4928320fa6c8ba9293a396"
+  },
+  {
+   "name": "display_choice",
+   "fix": "display",
+   "address": "0x4010E9",
+   "length": 5,
+   "patch": "WinMain's colour-depth test (CMP EDI,8; JZ 0x40112A) -> CALL brr_hook_display_choice, which continues WinMain at 0x40112A (windowed), 0x401114 (full screen, as if the 256-colour question was answered OK) or 0x4010EE (the original question), by [display] mode",
+   "sha256": "a960dafa6f9d29e10b3d0ca0134540aec64c5048949f38337d9b46b2d05d1e33"
+  },
+  {
+   "name": "present_entry",
+   "fix": "display",
+   "address": "0x42CE78",
+   "length": 10,
+   "patch": "The DirectDraw present's first instructions (PUSH EBX; PUSH ECX; PUSH EDX; CMP byte [0x52D720],0) -> JMP brr_hook_present + 5 NOPs. In a window on a desktop that isn't 256 colours, brr_present_gdi draws the 8-bit frame buffer with StretchDIBits and returns 1; otherwise a trampoline repeats the four instructions and continues at 0x42CE82",
+   "sha256": "fe491f5b00eb5323a392262f21b79689704c1ba2e89e14f2fdb06554e072eb1c"
   }
  ],
  "protected_about": "Game functions reachable from the race tick (direct calls, Phase 3 call graph) except approach_clamped, which is patched on purpose. The DLL hashes them before and after patching.",

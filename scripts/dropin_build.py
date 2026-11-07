@@ -31,7 +31,7 @@ PATCHES = DATA / "dropin-patches.json"
 MANIFEST = DATA / "game-manifest.json"
 GAME = WORK / "game"
 SYSTEM_DLLS = {"kernel32.dll", "user32.dll", "gdi32.dll", "winmm.dll", "advapi32.dll"}
-C_FILES = ["main.c", "clock.c", "patch.c", "interp.c", "camera.c", "debug.c", "angles.c"]
+C_FILES = ["main.c", "clock.c", "patch.c", "interp.c", "camera.c", "debug.c", "angles.c", "display.c"]
 ASM_FILES = ["thunks.asm"]
 # The original TIMER.DLL's exports: (ordinal, name, our symbol)
 EXPORTS = [(1, "_TIMER_Count", "_brr_timer_count"), (2, "_TIMER_Handler@20", "_brr_TIMER_Handler"),

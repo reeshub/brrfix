@@ -23,6 +23,13 @@
         extrn   _brr_rotation_continue:dword
         extrn   _brr_game_atan:dword
         extrn   _brr_before_present_window:near
+        extrn   _brr_display_choice:near
+        extrn   _brr_present_gdi:near
+        extrn   _brr_gdi_present:dword
+        extrn   _brr_present_continue:dword
+        extrn   _brr_display_windowed:dword
+        extrn   _brr_display_fullscreen:dword
+        extrn   _brr_display_prompt:dword
         extrn   _brr_orig_present_window:dword
 
         public  _brr_TIMER_Init, _brr_TIMER_Shutdown, _brr_TIMER_Handler
@@ -30,6 +37,7 @@
         public  _brr_hook_race_draw, _brr_hook_camera_update, _brr_hook_rotation
         public  _brr_rotation_original, _brr_call_rotation_original
         public  _brr_call_game_atan, _brr_hook_cam4, _brr_hook_present_window
+        public  _brr_hook_display_choice, _brr_hook_present
 
         .code
 
@@ -177,6 +185,48 @@ _brr_hook_present_window:
         call    _brr_before_present_window
         popad
         jmp     dword ptr [_brr_orig_present_window]
+
+; WinMain's colour-depth test (CMP EDI,8; JZ at 0x4010E9) calls here instead, with
+; EDI = the desktop's bits per pixel x planes. Continue WinMain where brr_display_choice
+; says (EAX is free on all three paths).
+_brr_hook_display_choice:
+        pushad
+        push    edi
+        call    _brr_display_choice
+        add     esp, 4
+        mov     [esp + 28], eax         ; into the saved EAX
+        popad
+        add     esp, 4                  ; drop the return address
+        test    eax, eax
+        jz      display_windowed
+        dec     eax
+        jz      display_fullscreen
+        jmp     dword ptr [_brr_display_prompt]
+display_windowed:
+        jmp     dword ptr [_brr_display_windowed]
+display_fullscreen:
+        jmp     dword ptr [_brr_display_fullscreen]
+
+; The present (0x42CE78) is entered by a JMP to here. In a window on a desktop that
+; isn't 256 colours, brr_present_gdi draws the frame and the present returns 1;
+; otherwise the replaced instructions run and the original continues at 0x42CE82.
+_brr_hook_present:
+        cmp     dword ptr [_brr_gdi_present], 0
+        je      present_original
+        pushad
+        call    _brr_present_gdi
+        mov     [esp + 28], eax
+        popad
+        test    eax, eax
+        jz      present_original
+        mov     eax, 1
+        ret
+present_original:
+        push    ebx
+        push    ecx
+        push    edx
+        cmp     byte ptr ds:[52D720h], 0
+        jmp     dword ptr [_brr_present_continue]
 
 ; camera_mode4: AX = [ESI+10h] as before, but "previous" ([ESI+46h]) is only
 ; updated when this frame ran at least one tick (frame_ticks, 44BF80h).

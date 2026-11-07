@@ -189,10 +189,23 @@ static void choose_pacing(void)
 void __cdecl brr_before_present_window(void)
 {
     typedef HRESULT (WINAPI *wait_fn)(void *, DWORD, HANDLE);
+    static uint32_t waits, instant;
+    int64_t before;
     if (!brr_vsync_active)
         return;
+    before = qpc_raw();
     /* IDirectDraw::WaitForVerticalBlank is entry 22 of its table; 1 = DDWAITVB_BLOCKBEGIN */
     ((wait_fn)(*(void ***)direct_draw)[22])(direct_draw, 1, NULL);
+    /* Some DirectDraws (Wine's, for one) return at once: then the frame limit paces */
+    if (waits < 60) {
+        if ((qpc_raw() - before) * 10000 / freq < 3)  /* under 0.3 ms */
+            instant++;
+        if (++waits == 60 && instant > 50) {
+            brr_vsync_active = 0;
+            brr_log("pacing: WaitForVerticalBlank returns at once here (%lu of 60 waits), so vsync is off "
+                    "and the frame limit paces", (unsigned long)instant);
+        }
+    }
 }
 
 static uint32_t refresh_rate(void)

@@ -163,6 +163,8 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "camera_view"))  /* experimental, off by default */
         return cfg.camera_roll_fix || cfg.camera_smoothing > 0 || cfg.debug_hold_pitch || cfg.debug_hold_roll
             || cfg.fine_angles;
+    if (!strcmp(fix, "display"))
+        return cfg.display_mode != DISPLAY_ASK;
     if (!strcmp(fix, "vsync"))
         return cfg.vsync;
     if (!strcmp(fix, "fine_angles"))
@@ -203,6 +205,13 @@ static int replacement(const struct site_info *s, uint8_t *out)
     } else if (!strcmp(n, "camera_update_call") && s->length == 5) {
         out[0] = 0xE8;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_camera_update);
+    } else if (!strcmp(n, "present_entry") && s->length == 10) {
+        out[0] = 0xE9;
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_present);
+        memset(out + 5, 0x90, 5);  /* NOPs after the jump (never reached) */
+    } else if (!strcmp(n, "display_choice") && s->length == 5) {
+        out[0] = 0xE8;
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_display_choice);
     } else if (!strcmp(n, "present_window_call") && s->length == 5) {
         out[0] = 0xE8;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_present_window);

@@ -93,6 +93,15 @@ static void load_config(void)
             cfg.frame_limit = 0;
     }
     cfg.vsync = ini_int(path, "clock", "vsync", 0);
+    GetPrivateProfileStringA("display", "window_scale", "auto", text, sizeof text, path);
+    cfg.window_scale = !lstrcmpiA(text, "auto") ? 0 : ini_int(path, "display", "window_scale", 0);
+    if (cfg.window_scale < 0 || cfg.window_scale > 8)
+        cfg.window_scale = 0;
+    GetPrivateProfileStringA("display", "aspect", "square", text, sizeof text, path);
+    cfg.window_aspect43 = !lstrcmpiA(text, "4:3");
+    GetPrivateProfileStringA("display", "mode", "windowed", text, sizeof text, path);
+    cfg.display_mode = !lstrcmpiA(text, "fullscreen") ? DISPLAY_FULLSCREEN
+                     : !lstrcmpiA(text, "ask") ? DISPLAY_ASK : DISPLAY_WINDOWED;
     GetPrivateProfileStringA("clock", "pacing", "dropin", text, sizeof text, path);
     cfg.pacing_dropin = lstrcmpiA(text, "cnc-ddraw") != 0;
     cfg.interp_delay_milli = ini_milli(path, "interpolation", "delay", 2000);
