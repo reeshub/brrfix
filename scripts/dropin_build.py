@@ -209,7 +209,7 @@ def compile_dll(dll):
     script.write_text("\n".join([
         "system nt_dll initinstance terminstance",
         f"name '{dll}'",
-        "option quiet, map, caseexact",
+        f"option quiet, caseexact, map='{OUT / 'TIMER.map'}'",
         "option osversion=4.0",
         "runtime windows=4.0",
         "library winmm.lib",
