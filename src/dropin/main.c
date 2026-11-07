@@ -84,7 +84,17 @@ static void load_config(void)
     cfg.cap = ini_int(path, "clock", "catch_up_cap", 8);
     if (cfg.cap < 1 || cfg.cap > 255)
         cfg.cap = 8;
-    cfg.frame_limit = ini_int(path, "clock", "frame_limit", 0);
+    GetPrivateProfileStringA("clock", "frame_limit", "auto", text, sizeof text, path);
+    if (!text[0] || !lstrcmpiA(text, "auto"))
+        cfg.frame_limit = FRAME_LIMIT_AUTO;
+    else {
+        cfg.frame_limit = ini_int(path, "clock", "frame_limit", 0);
+        if (cfg.frame_limit < 0)  /* -1 meant unlimited in earlier versions */
+            cfg.frame_limit = 0;
+    }
+    cfg.vsync = ini_int(path, "clock", "vsync", 0);
+    GetPrivateProfileStringA("clock", "pacing", "dropin", text, sizeof text, path);
+    cfg.pacing_dropin = lstrcmpiA(text, "cnc-ddraw") != 0;
     cfg.interp_delay_milli = ini_milli(path, "interpolation", "delay", 2000);
     if (cfg.interp_delay_milli < 0 || cfg.interp_delay_milli > 8000)
         cfg.interp_delay_milli = 2000;
@@ -163,10 +173,10 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
         open_log();
         brr_log("Big Red Racing drop-in fix %s (TIMER.DLL replacement)", BRRFIX_VERSION);
         brr_log("config: vga=%d clock=%d cap=%d interpolation=%d camera=%d source=%s "
-                "tick_rate=%u.%03u catch_up_cap=%d frame_limit=%d delay=%d.%03u camera_smoothing=%d fine_angles=%d roll_fix=%d",
+                "tick_rate=%u.%03u catch_up_cap=%d frame_limit=%d vsync=%d pacing=%s delay=%d.%03u camera_smoothing=%d fine_angles=%d roll_fix=%d",
                 cfg.fix_vga, cfg.fix_clock, cfg.fix_cap, cfg.fix_interpolation, cfg.fix_camera,
                 cfg.clock_original ? "original" : "qpc", cfg.rate_milli / 1000,
-                cfg.rate_milli % 1000, cfg.cap, cfg.frame_limit,
+                cfg.rate_milli % 1000, cfg.cap, cfg.frame_limit, cfg.vsync, cfg.pacing_dropin ? "dropin" : "cnc-ddraw",
                 cfg.interp_delay_milli / 1000, cfg.interp_delay_milli % 1000, cfg.camera_smoothing, cfg.fine_angles, cfg.camera_roll_fix);
         brr_patch_all();
         brr_interp_setup();

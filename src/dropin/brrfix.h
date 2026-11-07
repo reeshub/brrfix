@@ -12,6 +12,7 @@
 /* Addresses in WINRACE.EXE v2.25 (image base 0x400000, never relocated). */
 #define GAME_FRAME_TICKS   ((volatile uint8_t *)0x44BF80)
 #define GAME_TICK_COUNT    ((volatile int32_t *)0x44BF84)
+#define GAME_WINDOWED      ((volatile uint8_t *)0x52D72C)  /* the present blits into a window */
 #define GAME_VEHICLES      0x452A90u
 #define GAME_VEHICLE_SIZE  0x395u
 #define GAME_VEHICLE_COUNT 7
@@ -25,7 +26,9 @@ struct brr_config {
     int clock_original;      /* emulate the original 14 ms callback timer instead */
     uint32_t rate_milli;     /* ticks per 1000 s: 70000 = 70.0 Hz */
     int cap;                 /* catch-up cap in ticks (original 35) */
-    int frame_limit;         /* frames per second; 0 = display refresh, -1 = none */
+    int frame_limit;         /* frames per second; FRAME_LIMIT_AUTO = display refresh, 0 = unlocked */
+    int vsync;               /* wait for the vertical blank before the windowed present */
+    int pacing_dropin;       /* 1 = the drop-in paces frames (default); 0 = leave it to cnc-ddraw if present */
     int interp_delay_milli;  /* display delay in thousandths of a tick (2000) */
     int camera_smoothing;    /* experimental, 0 = off; time constant in tenths of a tick */
     int camera_roll_fix;     /* experimental, 0 = off: mode-4 roll over 7 ticks */
@@ -74,6 +77,14 @@ void __cdecl brr_before_tick(void);
 void __cdecl brr_after_tick(void);
 void __cdecl brr_before_draw(void);
 void __cdecl brr_after_draw(void);
+
+#define FRAME_LIMIT_AUTO (-2)
+
+/* clock.c: frame pacing, decided at the first frame */
+extern int brr_cnc_ddraw, brr_vsync_active;
+void __cdecl brr_before_present_window(void);
+void brr_hook_present_window(void);
+extern uint32_t brr_orig_present_window;
 
 /* angles.c */
 extern int brr_fine_angles_active;

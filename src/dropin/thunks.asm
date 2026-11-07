@@ -22,12 +22,14 @@
         extrn   _brr_fine_angles_active:dword
         extrn   _brr_rotation_continue:dword
         extrn   _brr_game_atan:dword
+        extrn   _brr_before_present_window:near
+        extrn   _brr_orig_present_window:dword
 
         public  _brr_TIMER_Init, _brr_TIMER_Shutdown, _brr_TIMER_Handler
         public  _brr_hook_clock_read, _brr_hook_retrace, _brr_hook_race_tick
         public  _brr_hook_race_draw, _brr_hook_camera_update, _brr_hook_rotation
         public  _brr_rotation_original, _brr_call_rotation_original
-        public  _brr_call_game_atan, _brr_hook_cam4
+        public  _brr_call_game_atan, _brr_hook_cam4, _brr_hook_present_window
 
         .code
 
@@ -167,6 +169,14 @@ _brr_call_game_atan:
         call    dword ptr [_brr_game_atan]
         pop     ebx
         ret
+
+; The present's call to the windowed blit (0x42CD2C): wait for the vertical blank first
+; if vsync is on, then continue into the original routine (it returns to the present).
+_brr_hook_present_window:
+        pushad
+        call    _brr_before_present_window
+        popad
+        jmp     dword ptr [_brr_orig_present_window]
 
 ; camera_mode4: AX = [ESI+10h] as before, but "previous" ([ESI+46h]) is only
 ; updated when this frame ran at least one tick (frame_ticks, 44BF80h).

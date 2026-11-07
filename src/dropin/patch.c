@@ -12,6 +12,7 @@ int brr_patched;
 uint32_t brr_orig_race_tick = GAME_RACE_TICK, brr_orig_race_draw = GAME_RACE_DRAW;
 uint32_t brr_orig_camera_update = 0x404908;
 uint32_t brr_rotation_continue = 0x446675, brr_game_atan = 0x412A20;
+uint32_t brr_orig_present_window = 0x42CD2C;
 
 /* ---- SHA-256 (FIPS 180-4) ---- */
 static const uint32_t K[64] = {
@@ -162,6 +163,8 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "camera_view"))  /* experimental, off by default */
         return cfg.camera_roll_fix || cfg.camera_smoothing > 0 || cfg.debug_hold_pitch || cfg.debug_hold_roll
             || cfg.fine_angles;
+    if (!strcmp(fix, "vsync"))
+        return cfg.vsync;
     if (!strcmp(fix, "fine_angles"))
         return cfg.fine_angles;
     if (!strcmp(fix, "camera")) return cfg.fix_camera;
@@ -200,6 +203,9 @@ static int replacement(const struct site_info *s, uint8_t *out)
     } else if (!strcmp(n, "camera_update_call") && s->length == 5) {
         out[0] = 0xE8;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_camera_update);
+    } else if (!strcmp(n, "present_window_call") && s->length == 5) {
+        out[0] = 0xE8;
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_present_window);
     } else if (!strcmp(n, "rotation_builder") && s->length == 5) {
         out[0] = 0xE9;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_rotation);

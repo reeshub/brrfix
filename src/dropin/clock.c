@@ -133,6 +133,68 @@ static void wait_until(int64_t target_raw)
     }
 }
 
+/* ---- frame pacing ---- */
+int brr_cnc_ddraw, brr_vsync_active;
+static void *direct_draw;  /* our own IDirectDraw, only for WaitForVerticalBlank */
+
+static void *create_direct_draw(void)
+{
+    typedef HRESULT (WINAPI *create_fn)(GUID *, void **, void *);
+    create_fn create = (create_fn)GetProcAddress(GetModuleHandleA("ddraw.dll"), "DirectDrawCreate");
+    void *dd = NULL;
+    if (!create || create(NULL, &dd, NULL) != 0)
+        return NULL;
+    return dd;
+}
+
+static uint32_t refresh_rate(void);
+
+/* At the first frame (DirectDraw is loaded by then): who paces the frames. When the
+ * loaded ddraw.dll is cnc-ddraw (it exports GameHandlesClose, which no real DirectDraw
+ * does) and [clock] pacing=cnc-ddraw, it owns pacing (its maxgameticks and vsync).
+ * By default the drop-in paces: frame_limit caps the frame rate (auto = the display's
+ * refresh rate, or vsync's pace if vsync is on), and vsync waits for the vertical blank
+ * before the windowed present (a full-screen Flip is synchronised by the hardware). With
+ * cnc-ddraw, vsync is cnc-ddraw's own setting (vsync=true in ddraw.ini): it draws the
+ * screen itself. Measured (2026-11-07): cnc-ddraw's game limiter is off by default, its
+ * "refresh rate" chose 60 fps on a 144 Hz display, and at 144 it ran at 127-135 fps;
+ * ours holds the rate exactly. */
+static void choose_pacing(void)
+{
+    HMODULE ddraw = GetModuleHandleA("ddraw.dll");
+    brr_cnc_ddraw = ddraw && GetProcAddress(ddraw, "GameHandlesClose") != NULL;
+    if (brr_cnc_ddraw && !cfg.pacing_dropin) {
+        frame_limit_hz = 0;
+        brr_log("pacing: by cnc-ddraw ([clock] pacing=cnc-ddraw): its maxgameticks and vsync in ddraw.ini; "
+                "the drop-in's frame limit and vsync are off");
+        return;
+    }
+    if (cfg.vsync && brr_cnc_ddraw)
+        brr_log("pacing: [clock] vsync is for DirectDraw without cnc-ddraw; with cnc-ddraw set vsync=true "
+                "in ddraw.ini");
+    else if (cfg.vsync) {
+        direct_draw = create_direct_draw();
+        brr_vsync_active = direct_draw != NULL;
+        if (!brr_vsync_active)
+            brr_log("pacing: vsync is on, but DirectDraw couldn't be opened to wait for the vertical blank");
+    }
+    frame_limit_hz = cfg.frame_limit == FRAME_LIMIT_AUTO ? refresh_rate()
+                   : cfg.frame_limit > 0 ? (uint32_t)cfg.frame_limit : 0;
+    brr_log("pacing: by the drop-in%s; frame limit %s%lu fps; vsync %s", brr_cnc_ddraw ? " (cnc-ddraw present)" : "",
+            frame_limit_hz ? "" : "unlocked: ", (unsigned long)frame_limit_hz,
+            brr_vsync_active ? "on (before the windowed present; then frame_limit=auto steps aside in a window)" : "off");
+}
+
+/* Before the game blits its frame into its window (0x42CD2C, from the present). */
+void __cdecl brr_before_present_window(void)
+{
+    typedef HRESULT (WINAPI *wait_fn)(void *, DWORD, HANDLE);
+    if (!brr_vsync_active)
+        return;
+    /* IDirectDraw::WaitForVerticalBlank is entry 22 of its table; 1 = DDWAITVB_BLOCKBEGIN */
+    ((wait_fn)(*(void ***)direct_draw)[22])(direct_draw, 1, NULL);
+}
+
 static uint32_t refresh_rate(void)
 {
     HDC screen = GetDC(NULL);
@@ -187,9 +249,7 @@ uint32_t __cdecl brr_clock_read(void)
     static int started;
     if (!started) {
         started = 1;
-        frame_limit_hz = cfg.frame_limit == 0 ? refresh_rate()
-                       : cfg.frame_limit > 0 ? (uint32_t)cfg.frame_limit : 0;
-        brr_log("clock_read: first frame; frame limit %lu fps", (unsigned long)frame_limit_hz);
+        choose_pacing();
     } else {
         uint8_t ran = *GAME_FRAME_TICKS;
         stats_frames++;
@@ -199,7 +259,9 @@ uint32_t __cdecl brr_clock_read(void)
             stats_cap_hits++;
     }
     int64_t wait_start = qpc_raw();
-    if (frame_limit_hz) {
+    /* in a window with vsync on, the vertical-blank wait paces an automatic limit */
+    int vsync_paces = brr_vsync_active && cfg.frame_limit == FRAME_LIMIT_AUTO && *GAME_WINDOWED;
+    if (frame_limit_hz && !vsync_paces) {
         int64_t period = freq / frame_limit_hz;
         int64_t now = qpc_raw();
         if (pace_next && now < pace_next)
