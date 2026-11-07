@@ -264,6 +264,13 @@ void brr_debug_after_draw(void)
     memcpy(h.cam_angles, (void *)GAME_CAMERA_ANGLES, 6);
     h.interpolation = (uint8_t)cfg.fix_interpolation;
     h.frame_ticks = *GAME_FRAME_TICKS;
+    {   /* spare bytes: view 1's camera "nearly still" flag (+0x45), mode, and its pitch and yaw */
+        const uint8_t *camera = (const uint8_t *)0x4529C0;
+        h.reserved[0] = camera[0x45];
+        h.reserved[1] = camera[0];
+        memcpy(&h.reserved[2], camera + 0x0E, 2);
+        memcpy(&h.reserved[4], camera + 0x10, 2);
+    }
     memcpy(record, &h, sizeof h);
     memcpy(record + sizeof h, (void *)PALETTE, 1024);
     memcpy(record + sizeof h + 1024, pixels, width * height);

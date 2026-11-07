@@ -35,6 +35,7 @@ struct brr_config {
     int debug_capture_frames, debug_capture_from_tick;  /* stutter meter frame capture */
     char debug_input[256];          /* scheduled keys, e.g. accel:300-1200 */
     int debug_writeset_frames, debug_writeset_from_tick;  /* tick write-set measurement */
+    int debug_hold_pitch;           /* diagnostic: hold the drawn pitch at its first race value */
 };
 
 extern struct brr_config cfg;

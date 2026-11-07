@@ -120,6 +120,17 @@ void __cdecl brr_after_camera_update(uint32_t record)
         v->yaw = yaw16;
     }
     v->last_time = now;
+    if (cfg.debug_hold_pitch) {  /* stutter hunt H2: a diagnostic, never a fix */
+        static int held_valid;
+        static int16_t held;
+        if (!held_valid) {
+            held = CAMERA_ANGLES[0];
+            held_valid = 1;
+        }
+        CAMERA_ANGLES[0] = held;
+        frames_smoothed++;
+        return;
+    }
     if (cfg.camera_roll_fix || cfg.camera_smoothing > 0) {
         CAMERA_POS[1] = (int32_t)(v->y >= 0 ? v->y + 0.5f : v->y - 0.5f);
         CAMERA_ANGLES[0] = (int16_t)(int32_t)wrap_angle(v->pitch);
