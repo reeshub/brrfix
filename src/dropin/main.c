@@ -102,6 +102,8 @@ static void load_config(void)
     cfg.debug_capture_frames = ini_int(path, "debug", "capture_frames", 0);
     cfg.debug_capture_from_tick = ini_int(path, "debug", "capture_from_tick", 0);
     GetPrivateProfileStringA("debug", "input", "", cfg.debug_input, sizeof cfg.debug_input, path);
+    cfg.debug_writeset_frames = ini_int(path, "debug", "writeset_frames", 0);
+    cfg.debug_writeset_from_tick = ini_int(path, "debug", "writeset_from_tick", 0);
     if (cfg.clock_original)
         cfg.fix_clock = 0;
     if (!cfg.fix_clock && cfg.fix_interpolation) {

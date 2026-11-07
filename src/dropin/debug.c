@@ -9,7 +9,13 @@
  *    for those race ticks (inclusive), so runs are repeatable tick for tick. NAME is
  *    accel, brake, left, right, nitro or reset (player 1's control set at 0x44B00A, in
  *    that order: likely), or kXX for key-table index XX in hex.
- * Neither changes how the game runs: input is what a player would press. */
+ *  - writeset_frames=N, writeset_from_tick=T: for N race frames from tick T, snapshot the
+ *    game's writable sections (0x44A000-0x56C000: DGROUP, .bss, VIRTEK_D) before each
+ *    race draw (ahead of any blending) and after it (after any restore), and count per
+ *    byte how often it changed between draws on frames that ran a tick, between draws on
+ *    frames that didn't, and during the draw. Written to BRRFIX-WRITESET.CSV as address
+ *    ranges. Memory the game allocates at run time isn't covered.
+ * None of this changes how the game runs: input is what a player would press. */
 #include "brrfix.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,6 +49,13 @@ static int input_count, input_held[MAX_INPUTS];
 static uint8_t *capture;
 static uint32_t capture_record, capture_count, capture_width, capture_height, capture_done;
 static uint32_t draw_start_us;
+
+#define WS_START 0x44A000u
+#define WS_END   0x56C000u
+static uint8_t *ws_snap;
+static uint16_t *ws_tick, *ws_notick, *ws_draw;
+static uint32_t ws_frames, ws_tick_frames, ws_done;
+static int ws_active;
 
 static int control_index(const char *name)
 {
@@ -105,9 +118,83 @@ void brr_debug_before_tick(void)
     }
 }
 
+static void ws_compare(uint16_t *counts)
+{
+    const uint8_t *now = (const uint8_t *)WS_START;
+    for (uint32_t i = 0; i < WS_END - WS_START; i++)
+        if (now[i] != ws_snap[i]) {
+            if (counts[i] < 0xFFFF)
+                counts[i]++;
+            ws_snap[i] = now[i];
+        }
+}
+
+static void ws_write(void)
+{
+    char path[MAX_PATH];
+    brr_path_beside_dll(path, sizeof path, "BRRFIX-WRITESET.CSV");
+    FILE *f = fopen(path, "w");
+    if (f) {
+        fprintf(f, "# frames %lu, frames with ticks %lu, from race tick %d, interpolation %d\n",
+                (unsigned long)ws_frames, (unsigned long)ws_tick_frames, cfg.debug_writeset_from_tick,
+                cfg.fix_interpolation);
+        fprintf(f, "start,end,tick_max,notick_max,draw_max\n");
+        uint32_t n = WS_END - WS_START, i = 0;
+        while (i < n) {
+            if (!ws_tick[i] && !ws_notick[i] && !ws_draw[i]) { i++; continue; }
+            uint32_t start = i, gap = 0, end = i;
+            unsigned t = 0, nt = 0, d = 0;
+            for (; i < n && gap <= 3; i++) {
+                if (ws_tick[i] || ws_notick[i] || ws_draw[i]) {
+                    gap = 0; end = i;
+                    if (ws_tick[i] > t) t = ws_tick[i];
+                    if (ws_notick[i] > nt) nt = ws_notick[i];
+                    if (ws_draw[i] > d) d = ws_draw[i];
+                } else gap++;
+            }
+            fprintf(f, "0x%06lX,0x%06lX,%u,%u,%u\n", (unsigned long)(WS_START + start),
+                    (unsigned long)(WS_START + end), t, nt, d);
+        }
+        fclose(f);
+    }
+    brr_log("debug writeset: %lu frames (%lu with ticks) written to %s", (unsigned long)ws_frames,
+            (unsigned long)ws_tick_frames, path);
+}
+
 void brr_debug_before_draw(void)
 {
     draw_start_us = (uint32_t)(brr_qpc() * 1000000 / brr_qpc_freq());
+    if (cfg.debug_writeset_frames <= 0 || ws_done || *GAME_TICK_COUNT < cfg.debug_writeset_from_tick)
+        return;
+    if (!ws_snap) {
+        uint32_t n = WS_END - WS_START;
+        ws_snap = VirtualAlloc(NULL, n * 7, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        if (!ws_snap) { ws_done = 1; return; }
+        ws_tick = (uint16_t *)(ws_snap + n);
+        ws_notick = ws_tick + n;
+        ws_draw = ws_notick + n;
+        memcpy(ws_snap, (void *)WS_START, n);
+        ws_active = 1;
+        brr_log("debug writeset: started at race tick %ld", (long)*GAME_TICK_COUNT);
+        return;
+    }
+    int ticked = *GAME_FRAME_TICKS != 0;
+    ws_compare(ticked ? ws_tick : ws_notick);
+    ws_tick_frames += ticked;
+    ws_active = 1;
+}
+
+/* At the very end of the race draw hook, after every restore. */
+void brr_debug_end_of_draw(void)
+{
+    if (!ws_active)
+        return;
+    ws_compare(ws_draw);
+    ws_active = 0;
+    if (++ws_frames >= (uint32_t)cfg.debug_writeset_frames) {
+        ws_done = 1;
+        ws_write();
+    }
 }
 
 static void write_capture(void)

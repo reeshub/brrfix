@@ -34,6 +34,7 @@ struct brr_config {
     int debug_camera_mode;          /* diagnostics: request this camera mode each tick (-1 = off) */
     int debug_capture_frames, debug_capture_from_tick;  /* stutter meter frame capture */
     char debug_input[256];          /* scheduled keys, e.g. accel:300-1200 */
+    int debug_writeset_frames, debug_writeset_from_tick;  /* tick write-set measurement */
 };
 
 extern struct brr_config cfg;
@@ -74,6 +75,7 @@ void brr_debug_setup(void);
 void brr_debug_before_tick(void);
 void brr_debug_before_draw(void);
 void brr_debug_after_draw(void);
+void brr_debug_end_of_draw(void);
 
 /* thunks.S */
 void brr_hook_retrace(void);

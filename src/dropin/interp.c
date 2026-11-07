@@ -344,4 +344,5 @@ void __cdecl brr_after_draw(void)
                 }
     }
     brr_camera_restore();
+    brr_debug_end_of_draw();  /* after every restore */
 }
