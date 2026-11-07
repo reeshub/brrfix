@@ -154,6 +154,8 @@ void __cdecl brr_after_tick(void)
         brr_log("interpolation: race screen restarted at tick %ld", (long)tick);
     }
     last_tick_seen = tick;
+    if (cfg.debug_camera_mode >= 0 && cfg.debug_camera_mode <= 5)
+        *(uint16_t *)camera_records[0] = (uint16_t)cfg.debug_camera_mode;  /* as a finished view change does */
     if (state_csv)
         log_state(tick);
     if (!cfg.fix_interpolation)
@@ -204,6 +206,7 @@ void __cdecl brr_after_tick(void)
 void __cdecl brr_before_draw(void)
 {
     prof_mark = brr_qpc();
+    brr_camera_before_draw();
     frames_drawn++;
     if (cfg.check_restore)
         for (int i = 0; i < GAME_VEHICLE_COUNT; i++)
@@ -334,4 +337,5 @@ void __cdecl brr_after_draw(void)
                             (unsigned long)b);
                 }
     }
+    brr_camera_restore();
 }

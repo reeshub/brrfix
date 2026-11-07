@@ -27,14 +27,16 @@ struct brr_config {
     int cap;                 /* catch-up cap in ticks (original 35) */
     int frame_limit;         /* frames per second; 0 = display refresh, -1 = none */
     int interp_delay_milli;  /* display delay in thousandths of a tick (2000) */
+    int camera_smoothing;    /* 0 = off; time constant in tenths of a tick (50 = 71 ms) */
     int log, log_clock, log_state, log_camera, check_restore;
     int debug_ignore_exe_checksum;  /* tests only: check the patch sites even if the file differs */
+    int debug_camera_mode;          /* diagnostics: request this camera mode each tick (-1 = off) */
 };
 
 extern struct brr_config cfg;
 extern volatile LONG brr_timer_count;  /* exported as _TIMER_Count */
 extern int brr_patched;                /* 1 when every check passed and patches are in */
-extern uint32_t brr_orig_race_tick, brr_orig_race_draw;
+extern uint32_t brr_orig_race_tick, brr_orig_race_draw, brr_orig_camera_update;
 
 /* main.c */
 void brr_log(const char *format, ...);
@@ -70,5 +72,11 @@ void brr_hook_clock_read(void);
 void brr_hook_race_tick(void);
 void brr_hook_race_draw(void);
 void brr_hook_cam4(void);
+void brr_hook_camera_update(void);
+
+/* camera.c */
+void __cdecl brr_after_camera_update(uint32_t record);
+void brr_camera_before_draw(void);
+void brr_camera_restore(void);
 
 #endif

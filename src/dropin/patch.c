@@ -10,6 +10,7 @@
 
 int brr_patched;
 uint32_t brr_orig_race_tick = GAME_RACE_TICK, brr_orig_race_draw = GAME_RACE_DRAW;
+uint32_t brr_orig_camera_update = 0x404908;
 
 /* ---- SHA-256 (FIPS 180-4) ---- */
 static const uint32_t K[64] = {
@@ -151,8 +152,11 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "vga")) return cfg.fix_vga;
     if (!strcmp(fix, "clock")) return cfg.fix_clock;
     if (!strcmp(fix, "cap")) return cfg.fix_cap;
-    if (!strcmp(fix, "interpolation"))  /* the race hooks also carry the verification logs */
-        return cfg.fix_interpolation || cfg.log_state || cfg.log_camera || cfg.check_restore;
+    if (!strcmp(fix, "interpolation"))  /* the race hooks also carry the logs and the camera restore */
+        return cfg.fix_interpolation || cfg.log_state || cfg.log_camera || cfg.check_restore
+            || cfg.fix_camera || cfg.camera_smoothing > 0;
+    if (!strcmp(fix, "camera_view"))
+        return cfg.fix_camera || cfg.camera_smoothing > 0;
     if (!strcmp(fix, "camera")) return cfg.fix_camera;
     return 0;
 }
@@ -186,6 +190,9 @@ static int replacement(const struct site_info *s, uint8_t *out)
         put_abs32(out, (void *)brr_hook_race_tick);
     } else if (!strcmp(n, "race_draw_callback") && s->length == 4) {
         put_abs32(out, (void *)brr_hook_race_draw);
+    } else if (!strcmp(n, "camera_update_call") && s->length == 5) {
+        out[0] = 0xE8;
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_camera_update);
     } else if (!strcmp(n, "approach_clamped") && s->length == 5) {
         out[0] = 0xB0;  /* MOV AL,1 */
         out[1] = 0x01;

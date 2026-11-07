@@ -77,6 +77,14 @@
    "length": 14,
    "patch": "MOV AX,[ESI+0x10]; MOV word [ESI+0x24],0; MOV [ESI+0x46],AX -> MOV word [ESI+0x24],0; CALL brr_hook_cam4; NOP x3 (stores 'previous' only when a tick ran)",
    "sha256": "409459756a39b938e4569fbf6818f0a371759b287684b91576afc7b8afc5552a"
+  },
+  {
+   "name": "camera_update_call",
+   "fix": "camera_view",
+   "address": "0x4176D6",
+   "length": 5,
+   "patch": "render_view: CALL camera_update -> CALL brr_hook_camera_update (calls camera_update, then for drawing only recomputes the follow camera's roll over 7 ticks and applies camera smoothing; the game's values are restored after the draw)",
+   "sha256": "d38fd5230997904d6230a4190294fda8effa7a5158a3771c2fd1e43cb7dbf81c"
   }
  ],
  "protected_about": "Game functions reachable from the race tick (direct calls, Phase 3 call graph) except approach_clamped, which is patched on purpose. The DLL hashes them before and after patching.",

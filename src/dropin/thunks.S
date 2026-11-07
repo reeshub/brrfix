@@ -70,6 +70,19 @@ _brr_hook_race_draw:
         popad
         ret
 
+# render_view's call to camera_update (record in EAX; its result in EAX is used).
+        .globl  _brr_hook_camera_update
+_brr_hook_camera_update:
+        push    eax
+        call    dword ptr [_brr_orig_camera_update]
+        pushad
+        push    dword ptr [esp + 32]
+        call    _brr_after_camera_update
+        add     esp, 4
+        popad
+        add     esp, 4
+        ret
+
 # camera_mode4: AX = [ESI+0x10] as before, but "previous" ([ESI+0x46]) is only
 # updated when this frame ran at least one tick.
         .globl  _brr_hook_cam4
