@@ -151,7 +151,8 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "vga")) return cfg.fix_vga;
     if (!strcmp(fix, "clock")) return cfg.fix_clock;
     if (!strcmp(fix, "cap")) return cfg.fix_cap;
-    if (!strcmp(fix, "interpolation")) return cfg.fix_interpolation;
+    if (!strcmp(fix, "interpolation"))  /* the race hooks also carry the verification logs */
+        return cfg.fix_interpolation || cfg.log_state || cfg.log_camera || cfg.check_restore;
     if (!strcmp(fix, "camera")) return cfg.fix_camera;
     return 0;
 }
