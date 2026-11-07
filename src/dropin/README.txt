@@ -12,6 +12,11 @@ Linux/Steam Deck through Proton, and makes it run smoothly:
 - Smooth movement at any refresh rate: the trucks and the follow camera are
   drawn between the game's physics steps, which happen 35 times a second.
 - Two camera calculations that depended on the frame rate are fixed.
+- No more camera stutter: the 3D engine could only tilt and turn the view in
+  steps of 0.35 degrees, so the picture jolted up and down as the camera moved,
+  and the camera's lean flicked with every step. The race is now drawn with
+  finer angles and a steady lean (BRRFIX.INI, [camera]: fine_angles, roll_fix;
+  set them to 0 for the original look).
 - The physics is left exactly as it was: the same game, bit for bit.
 
 It contains no part of the game. It changes the game only in memory while it
