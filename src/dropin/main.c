@@ -99,6 +99,9 @@ static void load_config(void)
     cfg.check_restore = ini_int(path, "log", "check_restore", 0);
     cfg.debug_ignore_exe_checksum = ini_int(path, "debug", "ignore_exe_checksum", 0);
     cfg.debug_camera_mode = ini_int(path, "debug", "camera_mode", -1);
+    cfg.debug_capture_frames = ini_int(path, "debug", "capture_frames", 0);
+    cfg.debug_capture_from_tick = ini_int(path, "debug", "capture_from_tick", 0);
+    GetPrivateProfileStringA("debug", "input", "", cfg.debug_input, sizeof cfg.debug_input, path);
     if (cfg.clock_original)
         cfg.fix_clock = 0;
     if (!cfg.fix_clock && cfg.fix_interpolation) {
@@ -159,6 +162,7 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
                 cfg.interp_delay_milli / 1000, cfg.interp_delay_milli % 1000, cfg.camera_smoothing);
         brr_patch_all();
         brr_interp_setup();
+        brr_debug_setup();
     } else if (reason == DLL_PROCESS_DETACH) {
         brr_interp_close();
         if (log_file) {

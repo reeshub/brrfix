@@ -31,7 +31,7 @@ GAME = WORK / "game"
 COMPILER = "i686-w64-mingw32-gcc"
 SYSTEM_DLLS = {"kernel32.dll", "user32.dll", "gdi32.dll", "winmm.dll", "msvcrt.dll",
                "advapi32.dll"}
-C_FILES = ["main.c", "clock.c", "patch.c", "interp.c", "camera.c", "thunks.S", "timer.def"]
+C_FILES = ["main.c", "clock.c", "patch.c", "interp.c", "camera.c", "debug.c", "thunks.S", "timer.def"]
 
 
 class BuildError(Exception):

@@ -142,7 +142,11 @@ static void log_state(int32_t tick)
 extern int64_t brr_prof_draw, brr_prof_ticks;
 static int64_t prof_mark;
 
-void __cdecl brr_before_tick(void) { prof_mark = brr_qpc(); }
+void __cdecl brr_before_tick(void)
+{
+    prof_mark = brr_qpc();
+    brr_debug_before_tick();
+}
 
 void __cdecl brr_after_tick(void)
 {
@@ -207,6 +211,7 @@ void __cdecl brr_before_draw(void)
 {
     prof_mark = brr_qpc();
     brr_camera_before_draw();
+    brr_debug_before_draw();
     frames_drawn++;
     if (cfg.check_restore)
         for (int i = 0; i < GAME_VEHICLE_COUNT; i++)
@@ -293,6 +298,7 @@ void __cdecl brr_before_draw(void)
 void __cdecl brr_after_draw(void)
 {
     brr_prof_draw += brr_qpc() - prof_mark;
+    brr_debug_after_draw();  /* before anything is restored */
     uint8_t *camera = (uint8_t *)0x4529C0;  /* camera_view1 */
     uint32_t followed = *(uint32_t *)(camera + 0x40);
     int slot = (followed >= GAME_VEHICLES && followed < GAME_VEHICLES + GAME_VEHICLE_COUNT * GAME_VEHICLE_SIZE)
