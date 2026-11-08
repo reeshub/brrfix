@@ -100,6 +100,17 @@ static void load_config(void)
     GetPrivateProfileStringA("display", "aspect", "square", text, sizeof text, path);
     cfg.window_aspect43 = !lstrcmpiA(text, "4:3");
     cfg.debug_log_mouse = ini_int(path, "debug", "log_mouse", 0);
+    cfg.controller = ini_int(path, "controller", "enabled", 1);
+    cfg.pad_deadzone = ini_int(path, "controller", "deadzone", 15);
+    if (cfg.pad_deadzone < 0 || cfg.pad_deadzone > 60) cfg.pad_deadzone = 15;
+    cfg.pad_sensitivity = ini_int(path, "controller", "sensitivity", 100);
+    if (cfg.pad_sensitivity < 10 || cfg.pad_sensitivity > 300) cfg.pad_sensitivity = 100;
+    cfg.pad_curve = ini_int(path, "controller", "curve", 150);
+    if (cfg.pad_curve < 100 || cfg.pad_curve > 300) cfg.pad_curve = 150;
+    GetPrivateProfileStringA("controller", "layout", "triggers", text, sizeof text, path);
+    cfg.pad_triggers = lstrcmpiA(text, "stick") != 0;
+    cfg.pad_analogue = ini_int(path, "controller", "analogue", 1);
+    cfg.debug_pad_test = ini_int(path, "debug", "pad_test", 0);
     cfg.music = ini_int(path, "music", "music", 1);
     cfg.music_volume = ini_int(path, "music", "volume", 100);
     if (cfg.music_volume < 0 || cfg.music_volume > 100)

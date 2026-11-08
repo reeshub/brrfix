@@ -31,6 +31,8 @@ struct brr_config {
     int window_aspect43;     /* stretch the height by 1.2, as a 4:3 monitor showed 320x200 */
     int debug_log_mouse;     /* log mouse positions in a window (tests) */
     int music, music_volume, music_follow_game;  /* [music] */
+    int controller, pad_deadzone, pad_sensitivity, pad_curve, pad_triggers, pad_analogue;  /* [controller] */
+    int debug_pad_test;      /* tests: a simulated pad (half right, full throttle) */
     char music_folder[MAX_PATH];
     int display_mode;        /* DISPLAY_WINDOWED, DISPLAY_FULLSCREEN or DISPLAY_ASK */
     int vsync;               /* wait for the vertical blank before the windowed present */
@@ -91,6 +93,12 @@ void __cdecl brr_after_draw(void);
 #define DISPLAY_WINDOWED 0
 #define DISPLAY_FULLSCREEN 1
 #define DISPLAY_ASK 2
+
+/* controller.c */
+extern uint32_t brr_orig_joystick_to_keys;
+void brr_controller_start(void);
+void __cdecl brr_before_joystick(void);
+void brr_hook_joystick(void);
 
 /* music.c */
 int brr_music_check(void);

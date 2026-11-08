@@ -99,6 +99,8 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "camera_view"))  /* experimental, off by default */
         return cfg.camera_roll_fix || cfg.camera_smoothing > 0 || cfg.debug_hold_pitch || cfg.debug_hold_roll
             || cfg.fine_angles;
+    if (!strcmp(fix, "controller"))
+        return cfg.controller || cfg.debug_pad_test;
     if (!strcmp(fix, "display"))
         return cfg.display_mode != DISPLAY_ASK;
     if (!strcmp(fix, "vsync"))
@@ -149,6 +151,9 @@ static int replacement(const struct site_info *s, uint8_t *out)
         out[0] = 0xE9;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_present);
         memset(out + 5, 0x90, 5);  /* NOPs after the jump (never reached) */
+    } else if (!strcmp(n, "joystick_call") && s->length == 5) {
+        out[0] = 0xE8;
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_joystick);
     } else if (!strcmp(n, "display_choice") && s->length == 5) {
         out[0] = 0xE8;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_display_choice);
@@ -282,6 +287,7 @@ void brr_patch_all(void)
     }
     brr_patched = 1;
     brr_music_start();
+    brr_controller_start();
     int changed = ranges_match("after patching");
     brr_log("result: %d of %u sites patched; %u protected game functions (vehicle_physics, "
             "bounce_pitch, bounce_roll and everything else the race tick calls) %s",

@@ -26,6 +26,8 @@
         extrn   _brr_game_atan:dword
         extrn   _brr_before_present_window:near
         extrn   _brr_display_choice:near
+        extrn   _brr_before_joystick:near
+        extrn   _brr_orig_joystick_to_keys:dword
         extrn   _brr_present_gdi:near
         extrn   _brr_gdi_present:dword
         extrn   _brr_present_continue:dword
@@ -40,7 +42,7 @@
         public  _brr_hook_playback_tick, _brr_hook_playback_draw
         public  _brr_rotation_original, _brr_call_rotation_original
         public  _brr_call_game_atan, _brr_hook_cam4, _brr_hook_present_window
-        public  _brr_hook_display_choice, _brr_hook_present
+        public  _brr_hook_display_choice, _brr_hook_present, _brr_hook_joystick
 
         .code
 
@@ -251,6 +253,14 @@ present_original:
         push    edx
         cmp     byte ptr ds:[52D720h], 0
         jmp     dword ptr [_brr_present_continue]
+
+; run_screen_frame's call to joystick_to_keys (0x428D1D): the pad's state goes into
+; the game's joystick variables first, then the original runs.
+_brr_hook_joystick:
+        pushad
+        call    _brr_before_joystick
+        popad
+        jmp     dword ptr [_brr_orig_joystick_to_keys]
 
 ; camera_mode4: AX = [ESI+10h] as before, but "previous" ([ESI+46h]) is only
 ; updated when this frame ran at least one tick (frame_ticks, 44BF80h).
