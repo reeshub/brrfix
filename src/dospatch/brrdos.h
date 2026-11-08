@@ -38,6 +38,7 @@ extern s32 game_camera_pos[3];               /* the camera the renderer draws fr
 extern s16 game_camera_angles[3];            /* pitch, yaw, roll */
 extern u32 game_camera_heights[];            /* per vehicle type, 8 bytes each (camera mode 3) */
 extern u32 game_rand_seed;                   /* Watcom rand() */
+extern s32 game_detail_level;                /* 10-22, raised and lowered by frame time */
 extern u8 *game_frame_buffer;
 extern u16 game_frame_width;
 extern u16 game_frame_height;

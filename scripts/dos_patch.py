@@ -37,8 +37,10 @@ Testing only (the "logging build"; never for players):
                      left, right, or kXX for scan code XX in hex)
   --seed N           set the random seed when a race starts (repeatable runs)
   --capture N@T      keep N frames from race tick T in memory and write BRRCAP.BIN
-  --prove            compare the fine-angle routine with the original (all 1024^3
-                     multiples of 64) at the first race frame, then quit; BRRLOG.TXT
+  --prove [F-L]      at the first race frame, compare the fine-angle routine with the
+                     original for every multiple of 64 (pitch steps F to L of 0-1023;
+                     default all: 1024^3 combinations), in BRRLOG.TXT; the game
+                     carries on afterwards
 """
 
 import argparse
@@ -317,7 +319,11 @@ def parse_options(spec, args):
         count, _, tick = args.capture.partition("@")
         values["capture_frames"], values["capture_tick"] = int(count), int(tick or 0)
     if args.prove:
-        values["prove"] = 1
+        first, _, last = args.prove.partition("-")
+        first, last = int(first), int(last or 1023)
+        if not 0 <= first <= last <= 1023:
+            raise PatchError("--prove FIRST-LAST: pitch steps 0-1023")
+        values["prove"] = 1 + 2 * first + 65536 * (last + 1)
     if args.input:
         values["input"] = parse_input(spec, args.input)
     return with_hooks(values)
@@ -534,7 +540,7 @@ def parse_args(argv):
     parser.add_argument("--input", dest="input_spec")
     parser.add_argument("--seed", type=lambda s: int(s, 0))
     parser.add_argument("--capture")
-    parser.add_argument("--prove", action="store_true")
+    parser.add_argument("--prove", nargs="?", const="0-1023")
     args = parser.parse_args(argv)
     args.input, args.input_path = args.input_spec, args.input
     return args

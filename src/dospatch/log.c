@@ -98,7 +98,7 @@ static void open_files(void)
     camera_file.handle = dos_create("BRRCAM.CSV");
     put(&state_file, "tick,slot,state,x,y,z,o1,o2,o3,fwd,side,spin1,spin2,spin3,contacts,record_fnv1a\r\n");
     put(&camera_file, "frame,tick_count,frame_ticks,blended,cam_x,cam_y,cam_z,cam_a1,cam_a2,cam_a3,"
-                      "cam_mode,cam_vehicle,drawn_x,drawn_z,fast\r\n");
+                      "cam_mode,cam_vehicle,drawn_x,drawn_z,fast,detail\r\n");
     log_text("Big Red Racing DOS patch, logging build: ");
     log_text(brr_tag);
     log_line();
@@ -297,7 +297,8 @@ void log_after_draw(int blended)
         field(&camera_file, slot);
         field(&camera_file, slot >= 0 ? *(s32 *)vehicle(slot) : 0);
         field(&camera_file, slot >= 0 ? *(s32 *)(vehicle(slot) + 8) : 0);
-        put_number(&camera_file, brr_fast);
+        field(&camera_file, brr_fast);
+        put_number(&camera_file, game_detail_level);
         put(&camera_file, "\r\n");
         if (OPTION(OPT_CAPTURE_FRAMES) && game_tick_count >= (s32)OPTION(OPT_CAPTURE_TICK) &&
                 capture_count < OPTION(OPT_CAPTURE_FRAMES))
@@ -323,18 +324,27 @@ void log_after_draw(int blended)
     }
 }
 
-/* --prove: rotation_matrix against brr_rotation_fine for every multiple of 64 */
+/* --prove: rotation_matrix against brr_rotation_fine for every multiple of 64. The
+ * option holds 1 + 2 x the first pitch step + 65536 x (the last pitch step + 1), in
+ * steps of 64 units (0-1023), so a long proof can be done in parts. */
 void prove_fine_angles(void)
 {
+    u32 option = OPTION(OPT_PROVE), first = (option >> 1) & 0x7FF, last = option >> 16;
     static s32 m1[9], m2[9];
     struct rot_args a1, a2;
     u32 saved[4], g1[4], g2[4], pitch, yaw, roll, mismatches = 0, combinations = 0;
     u16 started = game_timer_ticks;
     int k, bad;
     saved[0] = game_rot_a; saved[1] = game_rot_b; saved[2] = game_rot_c; saved[3] = (u32)game_rot_sin_a;
-    log_text("prove fine angles: comparing all 1024^3 multiples of 64 with the original routine");
+    if (!last || last > 1024)
+        last = 1024;
+    log_text("prove fine angles: comparing multiples of 64 with the original routine, pitch ");
+    log_number((s32)(first * 64));
+    log_text(" to ");
+    log_number((s32)(last * 64 - 64));
+    log_text(", every yaw and roll");
     log_line();
-    for (pitch = 0; pitch < 65536; pitch += 64) {
+    for (pitch = first * 64; pitch < last * 64; pitch += 64) {
         if (pitch % 4096 == 0) {
             log_text("prove fine angles: pitch ");
             log_number((s32)pitch);
