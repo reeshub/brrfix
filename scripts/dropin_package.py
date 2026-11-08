@@ -47,7 +47,7 @@ def main(args):
     if not dll.exists():
         print("dropin-package: build it first: python3 brr.py dropin-build")
         return 1
-    version = re.search(r'BRRFIX_VERSION "([^"]+)"', (SOURCE / "brrfix.h").read_text()).group(1)
+    version = re.search(r'BRRFIX_VERSION "([^"]+)"', (SOURCE / "version.h").read_text()).group(1)
     winrace = json.loads(MANIFEST.read_text())["game"]["WINRACE.EXE"]["sha256"]
     readme = (SOURCE / "README.txt").read_text().replace("@VERSION@", version)
     readme = readme.replace("@WINRACE_SHA256@", winrace)

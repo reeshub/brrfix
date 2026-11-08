@@ -7,7 +7,7 @@
 #include <windows.h>
 #include <stdint.h>
 
-#define BRRFIX_VERSION "0.1.0"
+#include "version.h"
 
 /* Addresses in WINRACE.EXE v2.25 (image base 0x400000, never relocated). */
 #define GAME_FRAME_TICKS   ((volatile uint8_t *)0x44BF80)

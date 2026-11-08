@@ -1,0 +1,441 @@
+/* Big Red Racing.exe: the launcher (round 2, item 8). Our own program, placed next to
+ * WINRACE.EXE, so Steam shows a proper name. It shows a settings window (which can be
+ * skipped), checks the game's files, then starts WINRACE.EXE and waits for it to exit.
+ *
+ * Settings live in BRRFIX.INI (the drop-in's) and ddraw.ini (cnc-ddraw's). They're
+ * changed with WritePrivateProfileStringA, value by value, so comments, layout and keys
+ * the launcher doesn't know about are kept. Windows 95 compatible: ANSI functions that
+ * Windows 95 has; anything newer is looked up at run time.
+ *
+ * Command line: -play starts the game straight away; -setup always shows the window;
+ * holding Shift while starting also shows it. Anything else goes to WINRACE.EXE. */
+#include <windows.h>
+#include <shlobj.h>
+#include <string.h>
+#include "resource.h"
+#include "version.h"
+#include "game.h"
+#include "sha256.h"
+#include "tracks.h"
+
+static char folder[MAX_PATH], brrfix_ini[MAX_PATH], ddraw_ini[MAX_PATH];
+static int windows_9x, under_wine;
+
+/* ---- choices, in the order the combo boxes show them ---- */
+struct choice { const char *label, *value; };
+
+static const struct choice modes[] = {
+    {"In its own window", "windowed"}, {"Full screen", "fullscreen"}, {"Ask, as in 1996", "ask"}, {0, 0}};
+static const struct choice scales[] = {
+    {"Largest that fits", "auto"}, {"1x (320x200)", "1"}, {"2x", "2"}, {"3x", "3"}, {"4x", "4"},
+    {"5x", "5"}, {"6x", "6"}, {0, 0}};
+static const struct choice presets[] = {
+    {"Integer (sharp)", "integer"}, {"4:3 sharp", "43sharp"}, {"4:3 nearest", "43nearest"},
+    {"Stretch", "stretch"}, {"Smooth", "smooth"}, {0, 0}};
+static const struct choice smoothings[] = {
+    {"Off", "0"}, {"Light", "25"}, {"Medium", "50"}, {"Strong", "100"}, {0, 0}};
+static const struct choice frame_limits[] = {
+    {"Display's rate", "auto"}, {"Unlocked", "0"}, {"30 fps", "30"}, {"60 fps", "60"}, {"120 fps", "120"},
+    {"144 fps", "144"}, {"240 fps", "240"}, {0, 0}};
+static const struct choice volumes[] = {
+    {"100%", "100"}, {"90%", "90"}, {"80%", "80"}, {"70%", "70"}, {"60%", "60"}, {"50%", "50"}, {"40%", "40"},
+    {"30%", "30"}, {"20%", "20"}, {"10%", "10"}, {"0%", "0"}, {0, 0}};
+static const struct choice deadzones[] = {
+    {"0%", "0"}, {"5%", "5"}, {"10%", "10"}, {"15%", "15"}, {"20%", "20"}, {"25%", "25"}, {"30%", "30"}, {0, 0}};
+static const struct choice sensitivities[] = {
+    {"50%", "50"}, {"75%", "75"}, {"100%", "100"}, {"125%", "125"}, {"150%", "150"}, {"200%", "200"}, {0, 0}};
+static const struct choice layouts[] = {{"Triggers", "triggers"}, {"Stick", "stick"}, {0, 0}};
+static const struct choice rates[] = {{"70.0 (steady)", "70.0"}, {"71.43 (original)", "71.43"}, {0, 0}};
+static const struct choice caps[] = {{"8 ticks", "8"}, {"35 (original)", "35"}, {0, 0}};
+
+/* the cnc-ddraw keys for each full-screen preset: boxing, maintas, aspect_ratio, shader, d3d9_filter */
+static const char *const preset_keys[5][5] = {
+    {"true", "true", "", "Shaders\\nearest-neighbor.glsl", "0"},
+    {"false", "true", "4:3", "Shaders\\interpolation\\lanczos2-sharp.glsl", "0"},
+    {"false", "true", "4:3", "Shaders\\nearest-neighbor.glsl", "0"},
+    {"false", "false", "", "Shaders\\nearest-neighbor.glsl", "0"},
+    {"false", "true", "", "Shaders\\interpolation\\catmull-rom-bilinear.glsl", "1"}};
+
+/* ---- the INI files ---- */
+/* file NULL: just the fallback (the defaults) */
+static void ini_get(const char *file, const char *section, const char *key, const char *fallback, char *out, int size)
+{
+    if (file)
+        GetPrivateProfileStringA(section, key, fallback, out, size, file);
+    else
+        lstrcpynA(out, fallback, size);
+}
+
+static int ini_flag(const char *section, const char *key, int fallback)
+{
+    return (int)GetPrivateProfileIntA(section, key, fallback, brrfix_ini) != 0;
+}
+
+static void ini_set(const char *file, const char *section, const char *key, const char *value)
+{
+    WritePrivateProfileStringA(section, key, value, file);
+}
+
+/* ---- combo boxes ---- */
+static void fill(HWND dialog, int id, const struct choice *list, const char *value)
+{
+    HWND box = GetDlgItem(dialog, id);
+    int i, chosen = 0;
+    SendMessageA(box, CB_RESETCONTENT, 0, 0);
+    for (i = 0; list[i].label; i++) {
+        SendMessageA(box, CB_ADDSTRING, 0, (LPARAM)list[i].label);
+        if (!lstrcmpiA(list[i].value, value))
+            chosen = i;
+    }
+    SendMessageA(box, CB_SETCURSEL, (WPARAM)chosen, 0);  /* unreadable values fall back to the first */
+}
+
+static const char *chosen(HWND dialog, int id, const struct choice *list)
+{
+    LRESULT i = SendDlgItemMessageA(dialog, id, CB_GETCURSEL, 0, 0);
+    return i >= 0 ? list[i].value : list[0].value;
+}
+
+static void check(HWND dialog, int id, int on) { CheckDlgButton(dialog, id, on ? BST_CHECKED : BST_UNCHECKED); }
+static int checked(HWND dialog, int id) { return IsDlgButtonChecked(dialog, id) == BST_CHECKED; }
+
+static void music_folder(const char *setting, char *out)
+{
+    if (setting[0] && (setting[1] == ':' || setting[0] == '\\'))
+        lstrcpynA(out, setting, MAX_PATH);
+    else
+        wsprintfA(out, "%s\\%s", folder, setting[0] ? setting : "MUSIC");
+}
+
+static void show_track_count(HWND dialog)
+{
+    char setting[MAX_PATH], path[MAX_PATH], text[96];
+    int count;
+    GetDlgItemTextA(dialog, IDC_FOLDER, setting, sizeof setting);
+    music_folder(setting, path);
+    count = brr_count_tracks(path);
+    if (count)
+        wsprintfA(text, "%d tracks found.", count);
+    else
+        lstrcpyA(text, "No tracks found (trackNN.flac, .ogg or .wav).");
+    SetDlgItemTextA(dialog, IDC_TRACKS, text);
+}
+
+/* Put the settings into the window: from the files, or the defaults */
+static void load(HWND dialog, int defaults)
+{
+    char v[MAX_PATH];
+    const char *f = defaults ? NULL : brrfix_ini, *d = defaults ? NULL : ddraw_ini;
+#define GET(file, section, key, fallback) (ini_get(file, section, key, fallback, v, sizeof v), v)
+    fill(dialog, IDC_MODE, modes, GET(f, "display", "mode", "windowed"));
+    fill(dialog, IDC_SCALE, scales, GET(f, "display", "window_scale", "auto"));
+    check(dialog, IDC_ASPECT, !lstrcmpiA(GET(f, "display", "aspect", "square"), "4:3"));
+    {   /* which preset ddraw.ini matches: by its boxing, aspect_ratio and shader */
+        char boxing[16], aspect[16], shader[MAX_PATH], maintas[16];
+        int i, found = 0;
+        ini_get(d, "ddraw", "boxing", "true", boxing, sizeof boxing);
+        ini_get(d, "ddraw", "maintas", "true", maintas, sizeof maintas);
+        ini_get(d, "ddraw", "aspect_ratio", "", aspect, sizeof aspect);
+        ini_get(d, "ddraw", "shader", preset_keys[0][3], shader, sizeof shader);
+        for (i = 0; i < 5; i++)
+            if (!lstrcmpiA(boxing, preset_keys[i][0]) && !lstrcmpiA(maintas, preset_keys[i][1])
+                && !lstrcmpiA(aspect, preset_keys[i][2]) && !lstrcmpiA(shader, preset_keys[i][3]))
+                found = i;
+        fill(dialog, IDC_PRESET, presets, presets[found].value);
+    }
+    check(dialog, IDC_INTERP, defaults ? 1 : ini_flag("fixes", "interpolation", 1));
+    fill(dialog, IDC_SMOOTHING, smoothings, GET(f, "camera", "smoothing", "0"));
+    fill(dialog, IDC_FRAMES, frame_limits, GET(f, "clock", "frame_limit", "auto"));
+    if (windows_9x || defaults)
+        check(dialog, IDC_VSYNC, defaults ? 0 : ini_flag("clock", "vsync", 0));
+    else {  /* with cnc-ddraw, vsync is its setting */
+        GET(d, "ddraw", "vsync", "false");
+        check(dialog, IDC_VSYNC, !lstrcmpiA(v, "true"));
+    }
+    check(dialog, IDC_MUSIC, defaults ? 1 : ini_flag("music", "music", 1));
+    fill(dialog, IDC_VOLUME, volumes, GET(f, "music", "volume", "100"));
+    SetDlgItemTextA(dialog, IDC_FOLDER, GET(f, "music", "folder", "MUSIC"));
+    check(dialog, IDC_PAD, defaults ? 1 : ini_flag("controller", "enabled", 1));
+    fill(dialog, IDC_DEADZONE, deadzones, GET(f, "controller", "deadzone", "15"));
+    fill(dialog, IDC_SENSITIVITY, sensitivities, GET(f, "controller", "sensitivity", "100"));
+    fill(dialog, IDC_LAYOUT, layouts, GET(f, "controller", "layout", "triggers"));
+    fill(dialog, IDC_RATE, rates, GET(f, "clock", "tick_rate", "70.0"));
+    fill(dialog, IDC_CAP, caps, GET(f, "clock", "catch_up_cap", "8"));
+    check(dialog, IDC_LOG, defaults ? 1 : ini_flag("log", "log", 1));
+    if (!defaults)
+        check(dialog, IDC_SKIP, ini_flag("launcher", "skip", 0));
+#undef GET
+    show_track_count(dialog);
+}
+
+static void save(HWND dialog)
+{
+    char text[MAX_PATH];
+    const char *mode = chosen(dialog, IDC_MODE, modes);
+    int preset = (int)SendDlgItemMessageA(dialog, IDC_PRESET, CB_GETCURSEL, 0, 0), i;
+    static const char *const preset_names[5] = {"boxing", "maintas", "aspect_ratio", "shader", "d3d9_filter"};
+    ini_set(brrfix_ini, "display", "mode", mode);
+    ini_set(brrfix_ini, "display", "window_scale", chosen(dialog, IDC_SCALE, scales));
+    ini_set(brrfix_ini, "display", "aspect", checked(dialog, IDC_ASPECT) ? "4:3" : "square");
+    ini_set(brrfix_ini, "fixes", "interpolation", checked(dialog, IDC_INTERP) ? "1" : "0");
+    ini_set(brrfix_ini, "camera", "smoothing", chosen(dialog, IDC_SMOOTHING, smoothings));
+    ini_set(brrfix_ini, "clock", "frame_limit", chosen(dialog, IDC_FRAMES, frame_limits));
+    ini_set(brrfix_ini, "clock", "tick_rate", chosen(dialog, IDC_RATE, rates));
+    ini_set(brrfix_ini, "clock", "catch_up_cap", chosen(dialog, IDC_CAP, caps));
+    ini_set(brrfix_ini, "music", "music", checked(dialog, IDC_MUSIC) ? "1" : "0");
+    ini_set(brrfix_ini, "music", "volume", chosen(dialog, IDC_VOLUME, volumes));
+    GetDlgItemTextA(dialog, IDC_FOLDER, text, sizeof text);
+    ini_set(brrfix_ini, "music", "folder", text[0] ? text : "MUSIC");
+    ini_set(brrfix_ini, "controller", "enabled", checked(dialog, IDC_PAD) ? "1" : "0");
+    ini_set(brrfix_ini, "controller", "deadzone", chosen(dialog, IDC_DEADZONE, deadzones));
+    ini_set(brrfix_ini, "controller", "sensitivity", chosen(dialog, IDC_SENSITIVITY, sensitivities));
+    ini_set(brrfix_ini, "controller", "layout", chosen(dialog, IDC_LAYOUT, layouts));
+    ini_set(brrfix_ini, "log", "log", checked(dialog, IDC_LOG) ? "1" : "0");
+    ini_set(brrfix_ini, "launcher", "skip", checked(dialog, IDC_SKIP) ? "1" : "0");
+    if (windows_9x)
+        ini_set(brrfix_ini, "clock", "vsync", checked(dialog, IDC_VSYNC) ? "1" : "0");
+    else {
+        /* cnc-ddraw: the window mode follows ours, and the full-screen preset */
+        ini_set(ddraw_ini, "ddraw", "windowed", lstrcmpiA(mode, "fullscreen") ? "true" : "false");
+        ini_set(ddraw_ini, "ddraw", "vsync", checked(dialog, IDC_VSYNC) ? "true" : "false");
+        if (preset < 0 || preset > 4)
+            preset = 0;
+        for (i = 0; i < 5; i++)
+            ini_set(ddraw_ini, "ddraw", preset_names[i], preset_keys[preset][i]);
+    }
+}
+
+static void browse(HWND dialog)
+{
+    char path[MAX_PATH];
+    BROWSEINFOA info;
+    LPITEMIDLIST chosen_item;
+    memset(&info, 0, sizeof info);
+    info.hwndOwner = dialog;
+    info.pszDisplayName = path;
+    info.lpszTitle = "The folder with the ripped CD tracks (trackNN.flac, .ogg or .wav):";
+    info.ulFlags = BIF_RETURNONLYFSDIRS;
+    chosen_item = SHBrowseForFolderA(&info);
+    if (chosen_item && SHGetPathFromIDListA(chosen_item, path)) {
+        SetDlgItemTextA(dialog, IDC_FOLDER, path);
+        show_track_count(dialog);
+    }
+}
+
+static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam)
+{
+    (void)lparam;
+    if (message == WM_INITDIALOG) {
+        static const int pad_controls[] = {IDC_PAD_GROUP, IDC_PAD, IDC_DEADZONE, IDC_SENSITIVITY, IDC_LAYOUT,
+                                           IDC_PAD_L1, IDC_PAD_L2, IDC_PAD_L3};
+        char title[96];
+        size_t i;
+        wsprintfA(title, "Big Red Racing (drop-in fix %s)", BRRFIX_VERSION);
+        SetWindowTextA(dialog, title);
+        SendMessageA(dialog, WM_SETICON, ICON_BIG, (LPARAM)LoadIconA(GetModuleHandleA(NULL), MAKEINTRESOURCEA(IDI_APP)));
+        load(dialog, 0);
+        if (windows_9x) {  /* no cnc-ddraw (DirectDraw does full screen itself) and no XInput */
+            ShowWindow(GetDlgItem(dialog, IDC_PRESET), SW_HIDE);
+            ShowWindow(GetDlgItem(dialog, IDC_PRESET_LABEL), SW_HIDE);
+            for (i = 0; i < sizeof pad_controls / sizeof pad_controls[0]; i++)
+                ShowWindow(GetDlgItem(dialog, pad_controls[i]), SW_HIDE);
+        }
+        return TRUE;
+    }
+    if (message == WM_COMMAND) {
+        switch (LOWORD(wparam)) {
+        case IDOK:
+            save(dialog);
+            EndDialog(dialog, IDOK);
+            return TRUE;
+        case IDCANCEL:
+            EndDialog(dialog, IDCANCEL);
+            return TRUE;
+        case IDC_SAVE:
+            save(dialog);
+            return TRUE;
+        case IDC_DEFAULTS:
+            load(dialog, 1);
+            return TRUE;
+        case IDC_BROWSE:
+            browse(dialog);
+            return TRUE;
+        case IDC_FOLDER:
+            if (HIWORD(wparam) == EN_KILLFOCUS)
+                show_track_count(dialog);
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+/* ---- checks before starting ---- */
+static int ask(const char *text)
+{
+    return MessageBoxA(NULL, text, "Big Red Racing", MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON1) == IDYES;
+}
+
+static int file_contains(const char *path, const char *needle)
+{
+    HANDLE f = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+    DWORD size, got = 0, i, n = (DWORD)lstrlenA(needle);
+    char *data;
+    int found = 0;
+    if (f == INVALID_HANDLE_VALUE)
+        return 0;
+    size = GetFileSize(f, NULL);
+    data = (char *)HeapAlloc(GetProcessHeap(), 0, size ? size : 1);
+    if (data && ReadFile(f, data, size, &got, NULL) && got == size)
+        for (i = 0; i + n <= size && !found; i++)
+            found = !memcmp(data + i, needle, n);
+    if (data)
+        HeapFree(GetProcessHeap(), 0, data);
+    CloseHandle(f);
+    return found;
+}
+
+static int exe_is_v225(const char *path)
+{
+    HANDLE f = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+    DWORD size, got = 0;
+    uint8_t *data, digest[32];
+    char hex[65];
+    int ok = 0;
+    if (f == INVALID_HANDLE_VALUE)
+        return 0;
+    size = GetFileSize(f, NULL);
+    data = size == GAME_EXE_SIZE ? (uint8_t *)HeapAlloc(GetProcessHeap(), 0, size) : NULL;
+    if (data && ReadFile(f, data, size, &got, NULL) && got == size) {
+        brr_sha256(data, size, digest);
+        brr_sha256_hex(digest, hex);
+        ok = !lstrcmpA(hex, GAME_EXE_SHA256);
+    }
+    if (data)
+        HeapFree(GetProcessHeap(), 0, data);
+    CloseHandle(f);
+    return ok;
+}
+
+static int checks_pass(void)
+{
+    char path[MAX_PATH], setting[MAX_PATH];
+    wsprintfA(path, "%s\\WINRACE.EXE", folder);
+    if (GetFileAttributesA(path) == 0xFFFFFFFFu) {
+        MessageBoxA(NULL, "WINRACE.EXE isn't here. Put Big Red Racing.exe in the game's folder, next to "
+                    "WINRACE.EXE.", "Big Red Racing", MB_OK | MB_ICONERROR);
+        return 0;
+    }
+    if (!exe_is_v225(path) && !ask("WINRACE.EXE isn't the v2.25 version (from the official v2.25 patch). "
+                                   "The drop-in fix will leave the game unchanged.\n\nStart anyway?"))
+        return 0;
+    wsprintfA(path, "%s\\TIMER.DLL", folder);
+    if (!file_contains(path, "BRRFIX.INI") && !ask("The TIMER.DLL here isn't the drop-in fix (it may be the "
+                                                   "game's own). The game will run without the fixes, and "
+                                                   "may not run at all on modern Windows.\n\nStart anyway?"))
+        return 0;
+    wsprintfA(path, "%s\\ddraw.dll", folder);
+    if (!windows_9x && GetFileAttributesA(path) == 0xFFFFFFFFu
+        && !ask("cnc-ddraw (ddraw.dll) isn't here. On modern Windows and Proton the game needs it to fill "
+                "the screen.\n\nStart anyway?"))
+        return 0;
+    if (ini_flag("music", "music", 1)) {
+        ini_get(brrfix_ini, "music", "folder", "MUSIC", setting, sizeof setting);
+        music_folder(setting, path);
+        if (!brr_count_tracks(path) && !ask("There are no music tracks in the music folder, so there'll be no "
+                                            "music (unless there's a real CD).\n\nStart anyway?"))
+            return 0;
+    }
+    return 1;
+}
+
+static DWORD start_game(const char *arguments)
+{
+    char command[MAX_PATH * 2], exe[MAX_PATH];
+    STARTUPINFOA startup;
+    PROCESS_INFORMATION process;
+    DWORD code = 1;
+    if (under_wine) {  /* cnc-ddraw instead of Wine's own DirectDraw, without launch options */
+        char overrides[512];
+        DWORD n = GetEnvironmentVariableA("WINEDLLOVERRIDES", overrides, sizeof overrides);
+        if (n == 0 || n >= sizeof overrides)
+            lstrcpyA(overrides, "ddraw=n,b");
+        else if (!strstr(overrides, "ddraw"))
+            lstrcatA(overrides, ";ddraw=n,b");
+        SetEnvironmentVariableA("WINEDLLOVERRIDES", overrides);
+    }
+    wsprintfA(exe, "%s\\WINRACE.EXE", folder);
+    wsprintfA(command, "\"%s\"%s%s", exe, arguments[0] ? " " : "", arguments);
+    memset(&startup, 0, sizeof startup);
+    startup.cb = sizeof startup;
+    if (!CreateProcessA(exe, command, NULL, NULL, FALSE, 0, NULL, folder, &startup, &process)) {
+        MessageBoxA(NULL, "WINRACE.EXE couldn't be started.", "Big Red Racing", MB_OK | MB_ICONERROR);
+        return 1;
+    }
+    CloseHandle(process.hThread);
+    /* stay running until the game exits, so Steam counts play time and Proton waits */
+    WaitForSingleObject(process.hProcess, INFINITE);
+    GetExitCodeProcess(process.hProcess, &code);
+    CloseHandle(process.hProcess);
+    return code;
+}
+
+/* the command line after the program's own name, minus -play and -setup */
+static void split_arguments(const char *line, char *rest, int *play, int *setup)
+{
+    const char *p = line;
+    rest[0] = 0;
+    if (*p == '"') {
+        p++;
+        while (*p && *p != '"')
+            p++;
+        if (*p)
+            p++;
+    } else
+        while (*p && *p != ' ' && *p != '\t')
+            p++;
+    while (*p) {
+        const char *start;
+        int length;
+        while (*p == ' ' || *p == '\t')
+            p++;
+        start = p;
+        while (*p && *p != ' ' && *p != '\t')
+            p++;
+        length = (int)(p - start);
+        if (length == 5 && !strncmp(start, "-play", 5))
+            *play = 1;
+        else if (length == 6 && !strncmp(start, "-setup", 6))
+            *setup = 1;
+        else if (length > 0 && lstrlenA(rest) + length + 2 < MAX_PATH) {
+            if (rest[0])
+                lstrcatA(rest, " ");
+            strncat(rest, start, (size_t)length);
+        }
+    }
+}
+
+int WINAPI WinMain(HINSTANCE instance, HINSTANCE previous, LPSTR command_line, int show)
+{
+    char arguments[MAX_PATH], *slash;
+    int play = 0, setup = 0, show_window;
+    (void)previous; (void)command_line; (void)show;
+    GetModuleFileNameA(NULL, folder, sizeof folder);
+    slash = strrchr(folder, '\\');
+    if (slash)
+        *slash = 0;
+    wsprintfA(brrfix_ini, "%s\\BRRFIX.INI", folder);
+    wsprintfA(ddraw_ini, "%s\\ddraw.ini", folder);
+    windows_9x = (GetVersion() & 0x80000000u) != 0;
+    under_wine = GetProcAddress(GetModuleHandleA("ntdll.dll"), "wine_get_version") != NULL;
+    split_arguments(GetCommandLineA(), arguments, &play, &setup);
+    show_window = !ini_flag("launcher", "skip", 0);
+    if (setup || (GetAsyncKeyState(VK_SHIFT) & 0x8000))
+        show_window = 1;
+    else if (play)
+        show_window = 0;
+    if (show_window && DialogBoxParamA(instance, MAKEINTRESOURCEA(IDD_SETTINGS), NULL, settings_proc, 0) != IDOK)
+        return 0;
+    if (!checks_pass())
+        return 1;
+    return (int)start_game(arguments);
+}

@@ -22,6 +22,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "dr_flac.h"
+#include "tracks.h"
 
 /* stb_vorbis's interface, as compiled in decoders.c */
 typedef struct stb_vorbis stb_vorbis;
@@ -44,35 +45,8 @@ static mci_fn real_mci;
 static char folder[MAX_PATH];
 static int tracks_found, device_open;
 
-/* ---- finding tracks ---- */
-static const char *const extensions[] = {"flac", "ogg", "wav"};
-
-static int find_track(int track, char *path)
-{
-    static const char *const names[] = {"track%02d", "Track%02d", "Track %02d", "track %02d", "%02d"};
-    size_t e, n;
-    for (e = 0; e < sizeof extensions / sizeof extensions[0]; e++) {
-        for (n = 0; n < sizeof names / sizeof names[0]; n++) {
-            char name[64];
-            wsprintfA(name, names[n], track);
-            wsprintfA(path, "%s\\%s.%s", folder, name, extensions[e]);
-            if (GetFileAttributesA(path) != 0xFFFFFFFFu)
-                return 1;
-        }
-        {   /* "02 - Title.flac" and the like */
-            WIN32_FIND_DATAA found;
-            HANDLE search;
-            wsprintfA(path, "%s\\%02d *.%s", folder, track, extensions[e]);
-            search = FindFirstFileA(path, &found);
-            if (search != INVALID_HANDLE_VALUE) {
-                FindClose(search);
-                wsprintfA(path, "%s\\%s", folder, found.cFileName);
-                return 1;
-            }
-        }
-    }
-    return 0;
-}
+/* ---- finding tracks (tracks.c, shared with the launcher) ---- */
+static int find_track(int track, char *path) { return brr_find_track(folder, track, path); }
 
 /* ---- decoding ---- */
 struct decoder {
@@ -402,7 +376,6 @@ void brr_music_start(void)
 {
     char base[MAX_PATH], *slash;
     DWORD old;
-    int track;
     if (!cfg.music)
         return;
     if (cfg.music_folder[0] && (cfg.music_folder[1] == ':' || cfg.music_folder[0] == '\\'))
@@ -414,11 +387,7 @@ void brr_music_start(void)
             *slash = 0;
         wsprintfA(folder, "%s\\%s", base, cfg.music_folder[0] ? cfg.music_folder : "MUSIC");
     }
-    for (track = 2; track < 100; track++) {
-        char path[MAX_PATH];
-        if (find_track(track, path))
-            tracks_found++;
-    }
+    tracks_found = brr_count_tracks(folder);
     real_mci = (mci_fn)*MCI_SLOT;
     InitializeCriticalSection(&lock);
     wake = CreateEventA(NULL, FALSE, FALSE, NULL);

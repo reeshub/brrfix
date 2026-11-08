@@ -1,0 +1,85 @@
+/* The launcher's resources: settings window, version information, icon (our own) */
+#include <windows.h>
+#include "resource.h"
+#include "version.h"
+
+IDI_APP ICON "launcher.ico"
+
+IDD_SETTINGS DIALOG 0, 0, 324, 252
+STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX
+CAPTION "Big Red Racing"
+FONT 8, "MS Sans Serif"
+BEGIN
+    GROUPBOX        "Display", -1, 6, 4, 154, 80
+    LTEXT           "&Mode:", -1, 12, 18, 40, 8
+    COMBOBOX        IDC_MODE, 56, 16, 98, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "&Window size:", -1, 12, 34, 44, 8
+    COMBOBOX        IDC_SCALE, 56, 32, 98, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    AUTOCHECKBOX    "4:3 &shape, as a 1996 monitor", IDC_ASPECT, 12, 49, 140, 10, WS_TABSTOP
+    LTEXT           "&Full screen:", IDC_PRESET_LABEL, 12, 66, 44, 8
+    COMBOBOX        IDC_PRESET, 56, 64, 98, 70, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+
+    GROUPBOX        "Smoothness", -1, 166, 4, 152, 80
+    AUTOCHECKBOX    "&Interpolation (smooth motion)", IDC_INTERP, 172, 16, 140, 10, WS_TABSTOP
+    LTEXT           "Camera smoot&hing:", -1, 172, 32, 62, 8
+    COMBOBOX        IDC_SMOOTHING, 236, 30, 76, 70, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Frame &limit:", -1, 172, 48, 62, 8
+    COMBOBOX        IDC_FRAMES, 236, 46, 76, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    AUTOCHECKBOX    "&Vsync (no tearing, a little lag)", IDC_VSYNC, 172, 64, 140, 10, WS_TABSTOP
+
+    GROUPBOX        "Music", -1, 6, 88, 154, 66
+    AUTOCHECKBOX    "CD &music from ripped tracks", IDC_MUSIC, 12, 100, 140, 10, WS_TABSTOP
+    LTEXT           "V&olume:", -1, 12, 116, 40, 8
+    COMBOBOX        IDC_VOLUME, 56, 114, 50, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    EDITTEXT        IDC_FOLDER, 12, 130, 102, 12, ES_AUTOHSCROLL | WS_TABSTOP
+    PUSHBUTTON      "&Browse...", IDC_BROWSE, 116, 129, 38, 14, WS_TABSTOP
+    LTEXT           "", IDC_TRACKS, 12, 144, 142, 8
+
+    GROUPBOX        "Controller", IDC_PAD_GROUP, 166, 88, 152, 66
+    AUTOCHECKBOX    "Modern &pad (XInput)", IDC_PAD, 172, 100, 140, 10, WS_TABSTOP
+    LTEXT           "&Deadzone:", IDC_PAD_L1, 172, 116, 40, 8
+    COMBOBOX        IDC_DEADZONE, 214, 114, 40, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Sensiti&vity:", IDC_PAD_L2, 172, 132, 40, 8
+    COMBOBOX        IDC_SENSITIVITY, 214, 130, 40, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Layo&ut:", IDC_PAD_L3, 258, 116, 30, 8
+    COMBOBOX        IDC_LAYOUT, 258, 130, 54, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+
+    GROUPBOX        "Advanced", -1, 6, 158, 312, 36
+    LTEXT           "&Tick rate:", -1, 12, 172, 34, 8
+    COMBOBOX        IDC_RATE, 48, 170, 92, 50, CBS_DROPDOWNLIST | WS_TABSTOP
+    LTEXT           "&Catch-up:", -1, 146, 172, 34, 8
+    COMBOBOX        IDC_CAP, 182, 170, 54, 50, CBS_DROPDOWNLIST | WS_TABSTOP
+    AUTOCHECKBOX    "Lo&g", IDC_LOG, 242, 171, 28, 10, WS_TABSTOP
+    PUSHBUTTON      "D&efaults", IDC_DEFAULTS, 272, 169, 40, 14, WS_TABSTOP
+
+    AUTOCHECKBOX    "S&kip this window next time", IDC_SKIP, 8, 200, 140, 10, WS_TABSTOP
+    LTEXT           "To see it again, hold Shift while starting the game, or start it with -setup. Steam launch options: -play skips it, -setup shows it.", -1, 8, 212, 200, 24
+    DEFPUSHBUTTON   "&Play", IDOK, 214, 230, 34, 16, WS_TABSTOP
+    PUSHBUTTON      "&Save", IDC_SAVE, 250, 230, 34, 16, WS_TABSTOP
+    PUSHBUTTON      "&Quit", IDCANCEL, 286, 230, 32, 16, WS_TABSTOP
+END
+
+1 VERSIONINFO
+FILEVERSION BRRFIX_VERSION_NUMBERS
+PRODUCTVERSION BRRFIX_VERSION_NUMBERS
+FILEOS VOS__WINDOWS32
+FILETYPE VFT_APP
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080904E4"
+        BEGIN
+            VALUE "CompanyName", "Big Red Racing preservation project\0"
+            VALUE "FileDescription", "Big Red Racing\0"
+            VALUE "FileVersion", BRRFIX_VERSION "\0"
+            VALUE "ProductName", "Big Red Racing launcher (drop-in fix)\0"
+            VALUE "ProductVersion", BRRFIX_VERSION "\0"
+            VALUE "InternalName", "Big Red Racing\0"
+            VALUE "OriginalFilename", "Big Red Racing.exe\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0809, 1252
+    END
+END
