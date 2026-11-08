@@ -6,13 +6,16 @@ file, and writes a new program, BRRFIX.EXE by default, beside it. The original i
 changed. The fixes (Phase 3b of the Big Red Racing port; docs/reports/phase-3b-dos-patch.md):
   - camera: the camera's per-tick steps and the follow camera's roll work per tick, not
     per frame;
-  - cap: at most 8 ticks of catch-up per frame (the original allows 35);
+  - cap: on a fast machine, at most 8 ticks of catch-up per frame (the original allows
+    35, which slow machines still get);
   - interpolation: on fast machines, trucks and the follow camera are drawn between
     their last two physics positions (the physics itself is untouched);
   - fine angles: the picture turns in steps finer than 0.35 degrees (the camera stutter);
   - roll fix: the follow camera's lean doesn't flick with each step;
-  - retrace: each frame is shown at the start of the screen's vertical retrace (no
-    tearing; at most one frame per screen refresh).
+  - retrace: on a fast machine, each frame is shown at the start of the screen's
+    vertical retrace (no tearing; at most one frame per screen refresh).
+A machine is "fast" while it draws a frame in 3 ticks of 1/70 s or fewer, on average;
+a 486 runs as the original.
 All on by default; the options turn each off. The chosen fixes are recorded in the
 version text on the main menu (for example "V2.24 R FIX0.1.0 CIARV8").
 
@@ -317,6 +320,16 @@ def parse_options(spec, args):
         values["prove"] = 1
     if args.input:
         values["input"] = parse_input(spec, args.input)
+    return with_hooks(values)
+
+
+def with_hooks(values):
+    """The race screen's hooks are needed by interpolation, fine angles, the roll fix and
+    the logging build."""
+    values["hooks"] = int(any(values.get(name) for name in
+                              ("interpolation", "fine_angles", "roll_fix", "log")))
+    values["frame_start"] = int(values.get("cap", 35) != 35 or any(
+        values.get(name) for name in ("interpolation", "retrace")))
     return values
 
 
@@ -375,7 +388,7 @@ def apply(original, spec, values):
     block = symbols[code["options_symbol"]]
     for name, about in spec["options"].items():
         value = values[name]
-        if name == "input":
+        if name in ("input", "hooks", "frame_start"):
             continue
         at = block + about["offset"] - code_address
         fmt = {1: "<B", 2: "<H", 4: "<I"}[about["size"]]
@@ -493,7 +506,7 @@ def values_from_tag(spec, text, args):
     digits = "".join(ch for ch in flags if ch.isdigit())
     values["cap"] = int(digits)
     values["log"] = 1 if flags.endswith("L") else 0
-    return values
+    return with_hooks(values)
 
 
 def default_paths():

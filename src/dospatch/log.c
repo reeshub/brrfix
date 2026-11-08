@@ -34,6 +34,13 @@ static void flush(struct out *o)
     o->used = 0;
 }
 
+static void commit(struct out *o)   /* flush, and make DOS write it to disk */
+{
+    flush(o);
+    if (o->handle > 0)
+        dos_commit(o->handle);
+}
+
 static void put(struct out *o, const char *text)
 {
     while (*text) {
@@ -78,7 +85,7 @@ void log_number(s32 value) { put_number(&log_file, value); }
 void log_line(void)
 {
     put(&log_file, "\r\n");
-    flush(&log_file);
+    commit(&log_file);
 }
 
 static void open_files(void)
@@ -91,7 +98,7 @@ static void open_files(void)
     camera_file.handle = dos_create("BRRCAM.CSV");
     put(&state_file, "tick,slot,state,x,y,z,o1,o2,o3,fwd,side,spin1,spin2,spin3,contacts,record_fnv1a\r\n");
     put(&camera_file, "frame,tick_count,frame_ticks,blended,cam_x,cam_y,cam_z,cam_a1,cam_a2,cam_a3,"
-                      "cam_mode,cam_vehicle,drawn_x,drawn_z\r\n");
+                      "cam_mode,cam_vehicle,drawn_x,drawn_z,fast\r\n");
     log_text("Big Red Racing DOS patch, logging build: ");
     log_text(brr_tag);
     log_line();
@@ -127,8 +134,8 @@ void log_race_leave(void)
     log_number((s32)restore_changes);
     log_text(" vehicle byte offsets changed by the draw");
     log_line();
-    flush(&state_file);
-    flush(&camera_file);
+    commit(&state_file);
+    commit(&camera_file);
 }
 
 /* before each race tick: the scheduled keys, as a player would press them */
@@ -183,8 +190,8 @@ void log_after_tick(void)
         put(&state_file, "\r\n");
     }
     if (tick % 70 == 0) {
-        flush(&state_file);
-        flush(&camera_file);
+        commit(&state_file);
+        commit(&camera_file);
     }
 }
 
@@ -289,7 +296,8 @@ void log_after_draw(int blended)
         field(&camera_file, *(u16 *)camera);
         field(&camera_file, slot);
         field(&camera_file, slot >= 0 ? *(s32 *)vehicle(slot) : 0);
-        put_number(&camera_file, slot >= 0 ? *(s32 *)(vehicle(slot) + 8) : 0);
+        field(&camera_file, slot >= 0 ? *(s32 *)(vehicle(slot) + 8) : 0);
+        put_number(&camera_file, brr_fast);
         put(&camera_file, "\r\n");
         if (OPTION(OPT_CAPTURE_FRAMES) && game_tick_count >= (s32)OPTION(OPT_CAPTURE_TICK) &&
                 capture_count < OPTION(OPT_CAPTURE_FRAMES))

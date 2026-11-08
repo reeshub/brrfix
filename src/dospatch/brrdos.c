@@ -8,12 +8,21 @@
  * written into the vehicle records; straight after drawing, the true values are put back,
  * so the physics never sees the blend. The follow camera's own position is blended the
  * same way. The DOS timer only counts whole ticks, so the blend moves in half steps: 70
- * different pictures a second instead of 35. When frames are slow (two or more ticks per
- * frame, as on a 486) it does nothing: there's nothing to blend between.
+ * different pictures a second instead of 35.
  *
  * Retrace: before the game copies a finished frame to video memory, wait for the start
- * of the screen's vertical retrace (port 0x3DA, bit 3), so the copy never tears. Skipped
- * on slow frames, and it gives up after two ticks of the 70 Hz timer, so it can't hang. */
+ * of the screen's vertical retrace (port 0x3DA, bit 3), so the copy never tears. Only
+ * after a frame that took at most one tick (one refresh, at 320x200's 70 Hz): a machine
+ * just short of 70 frames a second would otherwise wait a whole refresh every frame and
+ * drop to 35. It gives up after two ticks of the 70 Hz timer, so it can't hang.
+ *
+ * Speed: brr_frame_start runs at the start of every frame (from run_screen, after it has
+ * counted the ticks since the last frame). It keeps an average of ticks per frame and
+ * calls the machine "fast" while that's 3 or fewer (over 23 frames a second; it becomes
+ * "slow" again above 4). Only on a fast machine do the lower catch-up cap, interpolation
+ * and the retrace wait apply. A 486, at 5 to 18 ticks a frame, runs exactly as the
+ * original: the cap of 8 would slow its game down, there's nothing to blend between, and
+ * waiting for the retrace would only cost it time. */
 #include "brrdos.h"
 
 #define WHEELS   8
@@ -23,8 +32,9 @@
 #define HISTORY  64
 #define ROLL_WINDOW (7 * SUB)   /* the 7 ticks of a frame at the developers' 10 fps */
 
-int brr_in_race_draw, brr_fine_active;
+int brr_in_race_draw, brr_fine_active, brr_fast;
 u32 brr_frames_drawn;
+static s32 average_ticks;   /* ticks per frame, in 1/16, a moving average; 0 = not yet */
 
 struct look {
     s32 pos[3];          /* +0x000 world position */
@@ -238,7 +248,7 @@ static int before_draw(void)
         saved_valid[i] = 0;
     for (c = 0; c < 2; c++)
         cam_saved_valid[c] = 0;
-    if (!OPTION(OPT_INTERPOLATION) || game_frame_ticks >= 2)
+    if (!OPTION(OPT_INTERPOLATION) || !brr_fast)
         return 0;
     for (i = 0; i < VEHICLE_COUNT; i++) {
         struct sample *s = &samples[i];
@@ -413,6 +423,28 @@ void brr_camera_update(u8 *record)
     }
 }
 
+/* ---- every frame: the catch-up cap and the machine's speed ---- */
+
+/* run_screen has just stored the ticks since the last frame (8-bit) in frame_ticks; the
+ * original then capped them at 35. Called through brr_cap in thunks.asm, which keeps
+ * every register as it was. */
+void brr_frame_start(void)
+{
+    u32 ticks = game_frame_ticks, cap = OPTION(OPT_CAP);
+    if (ticks > 35)
+        ticks = 35;
+    if (brr_fast && ticks > cap)
+        ticks = cap;
+    game_frame_ticks = (u8)ticks;
+    if (!average_ticks)
+        average_ticks = 8 * 16;   /* start as slow: a few frames tell */
+    average_ticks += ((s32)ticks * 16 - average_ticks) / 8;
+    if (brr_fast && average_ticks > 4 * 16)
+        brr_fast = 0;
+    else if (!brr_fast && average_ticks <= 3 * 16)
+        brr_fast = 1;
+}
+
 /* ---- the retrace wait, before the frame is copied to video memory ---- */
 
 static void wait_retrace(void)
@@ -428,14 +460,14 @@ static void wait_retrace(void)
 
 void brr_present(void)
 {
-    if (OPTION(OPT_RETRACE) && game_frame_ticks <= 1)
+    if (OPTION(OPT_RETRACE) && brr_fast && game_frame_ticks <= 1)
         wait_retrace();
     game_copy_frame();
 }
 
 void brr_present_split(void)
 {
-    if (OPTION(OPT_RETRACE) && game_frame_ticks <= 1)
+    if (OPTION(OPT_RETRACE) && brr_fast && game_frame_ticks <= 1)
         wait_retrace();
     game_copy_frame_split();
 }

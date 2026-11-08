@@ -6,7 +6,8 @@
 ; register convention: C functions end in "_", C variables start with "_".
 
         public  brr_hook_rotation_, brr_rotation_trampoline_, brr_call_rotation_original_
-        public  brr_cam4_
+        public  brr_cam4_, brr_cap_
+        extrn   brr_frame_start_ : near
         public  _brr_options, _brr_input, _brr_input_count, _brr_tag
         extrn   brr_rotation_fine_ : near
         extrn   _brr_fine_active : dword
@@ -88,6 +89,15 @@ brr_cam4_:
         je      cam4_done
         mov     word ptr [esi + 46h], ax
 cam4_done:
+        ret
+
+; run_screen (0x2C5BF): CMP AL,35; JBE; MOV byte [frame_ticks],35 (11 bytes) become a
+; call here and NOPs: brr_frame_start applies the cap and tracks the machine's speed.
+; Everything is kept as it was, EAX included.
+brr_cap_:
+        push    eax
+        call    brr_frame_start_
+        pop     eax
         ret
 
         end

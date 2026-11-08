@@ -85,6 +85,8 @@ s32 dos_create(const char *name);
 s32 dos_write(s32 handle, const void *data, u32 size);
 #pragma aux dos_write = "mov ah,40h" "int 21h" "sbb edx,edx" "or eax,edx" \
     parm [ebx] [edx] [ecx] value [eax] modify [edx];
+void dos_commit(s32 handle);   /* write DOS's buffers for the file to disk */
+#pragma aux dos_commit = "mov ah,68h" "int 21h" parm [ebx] modify [eax];
 void dos_close(s32 handle);
 #pragma aux dos_close = "mov ah,3eh" "int 21h" parm [ebx] modify [eax];
 u32 dpmi_alloc(u32 size);   /* linear (= near) address, or 0 */
@@ -99,6 +101,7 @@ void port_out(u16 port, u8 value);
 /* ---- brrdos.c ---- */
 extern int brr_in_race_draw;
 extern int brr_fine_active;
+extern int brr_fast;          /* the machine draws a frame in 3 ticks or fewer, on average */
 extern u32 brr_frames_drawn;
 s32 sar(s32 x, int n);
 
