@@ -100,6 +100,12 @@ static void load_config(void)
     GetPrivateProfileStringA("display", "aspect", "square", text, sizeof text, path);
     cfg.window_aspect43 = !lstrcmpiA(text, "4:3");
     cfg.debug_log_mouse = ini_int(path, "debug", "log_mouse", 0);
+    cfg.music = ini_int(path, "music", "music", 1);
+    cfg.music_volume = ini_int(path, "music", "volume", 100);
+    if (cfg.music_volume < 0 || cfg.music_volume > 100)
+        cfg.music_volume = 100;
+    cfg.music_follow_game = ini_int(path, "music", "follow_game_volume", 1);
+    GetPrivateProfileStringA("music", "folder", "MUSIC", cfg.music_folder, sizeof cfg.music_folder, path);
     GetPrivateProfileStringA("display", "mode", "windowed", text, sizeof text, path);
     cfg.display_mode = !lstrcmpiA(text, "fullscreen") ? DISPLAY_FULLSCREEN
                      : !lstrcmpiA(text, "ask") ? DISPLAY_ASK : DISPLAY_WINDOWED;

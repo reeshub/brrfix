@@ -312,6 +312,8 @@ void brr_patch_all(void)
         }
     }
     bad += ranges_match("check");
+    if (cfg.music)
+        bad += brr_music_check();
     if (bad) {
         brr_log("result: %d check(s) failed; no patches applied; running as a plain TIMER.DLL", bad);
         return;
@@ -339,6 +341,7 @@ void brr_patch_all(void)
             brr_log("port safety net: not available on this Windows (not needed on Windows 95/98/ME)");
     }
     brr_patched = 1;
+    brr_music_start();
     int changed = ranges_match("after patching");
     brr_log("result: %d of %u sites patched; %u protected game functions (vehicle_physics, "
             "bounce_pitch, bounce_roll and everything else the race tick calls) %s",

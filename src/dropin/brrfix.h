@@ -30,6 +30,8 @@ struct brr_config {
     int window_scale;        /* 0 = auto (largest whole number that fits), else 1..8 */
     int window_aspect43;     /* stretch the height by 1.2, as a 4:3 monitor showed 320x200 */
     int debug_log_mouse;     /* log mouse positions in a window (tests) */
+    int music, music_volume, music_follow_game;  /* [music] */
+    char music_folder[MAX_PATH];
     int display_mode;        /* DISPLAY_WINDOWED, DISPLAY_FULLSCREEN or DISPLAY_ASK */
     int vsync;               /* wait for the vertical blank before the windowed present */
     int pacing_dropin;       /* 1 = the drop-in paces frames (default); 0 = leave it to cnc-ddraw if present */
@@ -86,6 +88,10 @@ void __cdecl brr_after_draw(void);
 #define DISPLAY_WINDOWED 0
 #define DISPLAY_FULLSCREEN 1
 #define DISPLAY_ASK 2
+
+/* music.c */
+int brr_music_check(void);
+void brr_music_start(void);
 
 /* display.c */
 extern uint32_t brr_display_windowed, brr_display_fullscreen, brr_display_prompt;

@@ -19,6 +19,7 @@ import os
 import shutil
 import struct
 import subprocess
+import urllib.request
 
 from common import DATA, ROOT, WORK
 from prepkit import rel
@@ -31,7 +32,20 @@ PATCHES = DATA / "dropin-patches.json"
 MANIFEST = DATA / "game-manifest.json"
 GAME = WORK / "game"
 SYSTEM_DLLS = {"kernel32.dll", "user32.dll", "gdi32.dll", "winmm.dll", "advapi32.dll"}
-C_FILES = ["main.c", "clock.c", "patch.c", "interp.c", "camera.c", "debug.c", "angles.c", "display.c"]
+C_FILES = ["main.c", "clock.c", "patch.c", "interp.c", "camera.c", "debug.c", "angles.c", "display.c",
+           "music.c", "decoders.c"]
+# Third-party code compiled in: pinned, downloaded at build time, checked by SHA-256, never committed
+THIRD_PARTY = ROOT / "tools" / "third-party"
+DECODERS = [
+    ("dr_flac-flac-0.13.4", "dr_flac.h",
+     "https://raw.githubusercontent.com/mackron/dr_libs/flac-0.13.4/dr_flac.h",
+     "b8078eeb5d523502eb7964508cd7ec8450bc79d383bec90aa17fd9e2fefd9c24"),
+    ("stb_vorbis-4e9b368", "stb_vorbis.c",
+     "https://raw.githubusercontent.com/nothings/stb/4e9b368bfc071e97206ea5c6adba68dd0cbf8897/stb_vorbis.c",
+     "4c7cb2ff1f7011e9d67950446b7eb9ca044f2e464d76bfbb0b84dd2e23e65636"),
+]
+# their code isn't ours to tidy: compiled with warnings off
+QUIET_FILES = {"decoders.c"}
 ASM_FILES = ["thunks.asm"]
 # The original TIMER.DLL's exports: (ordinal, name, our symbol)
 EXPORTS = [(1, "_TIMER_Count", "_brr_timer_count"), (2, "_TIMER_Handler@20", "_brr_TIMER_Handler"),
@@ -190,14 +204,32 @@ def run_tool(command, env, what):
         raise BuildError(f"{what} failed:\n" + output[-4000:])
 
 
+def fetch_decoders():
+    """Download the pinned decoders if missing, and check every byte."""
+    folders = []
+    for folder, name, url, digest in DECODERS:
+        path = THIRD_PARTY / folder / name
+        if not path.exists():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with urllib.request.urlopen(url, timeout=60) as response:
+                path.write_bytes(response.read())
+            print(f"  downloaded {rel(path)}")
+        if sha256(path.read_bytes()) != digest:
+            raise BuildError(f"{rel(path)} doesn't match its pinned SHA-256; delete it to download it again")
+        folders.append(path.parent)
+    return folders
+
+
 def compile_dll(dll):
     env = watcom_env()
+    includes = [f"-i={folder}" for folder in fetch_decoders()]
     objects = OUT / "obj"
     objects.mkdir(exist_ok=True)
     files = []
     for name in C_FILES:
         obj = objects / (name.rsplit(".", 1)[0] + ".obj")
-        run_tool([str(WATCOM / "binl64" / "wcc386"), *CFLAGS, f"-i={OUT}", f"-i={SOURCE}",
+        flags = [f for f in CFLAGS if f not in ("-w4", "-we")] + ["-w0"] if name in QUIET_FILES else CFLAGS
+        run_tool([str(WATCOM / "binl64" / "wcc386"), *flags, f"-i={OUT}", f"-i={SOURCE}", *includes,
                   f"-fo={obj}", str(SOURCE / name)], env, f"compiling {name}")
         files.append(obj)
     for name in ASM_FILES:
