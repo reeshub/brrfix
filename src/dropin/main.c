@@ -100,6 +100,7 @@ static void load_config(void)
     GetPrivateProfileStringA("display", "aspect", "square", text, sizeof text, path);
     cfg.window_aspect43 = !lstrcmpiA(text, "4:3");
     cfg.debug_log_mouse = ini_int(path, "debug", "log_mouse", 0);
+    cfg.show_version = ini_int(path, "display", "show_version", 1);
     cfg.controller = ini_int(path, "controller", "enabled", 1);
     cfg.pad_deadzone = ini_int(path, "controller", "deadzone", 15);
     if (cfg.pad_deadzone < 0 || cfg.pad_deadzone > 60) cfg.pad_deadzone = 15;

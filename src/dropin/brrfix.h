@@ -34,6 +34,7 @@ struct brr_config {
     int controller, pad_deadzone, pad_sensitivity, pad_curve, pad_triggers, pad_analogue;  /* [controller] */
     int debug_pad_test;      /* tests: a simulated pad (half right, full throttle) */
     char music_folder[MAX_PATH];
+    int show_version;        /* the drop-in's version on the main menu */
     int display_mode;        /* DISPLAY_WINDOWED, DISPLAY_FULLSCREEN or DISPLAY_ASK */
     int vsync;               /* wait for the vertical blank before the windowed present */
     int pacing_dropin;       /* 1 = the drop-in paces frames (default); 0 = leave it to cnc-ddraw if present */

@@ -141,6 +141,14 @@
    "length": 5,
    "patch": "run_screen_frame's CALL joystick_to_keys (0x41A950) -> CALL brr_hook_joystick: with [controller] enabled and an XInput pad connected, the pad's state is written into the game's joystick variables (0x44B9CA/CC/D6, calibration 0x44B9E4), then joystick_to_keys runs unchanged",
    "sha256": "8cea81a406ce33b390a4b8b00d09f563eb41de5f5ce32dc3aeb3ce9c94b6465f"
+  },
+  {
+   "name": "version_date",
+   "fix": "version",
+   "address": "0x406365",
+   "length": 4,
+   "patch": "FUN_00406330 (main menu version text, \"%s%s %s\"): PUSH 0x44DA0C (the date \"(09-05-96)\") -> our \"FIX<version>\", so the menu reads V2.24WR FIX0.2.0",
+   "sha256": "fdb7e788cf056ca0da0039c2d10d89f4adcfbf59e70859ad870ef0b541929f51"
   }
  ],
  "protected_about": "Game functions reachable from the race tick (direct calls, Phase 3 call graph) except approach_clamped, which is patched on purpose. The DLL hashes them before and after patching.",

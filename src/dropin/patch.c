@@ -15,6 +15,9 @@ uint32_t brr_orig_playback_tick = 0x413400, brr_orig_playback_draw = 0x4131DC;
 uint32_t brr_orig_camera_update = 0x404908;
 uint32_t brr_rotation_continue = 0x446675, brr_game_atan = 0x412A20;
 uint32_t brr_orig_present_window = 0x42CD2C;
+/* shown on the main menu instead of the build date: "V2.24WR FIX0.2.0" (it fits where
+ * "V2.24WR (09-05-96)" was) */
+static const char version_text[] = "FIX" BRRFIX_VERSION;
 
 static void hash_hex(const void *data, size_t size, char out[65])
 {
@@ -99,6 +102,8 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "camera_view"))  /* experimental, off by default */
         return cfg.camera_roll_fix || cfg.camera_smoothing > 0 || cfg.debug_hold_pitch || cfg.debug_hold_roll
             || cfg.fine_angles;
+    if (!strcmp(fix, "version"))
+        return cfg.show_version;
     if (!strcmp(fix, "controller"))
         return cfg.controller || cfg.debug_pad_test;
     if (!strcmp(fix, "display"))
@@ -151,6 +156,8 @@ static int replacement(const struct site_info *s, uint8_t *out)
         out[0] = 0xE9;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_present);
         memset(out + 5, 0x90, 5);  /* NOPs after the jump (never reached) */
+    } else if (!strcmp(n, "version_date") && s->length == 4) {
+        put_abs32(out, (void *)version_text);
     } else if (!strcmp(n, "joystick_call") && s->length == 5) {
         out[0] = 0xE8;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_joystick);
