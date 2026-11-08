@@ -17,7 +17,8 @@ changed. The fixes (Phase 3b of the Big Red Racing port; docs/reports/phase-3b-d
 A machine is "fast" while it draws a frame in 3 ticks of 1/70 s or fewer, on average;
 a 486 runs as the original.
 All on by default; the options turn each off. The chosen fixes are recorded in the
-version text on the main menu (for example "V2.24 R FIX0.1.0 CIARV8").
+version text on the main menu: "V2.24R F0.1 CIARV" means version 0.1 with the Camera,
+Interpolation, fine Angles, Roll and retrace (V) fixes on.
 
 This file runs on its own (Python 3.8 or newer, standard library only) with
 dos-patches.json beside it, or as "python3 brr.py dos-patch" in the project.
@@ -358,10 +359,13 @@ def parse_input(spec, text):
 
 
 def tag(spec, values):
-    """The short record of the chosen fixes shown on the menu: one letter per fix that's
-    on, then the cap, then L for a logging build."""
+    """The short record of the chosen fixes shown on the main menu after "V2.24R" (there's
+    room for about ten characters): F and the version, one letter per fix that's on, the
+    cap if it isn't the default, and L for a logging build. For example "F0.1 CIARV"."""
     letters = "".join(letter for name, letter in spec["tag_letters"].items() if values.get(name))
-    return f"FIX{spec['version']} {letters}{values['cap']}" + ("L" if values.get("log") else "")
+    cap = "" if values["cap"] == spec["options"]["cap"]["default"] else str(values["cap"])
+    short = ".".join(spec["version"].split(".")[:2])
+    return f"F{short} {letters}{cap}" + ("L" if values.get("log") else "")
 
 
 def apply(original, spec, values):
@@ -503,15 +507,20 @@ def values_from_tag(spec, text, args):
     """Rebuild the options from a recorded tag (logging-build details aren't in it, so
     --verify only covers player builds exactly)."""
     words = text.split()
-    if len(words) != 2 or not words[0].startswith("FIX"):
-        raise PatchError(f"unexpected version text {text!r}")
-    flags = words[1]
+    short = ".".join(spec["version"].split(".")[:2])
+    if not words or words[0] != f"F{short}" or len(words) > 2:
+        raise PatchError(f"unexpected version text {text!r} (this patch is version {spec['version']})")
+    flags = words[1] if len(words) == 2 else ""
     values = {name: about["default"] for name, about in spec["options"].items()}
-    for name, letter in spec["tag_letters"].items():
-        values[name] = 1 if letter in flags.rstrip("L0123456789") else 0
+    log = flags.endswith("L")
+    flags = flags.rstrip("L")
     digits = "".join(ch for ch in flags if ch.isdigit())
-    values["cap"] = int(digits)
-    values["log"] = 1 if flags.endswith("L") else 0
+    letters = flags[:len(flags) - len(digits)]
+    for name, letter in spec["tag_letters"].items():
+        values[name] = 1 if letter in letters else 0
+    if digits:
+        values["cap"] = int(digits)
+    values["log"] = 1 if log else 0
     return with_hooks(values)
 
 

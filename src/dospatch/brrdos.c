@@ -12,9 +12,9 @@
  *
  * Retrace: before the game copies a finished frame to video memory, wait for the start
  * of the screen's vertical retrace (port 0x3DA, bit 3), so the copy never tears. Only
- * after a frame that took at most one tick (one refresh, at 320x200's 70 Hz): a machine
- * just short of 70 frames a second would otherwise wait a whole refresh every frame and
- * drop to 35. It gives up after two ticks of the 70 Hz timer, so it can't hang.
+ * after a frame that took at most one refresh (see on_time): a machine just short of 70
+ * frames a second would otherwise wait a whole refresh every frame and drop to 35. It
+ * gives up after two ticks of the 70 Hz timer, so it can't hang.
  *
  * Speed: brr_frame_start runs at the start of every frame (from run_screen, after it has
  * counted the ticks since the last frame). It keeps an average of ticks per frame and
@@ -458,16 +458,24 @@ static void wait_retrace(void)
         ;
 }
 
+/* on time: the last frame took no more than one refresh. At 320x200 the screen refreshes
+ * at 70 Hz, once a tick; in 640x480 (VESA mode 0x101, about 60 Hz) a frame per refresh
+ * comes out as 1 or 2 ticks. */
+static int on_time(void)
+{
+    return game_frame_ticks <= (game_svga ? 2 : 1);
+}
+
 void brr_present(void)
 {
-    if (OPTION(OPT_RETRACE) && brr_fast && game_frame_ticks <= 1)
+    if (OPTION(OPT_RETRACE) && brr_fast && on_time())
         wait_retrace();
     game_copy_frame();
 }
 
 void brr_present_split(void)
 {
-    if (OPTION(OPT_RETRACE) && brr_fast && game_frame_ticks <= 1)
+    if (OPTION(OPT_RETRACE) && brr_fast && on_time())
         wait_retrace();
     game_copy_frame_split();
 }

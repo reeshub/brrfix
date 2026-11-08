@@ -42,6 +42,7 @@ extern s32 game_detail_level;                /* 10-22, raised and lowered by fra
 extern u8 *game_frame_buffer;
 extern u16 game_frame_width;
 extern u16 game_frame_height;
+extern u32 game_svga;                        /* non-zero in 640x480 (VESA mode 0x101) */
 extern const s16 game_sine_table[];          /* 1,280 entries; cosine = 256 entries on */
 extern volatile s32 game_rot_sin_a;          /* rotation_matrix's globals */
 extern volatile u32 game_rot_a, game_rot_b, game_rot_c;
@@ -73,7 +74,7 @@ struct input_span { u32 key; s32 first, last; };  /* key < 0x100: scan code; 0x1
 #define INPUT_MAX 8
 extern const volatile struct input_span brr_input[INPUT_MAX];
 extern const volatile u32 brr_input_count;
-extern const char brr_tag[];      /* "FIX0.1.0 CIARV8", shown on the menu */
+extern const char brr_tag[];      /* "F0.1 CIARV", shown on the main menu */
 
 /* ---- thunks.asm ---- */
 struct rot_args { u32 pitch, yaw, roll; s32 *m; u32 regs[4]; };

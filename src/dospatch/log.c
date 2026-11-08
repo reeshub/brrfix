@@ -21,7 +21,7 @@ struct out {
 };
 
 static struct out log_file, state_file, camera_file;
-static int files_open, input_held[INPUT_MAX], proved;
+static int files_open, input_held[INPUT_MAX], proved, last_mode;  /* last_mode: svga + 1 */
 static u8 before_copy[VEHICLE_COUNT][VEHICLE_SIZE];
 static u8 offset_seen[VEHICLE_SIZE];
 static u32 restore_changes, race_frames, capture_count, capture_record;
@@ -106,6 +106,32 @@ static void open_files(void)
 
 static u8 *vehicle(int i) { return game_vehicles + (u32)i * VEHICLE_SIZE; }
 
+/* the screen's refresh rate: vertical retraces counted over 70 ticks of the timer */
+static void measure_refresh(void)
+{
+    u16 start = game_timer_ticks;
+    u32 count = 0, polls = 0;
+    int in_retrace = port_in(0x3DA) & 8;
+    while (game_timer_ticks == start && ++polls < 0x1000000UL)
+        ;
+    start = game_timer_ticks;
+    while ((u16)(game_timer_ticks - start) < 70 && ++polls < 0x4000000UL) {
+        int now = port_in(0x3DA) & 8;
+        if (now && !in_retrace)
+            count++;
+        in_retrace = now;
+    }
+    log_text("video: ");
+    log_text(game_svga ? "640x480 (VESA 0x101)" : "320x200 (mode 13h)");
+    log_text(", frame ");
+    log_number(game_frame_width);
+    log_text("x");
+    log_number(game_frame_height);
+    log_text("; vertical retraces in 70 ticks (one second): ");
+    log_number((s32)count);
+    log_line();
+}
+
 void log_race_enter(void)
 {
     u32 i;
@@ -128,6 +154,13 @@ void log_race_enter(void)
 
 void log_race_leave(void)
 {
+    u32 i;
+    for (i = 0; i < brr_input_count && i < INPUT_MAX; i++)   /* let go of held keys */
+        if (input_held[i]) {
+            u32 key = brr_input[i].key;
+            game_key_table[key >= 0x100 ? game_control_set[key - 0x100] : (u8)key] = 0;
+            input_held[i] = 0;
+        }
     log_text("race: leave after ");
     log_number((s32)race_frames);
     log_text(" race frames; restore check: ");
@@ -203,6 +236,10 @@ void log_before_draw(void)
         prove_fine_angles();
     }
     race_frames++;
+    if ((game_svga != 0) + 1 != last_mode) {   /* the screen mode changed: its refresh rate */
+        last_mode = (game_svga != 0) + 1;
+        measure_refresh();
+    }
     for (i = 0; i < VEHICLE_COUNT; i++) {
         const u8 *v = vehicle(i);
         u32 b;
