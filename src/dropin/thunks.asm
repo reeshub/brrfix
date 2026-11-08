@@ -18,6 +18,8 @@
         extrn   _brr_timer_count:dword
         extrn   _brr_orig_race_tick:dword
         extrn   _brr_orig_race_draw:dword
+        extrn   _brr_orig_playback_tick:dword
+        extrn   _brr_orig_playback_draw:dword
         extrn   _brr_orig_camera_update:dword
         extrn   _brr_fine_angles_active:dword
         extrn   _brr_rotation_continue:dword
@@ -35,6 +37,7 @@
         public  _brr_TIMER_Init, _brr_TIMER_Shutdown, _brr_TIMER_Handler
         public  _brr_hook_clock_read, _brr_hook_retrace, _brr_hook_race_tick
         public  _brr_hook_race_draw, _brr_hook_camera_update, _brr_hook_rotation
+        public  _brr_hook_playback_tick, _brr_hook_playback_draw
         public  _brr_rotation_original, _brr_call_rotation_original
         public  _brr_call_game_atan, _brr_hook_cam4, _brr_hook_present_window
         public  _brr_hook_display_choice, _brr_hook_present
@@ -96,6 +99,27 @@ _brr_hook_race_draw:
         call    _brr_before_draw
         popad
         call    dword ptr [_brr_orig_race_draw]
+        pushad
+        call    _brr_after_draw
+        popad
+        ret
+
+; "Load Recording" playback (screen 0x83): its tick and draw, wrapped like the race's
+_brr_hook_playback_tick:
+        pushad
+        call    _brr_before_tick
+        popad
+        call    dword ptr [_brr_orig_playback_tick]
+        pushad
+        call    _brr_after_tick
+        popad
+        ret
+
+_brr_hook_playback_draw:
+        pushad
+        call    _brr_before_draw
+        popad
+        call    dword ptr [_brr_orig_playback_draw]
         pushad
         call    _brr_after_draw
         popad

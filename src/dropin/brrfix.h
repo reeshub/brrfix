@@ -55,6 +55,9 @@ extern struct brr_config cfg;
 extern volatile LONG brr_timer_count;  /* exported as _TIMER_Count */
 extern int brr_patched;                /* 1 when every check passed and patches are in */
 extern uint32_t brr_orig_race_tick, brr_orig_race_draw, brr_orig_camera_update;
+extern uint32_t brr_orig_playback_tick, brr_orig_playback_draw;
+void brr_hook_playback_tick(void);
+void brr_hook_playback_draw(void);
 
 /* main.c */
 void brr_log(const char *format, ...);

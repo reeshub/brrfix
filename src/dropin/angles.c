@@ -177,21 +177,27 @@ void brr_fine_camera_angles(uint32_t record, int16_t *angles)
 {
     const uint8_t *camera = (const uint8_t *)record;
     const uint8_t *vehicle;
-    int32_t offset, look_pitch, look_yaw, speed, heading, aim, d;
+    int32_t offset, look_pitch, look_yaw, speed, heading, aim, d, mode;
     int16_t game_pitch, game_yaw, fine_pitch, fine_yaw;
     double dx, dy, dz, pitch, yaw, diff;
     int kept;
-    if (read16(camera) != 4 || camera[0x45] == 0xFF)  /* mode 4, and not held by its dead band */
+    mode = read16(camera);
+    /* mode 4 (follow camera), unless held by its dead band; mode 3 (trackside cameras) */
+    if (!(mode == 4 && camera[0x45] != 0xFF) && mode != 3)
         return;
     vehicle = (const uint8_t *)(uintptr_t)(uint32_t)read32(camera + 0x40);
     if (!vehicle)
         return;
-    offset = read32(camera + 0x54);
-    if (camera[0x44] & 0x7F)
-        offset += (read32(camera + 0x48) - offset) * (int32_t)(camera[0x44] & 0x7F) / 100;
+    if (mode == 4) {
+        offset = read32(camera + 0x54);
+        if (camera[0x44] & 0x7F)
+            offset += (read32(camera + 0x48) - offset) * (int32_t)(camera[0x44] & 0x7F) / 100;
+        offset = -offset;
+    } else  /* FUN_004046fc: a height per vehicle type, from the table at 0x451230 */
+        offset = (int16_t)(*(const uint32_t *)(0x451230 + (uint32_t)(read32(vehicle + 0x24) >> 16) * 8) >> 16);
     dx = (double)(read32(vehicle) - read32(camera + 2));
     dz = (double)(read32(vehicle + 8) - read32(camera + 0x0A));
-    dy = (double)(read32(vehicle + 4) - read32(camera + 6) - offset);
+    dy = (double)(read32(vehicle + 4) + offset - read32(camera + 6));
     pitch = atan2_units(dy, square_root(dx * dx + dz * dz));
     yaw = atan2_units(dx, dz);
     speed = read32(vehicle + 0x230);
@@ -208,6 +214,8 @@ void brr_fine_camera_angles(uint32_t record, int16_t *angles)
     aim = like_game(yaw);
     d = (int16_t)(uint16_t)(uint32_t)(heading - aim);
     d = d >= 0x4000 ? 0x7FFF - d : d < -0x4000 ? -0x8000 - d : d;
+    if (mode != 4)
+        d = 0;  /* the look-ahead is the follow camera's only */
     game_pitch = clamp_pitch(like_game(pitch) - look_pitch);
     game_yaw = (int16_t)(uint16_t)(uint32_t)(aim + sar(d, 2) * speed / 4000 - look_yaw);
     if (game_pitch == angles[0] && game_yaw == angles[1])
@@ -219,7 +227,8 @@ void brr_fine_camera_angles(uint32_t record, int16_t *angles)
     while (diff < -32768)
         diff += 65536;
     diff = diff >= 16384 ? 32767 - diff : diff < -16384 ? -32768 - diff : diff;
-    yaw += diff / 4 * speed / 4000;
+    if (mode == 4)
+        yaw += diff / 4 * speed / 4000;
     pitch -= look_pitch;
     if (pitch > 0x2000)
         pitch = 0x2000;

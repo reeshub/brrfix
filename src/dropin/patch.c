@@ -10,6 +10,7 @@
 
 int brr_patched;
 uint32_t brr_orig_race_tick = GAME_RACE_TICK, brr_orig_race_draw = GAME_RACE_DRAW;
+uint32_t brr_orig_playback_tick = 0x413400, brr_orig_playback_draw = 0x4131DC;
 uint32_t brr_orig_camera_update = 0x404908;
 uint32_t brr_rotation_continue = 0x446675, brr_game_atan = 0x412A20;
 uint32_t brr_orig_present_window = 0x42CD2C;
@@ -202,6 +203,10 @@ static int replacement(const struct site_info *s, uint8_t *out)
         put_abs32(out, (void *)brr_hook_race_tick);
     } else if (!strcmp(n, "race_draw_callback") && s->length == 4) {
         put_abs32(out, (void *)brr_hook_race_draw);
+    } else if (!strcmp(n, "playback_tick_callback") && s->length == 4) {
+        put_abs32(out, (void *)brr_hook_playback_tick);
+    } else if (!strcmp(n, "playback_draw_callback") && s->length == 4) {
+        put_abs32(out, (void *)brr_hook_playback_draw);
     } else if (!strcmp(n, "camera_update_call") && s->length == 5) {
         out[0] = 0xE8;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_camera_update);

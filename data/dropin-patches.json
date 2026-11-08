@@ -117,6 +117,22 @@
    "length": 10,
    "patch": "The DirectDraw present's first instructions (PUSH EBX; PUSH ECX; PUSH EDX; CMP byte [0x52D720],0) -> JMP brr_hook_present + 5 NOPs. In a window on a desktop that isn't 256 colours, brr_present_gdi draws the 8-bit frame buffer with StretchDIBits and returns 1; otherwise a trampoline repeats the four instructions and continues at 0x42CE82",
    "sha256": "fe491f5b00eb5323a392262f21b79689704c1ba2e89e14f2fdb06554e072eb1c"
+  },
+  {
+   "name": "playback_tick_callback",
+   "fix": "interpolation",
+   "address": "0x401DBB",
+   "length": 4,
+   "patch": "WndProc, screen 0x83 (Load Recording): MOV EDX,0x413400 (its tick) -> brr_hook_playback_tick (before/after tick hooks, as the race's)",
+   "sha256": "905ad66562a1177221b0e4488e08fd6c4f6889e6f468c75f10c22fe89c72ed4b"
+  },
+  {
+   "name": "playback_draw_callback",
+   "fix": "interpolation",
+   "address": "0x401DB6",
+   "length": 4,
+   "patch": "WndProc, screen 0x83 (Load Recording): MOV EBX,0x4131DC (its draw) -> brr_hook_playback_draw (writes interpolated vehicles, draws, restores)",
+   "sha256": "fb0b7c7ea16cf4c74fab569a44887fb5217dd56ce0f967e92782283b5af1d188"
   }
  ],
  "protected_about": "Game functions reachable from the race tick (direct calls, Phase 3 call graph) except approach_clamped, which is patched on purpose. The DLL hashes them before and after patching.",

@@ -271,6 +271,16 @@ uint32_t __cdecl brr_clock_read(void)
         if (ran >= (cfg.fix_cap ? cfg.cap : 35))
             stats_cap_hits++;
     }
+    {   /* log screen changes (screen numbers as in WndProc's dispatch) */
+        static int last_screen = -1;
+        int screen = *(volatile uint16_t *)0x4B13C0;
+        if (screen != last_screen && cfg.log_clock) {
+            static int logged;
+            if (logged++ < 200)
+                brr_log("screen: 0x%02X (game mode %d)", screen, *(volatile int16_t *)0x49C5C0);
+            last_screen = screen;
+        }
+    }
     int64_t wait_start = qpc_raw();
     /* in a window with vsync on, the vertical-blank wait paces an automatic limit */
     int vsync_paces = brr_vsync_active && cfg.frame_limit == FRAME_LIMIT_AUTO && *GAME_WINDOWED;
