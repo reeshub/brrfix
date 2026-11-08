@@ -99,6 +99,7 @@ static void load_config(void)
         cfg.window_scale = 0;
     GetPrivateProfileStringA("display", "aspect", "square", text, sizeof text, path);
     cfg.window_aspect43 = !lstrcmpiA(text, "4:3");
+    cfg.debug_log_mouse = ini_int(path, "debug", "log_mouse", 0);
     GetPrivateProfileStringA("display", "mode", "windowed", text, sizeof text, path);
     cfg.display_mode = !lstrcmpiA(text, "fullscreen") ? DISPLAY_FULLSCREEN
                      : !lstrcmpiA(text, "ask") ? DISPLAY_ASK : DISPLAY_WINDOWED;

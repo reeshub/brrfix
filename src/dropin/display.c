@@ -74,10 +74,27 @@ static void find_real_functions(void)
     real_set_window_pos = (setpos_fn)GetProcAddress(user32, "SetWindowPos");
 }
 static int max_w, max_h;
+static int picture_w, picture_h, shown_w, shown_h;  /* the game's frame, and its size in the window */
 
 static LRESULT CALLBACK window_proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
 {
-    LRESULT result = CallWindowProcA(game_proc, window, message, wparam, lparam);
+    LRESULT result;
+    /* Mouse messages (0x200-0x209) carry a position in the window; in a window the game
+     * uses it as a position in its picture (FUN_00420D88), so scale it back down. */
+    if (message >= WM_MOUSEFIRST && message <= 0x209 && shown_w > 0 && shown_h > 0) {
+        long x = (short)LOWORD(lparam), y = (short)HIWORD(lparam);
+        x = x * picture_w / shown_w;
+        y = y * picture_h / shown_h;
+        lparam = MAKELPARAM((WORD)(short)x, (WORD)(short)y);
+    }
+    result = CallWindowProcA(game_proc, window, message, wparam, lparam);
+    if (cfg.debug_log_mouse && message >= WM_MOUSEFIRST && message <= 0x209) {
+        static int logged;
+        if (logged++ < 40)
+            brr_log("mouse: message 0x%03X at %d,%d in the picture; the game's position (0x44BBE4) %d,%d",
+                    message, (short)LOWORD(lparam), (short)HIWORD(lparam), *(volatile short *)0x44BBE4,
+                    *(volatile short *)0x44BBE6);
+    }
     if (message == WM_GETMINMAXINFO && max_w > 0) {
         MINMAXINFO *info = (MINMAXINFO *)lparam;
         if (info->ptMaxTrackSize.x < max_w) info->ptMaxTrackSize.x = max_w;
@@ -211,6 +228,10 @@ int __cdecl brr_present_gdi(void)
     }
     keep_window_size(window, w, h);
     real_client_rect(window, &client);
+    picture_w = w;
+    picture_h = h;
+    shown_w = client.right;
+    shown_h = client.bottom;
     brr_before_present_window();  /* vsync, if on */
     dc = GetDC(window);
     if (!dc)

@@ -238,6 +238,8 @@ def build():
     # Windows line endings, so Notepad on Windows 95/98 shows it properly
     text = (SOURCE / "BRRFIX.INI").read_text().replace("\r\n", "\n")
     (OUT / "BRRFIX.INI").write_bytes(text.replace("\n", "\r\n").encode("ascii"))
+    text = (SOURCE / "ddraw.ini").read_text().replace("\r\n", "\n")
+    (OUT / "ddraw.ini").write_bytes(text.replace("\n", "\r\n").encode("ascii"))
     check_dll(dll)
     print(f"  built {rel(dll)} ({dll.stat().st_size:,} bytes) with Open Watcom, "
           f"and {rel(OUT / 'BRRFIX.INI')}")

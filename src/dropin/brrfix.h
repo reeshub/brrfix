@@ -29,6 +29,7 @@ struct brr_config {
     int frame_limit;         /* frames per second; FRAME_LIMIT_AUTO = display refresh, 0 = unlocked */
     int window_scale;        /* 0 = auto (largest whole number that fits), else 1..8 */
     int window_aspect43;     /* stretch the height by 1.2, as a 4:3 monitor showed 320x200 */
+    int debug_log_mouse;     /* log mouse positions in a window (tests) */
     int display_mode;        /* DISPLAY_WINDOWED, DISPLAY_FULLSCREEN or DISPLAY_ASK */
     int vsync;               /* wait for the vertical blank before the windowed present */
     int pacing_dropin;       /* 1 = the drop-in paces frames (default); 0 = leave it to cnc-ddraw if present */
