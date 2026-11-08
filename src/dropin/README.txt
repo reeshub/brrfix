@@ -31,44 +31,101 @@ Your own copy of Big Red Racing, installed and updated to v2.25 with the
 official patch. Check: WINRACE.EXE should be 534,016 bytes, SHA-256
 @WINRACE_SHA256@
 
-Install
--------
-1. In the game folder (for example C:\BIGRED), rename the game's own TIMER.DLL
-   to TIMER.DLL.ORIGINAL, so you can put it back later.
-2. Copy TIMER.DLL and BRRFIX.INI from this zip into the game folder.
-3. Run WINRACE.EXE as usual.
-To undo: delete TIMER.DLL and BRRFIX.INI, and rename TIMER.DLL.ORIGINAL back
-to TIMER.DLL.
+What's in this zip
+------------------
+- Big Red Racing.exe  the launcher: settings, checks, then starts the game
+- TIMER.DLL           the drop-in fix (replaces the game's own TIMER.DLL)
+- BRRFIX.INI          its settings (each one explained in the file)
+- ddraw.dll, Shaders  cnc-ddraw, the open-source DirectDraw (MIT licence), for
+                      modern Windows, Wine and Proton
+- ddraw.ini           our cnc-ddraw settings, with scaling presets
+- THIRD-PARTY.txt     the open-source parts and their licences
+
+Install (Windows 95 to 11)
+--------------------------
+1. Back up: in the game folder (for example C:\BIGRED), rename the game's own
+   TIMER.DLL to TIMER.ORI.
+2. Copy everything from this zip into the game folder.
+   On Windows 95, 98 and ME you can leave out ddraw.dll, ddraw.ini and Shaders:
+   their own DirectDraw draws the game properly.
+3. Start Big Red Racing.exe (make a shortcut to it if you like).
+To undo: delete the files from this zip and rename TIMER.ORI back to TIMER.DLL.
 
 Steam Deck and Linux (Proton)
 -----------------------------
-1. Install the fix as above.
+1. Install as above (the game folder can be anywhere, for example in your home
+   folder).
 2. In Steam: Games > Add a Non-Steam Game to My Library > Browse, choose
-   WINRACE.EXE.
+   Big Red Racing.exe. Steam shows it as "Big Red Racing".
 3. Right-click it > Properties > Compatibility > "Force the use of a specific
    Steam Play compatibility tool", and pick a Proton version.
-4. Play. To see Proton's log, add PROTON_LOG=1 %command% to the launch options.
+4. Play. No launch options are needed: the launcher tells Proton to use
+   cnc-ddraw. (Starting WINRACE.EXE directly instead? Then add the launch
+   options WINEDLLOVERRIDES="ddraw=n,b" %command%.)
+On the Steam Deck the game fills the 1280x800 screen exactly (4x).
+
+The launcher
+------------
+Its settings window covers the display, smoothness, music, controller and
+advanced settings, and writes them into BRRFIX.INI and ddraw.ini (keeping their
+comments). It works with the keyboard alone: Tab, arrow keys, Enter (Play) and
+Esc (Quit), so a controller mapped to keys by Steam Input can use it.
+- "Skip this window next time" starts the game straight away from then on.
+- To see the window again: hold Shift while starting, or start with -setup.
+- Steam launch options: -play skips the window, -setup always shows it.
+Before starting the game it checks WINRACE.EXE is v2.25, that the drop-in and
+cnc-ddraw are there, and that the music folder has tracks. It stays running
+until the game ends, so Steam counts your play time.
+
+Music
+-----
+The game's music was CD audio. Without the CD, put the tracks in a folder
+called MUSIC next to the game, one file per CD track, named by track number:
+track02.flac, Track02.ogg, 02.wav, "02 - Title.flac" and so on (FLAC, Ogg
+Vorbis or 16-bit WAV). Either rip your own CD, or, with the project's tools,
+run "python3 brr.py prepare" with your own copy of the game's disc image: it
+writes the tracks to work/disc/audio/. The game's own CD volume option works.
+With no tracks there, the game plays a real CD if there is one.
+
+Display and scaling
+-------------------
+By default the game runs in its own window with its 1996 menu bar (About,
+Modes, Language), as big as fits on your screen, with exact colours. Full
+screen: pick it in the launcher (or [display] mode=fullscreen in BRRFIX.INI,
+and windowed=false in ddraw.ini). For full screen, ddraw.ini has presets:
+integer (sharp, square pixels; the default), 4:3 sharp, 4:3 nearest, stretch
+and smooth.
+
+Controllers
+-----------
+An Xbox-style pad (XInput, including the Steam Deck's controls) works as the
+game's joystick: left stick steers, right trigger accelerates, left trigger
+brakes and reverses, A and B are the joystick buttons. In the game's controls
+menu, choose the joystick. Deadzone, sensitivity, the response curve and the
+layout (triggers or stick) are in the launcher and in BRRFIX.INI.
+No-code alternative: Steam Input can map the pad to keyboard keys instead
+(steering is then on or off, as with the keyboard).
+Not on Windows 95/98/ME (they have no XInput): use a joystick as in 1996.
 
 Settings: BRRFIX.INI
 --------------------
-Every fix can be switched off, and the tick rate, the frame limit and the
-logging can be changed. The file explains each setting. If it's missing, the
-defaults are used: all fixes on, 70.0 ticks a second, frames at the display's
-refresh rate.
+Every fix can be switched off, and the tick rate, the frame limit, vsync and
+the logging can be changed. The file explains each setting. If it's missing,
+the defaults are used.
 
 Troubleshooting
 ---------------
-- The picture is tiny in a corner of a black screen, or the screen mode won't
-  change: modern Windows and Wine handle the game's 1996 320x200 full-screen
-  mode badly. The free, open-source DirectDraw wrapper cnc-ddraw fixes this:
-  download it from https://github.com/FunkyFr3sh/cnc-ddraw/releases, put its
-  ddraw.dll and ddraw.ini next to WINRACE.EXE, and set maintas=true in
-  ddraw.ini to keep the original 4:3 shape. Under Wine or Proton, also set the
-  DLL override ddraw=n,b (Proton: WINEDLLOVERRIDES="ddraw=n,b" %command%).
-- "This program requires 256 colour mode to run windowed": answer OK to run
-  full screen.
 - Something wrong? Look in BRRFIX.LOG in the game folder: it says what was
   checked and changed. Set a fix to 0 in BRRFIX.INI to rule it out.
+- The picture is tiny in a corner of a black screen: cnc-ddraw isn't being
+  used. Start the game with Big Red Racing.exe, or set the DLL override
+  ddraw=n,b (see above).
+- "This program requires 256 colour mode to run windowed": BRRFIX.INI has
+  [display] mode=ask; set it to windowed or fullscreen.
+- No music: check the MUSIC folder's file names (the launcher counts the
+  tracks it finds) and the game's CD volume option.
+- The pad does nothing: choose the joystick in the game's controls menu, and
+  check [controller] enabled=1.
 
 About
 -----
