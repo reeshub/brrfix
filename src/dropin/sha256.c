@@ -1,5 +1,6 @@
 /* SHA-256 (FIPS 180-4), our own: used by the drop-in to recognise WINRACE.EXE and its
- * patch sites, and by the launcher to check WINRACE.EXE before starting it. */
+ * patch sites, by the launcher to check WINRACE.EXE before starting it, and by the DOS
+ * patcher (16-bit too: inputs up to 512 MB). */
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -36,28 +37,59 @@ static void sha256_block(uint32_t h[8], const uint8_t *p)
     h[0] += a; h[1] += b; h[2] += c; h[3] += d; h[4] += e; h[5] += f; h[6] += g; h[7] += k;
 }
 
+void brr_sha256_init(struct brr_sha256_state *s)
+{
+    static const uint32_t start[8] = {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+                                      0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
+    memcpy(s->h, start, sizeof start);
+    s->bytes = 0;
+    s->used = 0;
+}
+
+void brr_sha256_update(struct brr_sha256_state *s, const void *data, size_t size)
+{
+    const uint8_t *p = data;
+    s->bytes += (uint32_t)size;
+    while (size) {
+        size_t chunk = 64 - s->used < size ? 64 - s->used : size;
+        memcpy(s->block + s->used, p, chunk);
+        s->used += (unsigned)chunk;
+        p += chunk;
+        size -= chunk;
+        if (s->used == 64) {
+            sha256_block(s->h, s->block);
+            s->used = 0;
+        }
+    }
+}
+
+void brr_sha256_final(struct brr_sha256_state *s, uint8_t out[32])
+{
+    uint32_t high = s->bytes >> 29, low = s->bytes << 3;
+    s->block[s->used++] = 0x80;
+    if (s->used > 56) {
+        memset(s->block + s->used, 0, 64 - s->used);
+        sha256_block(s->h, s->block);
+        s->used = 0;
+    }
+    memset(s->block + s->used, 0, 56 - s->used);
+    for (int i = 0; i < 4; i++) {
+        s->block[59 - i] = (uint8_t)(high >> (8 * i));
+        s->block[63 - i] = (uint8_t)(low >> (8 * i));
+    }
+    sha256_block(s->h, s->block);
+    for (int i = 0; i < 8; i++) {
+        out[4 * i] = (uint8_t)(s->h[i] >> 24); out[4 * i + 1] = (uint8_t)(s->h[i] >> 16);
+        out[4 * i + 2] = (uint8_t)(s->h[i] >> 8); out[4 * i + 3] = (uint8_t)s->h[i];
+    }
+}
+
 void brr_sha256(const void *data, size_t size, uint8_t out[32])
 {
-    uint32_t h[8] = {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-                     0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
-    const uint8_t *p = data;
-    uint8_t tail[128] = {0};
-    size_t full = size & ~(size_t)63, rest = size - full;
-    for (size_t i = 0; i < full; i += 64)
-        sha256_block(h, p + i);
-    memcpy(tail, p + full, rest);
-    tail[rest] = 0x80;
-    size_t tail_size = rest < 56 ? 64 : 128;
-    uint64_t bits = (uint64_t)size * 8;
-    for (int i = 0; i < 8; i++)
-        tail[tail_size - 1 - i] = (uint8_t)(bits >> (8 * i));
-    sha256_block(h, tail);
-    if (tail_size == 128)
-        sha256_block(h, tail + 64);
-    for (int i = 0; i < 8; i++) {
-        out[4 * i] = (uint8_t)(h[i] >> 24); out[4 * i + 1] = (uint8_t)(h[i] >> 16);
-        out[4 * i + 2] = (uint8_t)(h[i] >> 8); out[4 * i + 3] = (uint8_t)h[i];
-    }
+    struct brr_sha256_state s;
+    brr_sha256_init(&s);
+    brr_sha256_update(&s, data, size);
+    brr_sha256_final(&s, out);
 }
 
 void brr_sha256_hex(const uint8_t digest[32], char out[65])

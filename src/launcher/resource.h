@@ -29,3 +29,4 @@
 #define IDC_DEFAULTS     1043
 #define IDC_SKIP         1050
 #define IDC_SAVE         1051
+#define IDC_DOSPATCH     1052

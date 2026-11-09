@@ -1,16 +1,15 @@
 """dos-package: zip the DOS patch for players: our files only.
 
-Writes work/release/brr-dos-patch-<version>.zip containing only the standalone
-patcher (dos_patch.py), its patch data (data/dos-patches.json, from dos-build) and
-README.txt (src/dospatch/README.txt, with the version and RACING.EXE's checksum filled
-in), plus LICENSE.txt once the project has a licence. Text files get Windows line
-endings. Every file is checked against the game manifests (data/game-manifest.json):
-any file whose SHA-256 matches a game file is refused. Also checks that the patch data
-is up to date with the sources (dos-build --check; on Linux with Open Watcom and the
-Ghidra exports, otherwise it only checks the data applies to RACING.EXE) and holds no game bytes: none of
-its code matches a stretch of 16 or more bytes of RACING.EXE (except plain text of
-our own that happens to match a common phrase, which it lists). Prints the zip's
-contents. It doesn't publish anything.
+Writes work/release/brr-dos-patch-<version>.zip containing only BRRPATCH.EXE (the DOS
+patcher, rebuilt by brrpatch-build), README.TXT (src/dospatch/README.txt, with the
+version and RACING.EXE's checksum filled in) and LICENSE.TXT once the project has a
+licence: 8.3 names, so the files copy straight onto a DOS PC. Text files get DOS line
+endings. Checks first that data/dos-patches.json is up to date with src/dospatch/
+(dos-build --check). BRRPATCH.EXE holds only our own bytes: brrpatch-build refuses any
+16 bytes in a row that also appear in RACING.EXE (except plain text of our own matching a
+common phrase), and every file in the zip is checked against the game manifests
+(data/game-manifest.json). Needs Linux, Open Watcom and the Ghidra exports, as on the
+development PC. Prints the zip's contents. It doesn't publish anything.
 Example:
     python3 brr.py dos-package
 """
@@ -18,18 +17,16 @@ Example:
 import hashlib
 import json
 import sys
-import tempfile
 import zipfile
-from pathlib import Path
 
+import brrpatch_build
 import dos_build
-import dos_patch
-from common import DATA, ROOT, WORK
+from common import DATA, WORK
 from dropin_build import WATCOM
-from dropin_package import LICENCES, MANIFEST, ZIP_DATE, crlf, game_checksums
+from dropin_package import LICENCES, ZIP_DATE, crlf, game_checksums
 from prepkit import rel
 
-HELP = "zip the DOS patch for players (our files only, checked against the game manifest)"
+HELP = "zip the DOS patch for players: BRRPATCH.EXE and README.TXT (checked against the game manifest)"
 
 RELEASE = WORK / "release"
 
@@ -54,35 +51,23 @@ def main(args):
     if args and args[0] in ("-h", "--help"):
         print(__doc__)
         return 0
-    if can_rebuild():
-        if dos_build.main(["--check"]):
-            print("dos-package: run python3 brr.py dos-build first")
-            return 1
-    else:
-        print("dos-package: NOTE: can't rebuild the patch here (that needs Linux, Open Watcom and the "
-              "Ghidra exports), so the committed data/dos-patches.json is packaged as it is. "
-              "Make releases on the development PC, where it's checked against src/dospatch/.")
-        with tempfile.TemporaryDirectory() as temp:
-            if dos_patch.main([str(dos_build.GAME), "-o", str(Path(temp) / "BRRFIX.EXE"), "--force"]):
-                print("dos-package: data/dos-patches.json doesn't apply to work/game/RACING.EXE")
-                return 1
+    if not can_rebuild():
+        print("dos-package: BRRPATCH.EXE is built with Open Watcom on Linux, from the Ghidra exports: "
+              "package it on the development PC")
+        return 1
+    if dos_build.main(["--check"]):
+        print("dos-package: run python3 brr.py dos-build first")
+        return 1
+    if brrpatch_build.main([]):
+        return 1
     spec = json.loads((DATA / "dos-patches.json").read_text())
     version = spec["version"]
-    game = dos_build.GAME.read_bytes()
-    code = bytes.fromhex(spec["code"]["hex"])
-    shared, text = shares_game_bytes(code, game)
-    if shared:
-        print(f"dos-package: REFUSED: the patch's code shares 16 or more bytes in a row with "
-              f"RACING.EXE at code offsets {shared[:8]}")
-        return 1
     readme = (dos_build.SOURCE / "README.txt").read_text().replace("@VERSION@", version)
     readme = readme.replace("@RACING_SHA256@", spec["input"]["sha256"])
-    files = {"dos_patch.py": (ROOT / "scripts" / "dos_patch.py").read_bytes(),
-             "dos-patches.json": (DATA / "dos-patches.json").read_bytes(),
-             "README.txt": crlf(readme)}
+    files = {"BRRPATCH.EXE": brrpatch_build.EXE.read_bytes(), "README.TXT": crlf(readme)}
     licence = next((path for path in LICENCES if path.exists()), None)
     if licence:
-        files["LICENSE.txt"] = crlf(licence.read_text())
+        files["LICENSE.TXT"] = crlf(licence.read_text())
     known = game_checksums()
     refused = [f"{name} matches {known[digest]}" for name, data in files.items()
                if (digest := hashlib.sha256(data).hexdigest()) in known]
@@ -99,11 +84,7 @@ def main(args):
     print(f"  {rel(out)} ({out.stat().st_size:,} bytes):")
     for name, data in files.items():
         print(f"    {name:20} {len(data):>9,} bytes  sha256 {hashlib.sha256(data).hexdigest()[:16]}...")
-    phrases = sorted({code[i:i + 16].decode() for i in text})
-    print(f"  checked against {len(known):,} game files: no matches; the patch's "
-          f"{len(code):,} bytes of code share no 16-byte run with RACING.EXE"
-          + (f" except our own text matching common phrases ({', '.join(repr(p) for p in phrases)})"
-             if phrases else "")
+    print(f"  checked against {len(known):,} game files: no matches"
           + ("" if licence else "; no LICENSE yet (the project's licence isn't chosen)"))
     print("dos-package: PASS")
     return 0

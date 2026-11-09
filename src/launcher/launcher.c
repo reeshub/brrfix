@@ -8,7 +8,10 @@
  * Windows 95 has; anything newer is looked up at run time.
  *
  * Command line: -play starts the game straight away; -setup always shows the window;
- * holding Shift while starting also shows it. Anything else goes to WINRACE.EXE. */
+ * holding Shift while starting also shows it. Anything else goes to WINRACE.EXE.
+ *
+ * The "Patch the DOS version" button patches (or restores) the DOS version's RACING.EXE
+ * on disk, with the same code as BRRPATCH.EXE, for players on modern Windows. */
 #include <windows.h>
 #include <shlobj.h>
 #include <string.h>
@@ -17,6 +20,7 @@
 #include "game.h"
 #include "sha256.h"
 #include "tracks.h"
+#include "brrpatch.h"
 
 static char folder[MAX_PATH], brrfix_ini[MAX_PATH], ddraw_ini[MAX_PATH];
 static int windows_9x, under_wine;
@@ -222,6 +226,51 @@ static void browse(HWND dialog)
     }
 }
 
+/* Patch the DOS version's RACING.EXE, or put the original back. The DOS and Windows
+ * versions install into the same folder, so look here first. */
+static void patch_dos(HWND dialog)
+{
+    static const char title[] = "Big Red Racing: the DOS version";
+    char dos_folder[MAX_PATH], text[MAX_PATH + 400], message[512];
+    int state, result;
+    HCURSOR cursor;
+    lstrcpynA(dos_folder, folder, MAX_PATH);
+    state = brr_dos_state(dos_folder);
+    if (state == BRR_DOS_MISSING) {
+        BROWSEINFOA info;
+        LPITEMIDLIST item;
+        char name[MAX_PATH];
+        memset(&info, 0, sizeof info);
+        info.hwndOwner = dialog;
+        info.pszDisplayName = name;
+        info.lpszTitle = "The DOS version's folder, with RACING.EXE in it (for example C:\\BIGRED):";
+        info.ulFlags = BIF_RETURNONLYFSDIRS;
+        item = SHBrowseForFolderA(&info);
+        if (!item || !SHGetPathFromIDListA(item, dos_folder))
+            return;
+        state = brr_dos_state(dos_folder);
+    }
+    if (state == BRR_DOS_ORIGINAL) {
+        wsprintfA(text, "Patch the DOS version's RACING.EXE in %s?\n\nThis fixes the camera stutter and smooths "
+                  "the picture on fast PCs (patch %s); the physics is unchanged. The original is kept as "
+                  "RACING.ORI, and this button can put it back.", dos_folder, brr_dos_version());
+        if (MessageBoxA(dialog, text, title, MB_YESNO | MB_ICONQUESTION) != IDYES)
+            return;
+    } else if (state == BRR_DOS_PATCHED) {
+        wsprintfA(text, "The DOS version's RACING.EXE in %s is already patched.\n\nPut the original back "
+                  "(from RACING.ORI)?", dos_folder);
+        if (MessageBoxA(dialog, text, title, MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES)
+            return;
+    }
+    cursor = SetCursor(LoadCursorA(NULL, IDC_WAIT));
+    result = state == BRR_DOS_PATCHED ? brr_dos_restore(dos_folder, message, sizeof message)
+                                      : brr_dos_patch(dos_folder, message, sizeof message);
+    SetCursor(cursor);
+    if (result == 0 && state != BRR_DOS_PATCHED)
+        lstrcatA(message, "\n\nStart the DOS version as usual, with RACING. To undo, press this button again.");
+    MessageBoxA(dialog, message, title, MB_OK | (result < 0 ? MB_ICONERROR : MB_ICONINFORMATION));
+}
+
 static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPARAM lparam)
 {
     (void)lparam;
@@ -259,6 +308,9 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
             return TRUE;
         case IDC_BROWSE:
             browse(dialog);
+            return TRUE;
+        case IDC_DOSPATCH:
+            patch_dos(dialog);
             return TRUE;
         case IDC_FOLDER:
             if (HIWORD(wparam) == EN_KILLFOCUS)

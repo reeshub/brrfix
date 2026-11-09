@@ -5,7 +5,7 @@
 
 IDI_APP ICON "launcher.ico"
 
-IDD_SETTINGS DIALOG 0, 0, 324, 252
+IDD_SETTINGS DIALOG 0, 0, 324, 258
 STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX
 CAPTION "Big Red Racing"
 FONT 8, "MS Sans Serif"
@@ -54,9 +54,10 @@ BEGIN
 
     AUTOCHECKBOX    "S&kip this window next time", IDC_SKIP, 8, 200, 140, 10, WS_TABSTOP
     LTEXT           "To see it again, hold Shift while starting the game, or start it with -setup. Steam launch options: -play skips it, -setup shows it.", -1, 8, 212, 200, 24
-    DEFPUSHBUTTON   "&Play", IDOK, 214, 230, 34, 16, WS_TABSTOP
-    PUSHBUTTON      "&Save", IDC_SAVE, 250, 230, 34, 16, WS_TABSTOP
-    PUSHBUTTON      "&Quit", IDCANCEL, 286, 230, 32, 16, WS_TABSTOP
+    PUSHBUTTON      "Patch the DOS ve&rsion...", IDC_DOSPATCH, 8, 238, 96, 14, WS_TABSTOP
+    DEFPUSHBUTTON   "&Play", IDOK, 214, 236, 34, 16, WS_TABSTOP
+    PUSHBUTTON      "&Save", IDC_SAVE, 250, 236, 34, 16, WS_TABSTOP
+    PUSHBUTTON      "&Quit", IDCANCEL, 286, 236, 32, 16, WS_TABSTOP
 END
 
 1 VERSIONINFO
