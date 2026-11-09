@@ -35,6 +35,10 @@ official v2.25 update. Check: RACING.EXE should be 629,472 bytes, SHA-256
 @RACING_SHA256@
 BRRPATCH refuses any other file, and changes nothing.
 
+BRRPATCH.EXE runs on MS-DOS 6.0 or later (or compatible: PC DOS, FreeDOS, a
+Windows 95/98/ME MS-DOS Prompt, DOSBox) on a 386 or better, with no DOS
+extender or memory manager needed.
+
 Patching on a DOS PC (or a Windows 95/98/ME MS-DOS Prompt)
 ---------------------------------------------------------
 1. Copy BRRPATCH.EXE into the game's folder, for example C:\BIGRED, next to
@@ -69,12 +73,25 @@ Launcher instead (Big Red Racing.exe, from the Big Red Launcher download):
 its "Patch the DOS version" button does the same, and pressed again puts the
 original back. Or run BRRPATCH in DOSBox.
 
+On Linux and macOS (or any PC with Python)
+------------------------------------------
+The PYTHON folder holds the same patch as a Python 3.8+ script (standard
+library only). It writes a patched copy, BRRFIX.EXE, beside your RACING.EXE,
+which it never changes; start the game with BRRFIX instead of RACING:
+       python3 PYTHON/DOSPATCH.PY ~/bigred/RACING.EXE
+Options such as --no-retrace turn single fixes off (python3 PYTHON/DOSPATCH.PY
+--help lists them), and --verify checks a patched file. To undo, delete
+BRRFIX.EXE.
+
 What's in this zip
 ------------------
 - BRRPATCH.EXE   the patcher (a DOS program; no DOS extender needed). It holds
                  only our own code and the list of changes: no part of the
                  game. It checks your RACING.EXE before and after patching.
 - README.TXT     this file
+- PYTHON\DOSPATCH.PY   the Python patcher (see "On Linux and macOS")
+- PYTHON\DOSPATCH.JSN  its patch data: our own compiled code, where it goes,
+                       and checksums of the places it changes
 
 About
 -----

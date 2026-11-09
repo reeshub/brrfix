@@ -15,7 +15,7 @@ uint32_t brr_orig_playback_tick = 0x413400, brr_orig_playback_draw = 0x4131DC;
 uint32_t brr_orig_camera_update = 0x404908;
 uint32_t brr_rotation_continue = 0x446675, brr_game_atan = 0x412A20;
 uint32_t brr_orig_present_window = 0x42CD2C;
-/* shown on the main menu instead of the build date: "V2.24WR FIX0.2.0" (it fits where
+/* shown on the main menu instead of the build date: "V2.24WR FIX0.1.0" (it fits where
  * "V2.24WR (09-05-96)" was) */
 static const char version_text[] = "FIX" BRRFIX_VERSION;
 

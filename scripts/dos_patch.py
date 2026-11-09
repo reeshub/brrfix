@@ -282,7 +282,7 @@ class LE:
 
 def find_patch_data(explicit=None):
     candidates = [Path(explicit)] if explicit else [
-        HERE / "dos-patches.json", HERE.parent / "data" / "dos-patches.json"]
+        HERE / "dos-patches.json", HERE / "DOSPATCH.JSN", HERE.parent / "data" / "dos-patches.json"]
     for path in candidates:
         if path.exists():
             return json.loads(path.read_text()), path
