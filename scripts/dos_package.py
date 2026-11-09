@@ -6,7 +6,8 @@ README.txt (src/dospatch/README.txt, with the version and RACING.EXE's checksum 
 in), plus LICENSE.txt once the project has a licence. Text files get Windows line
 endings. Every file is checked against the game manifests (data/game-manifest.json):
 any file whose SHA-256 matches a game file is refused. Also checks that the patch data
-is up to date with the sources (dos-build --check) and holds no game bytes: none of
+is up to date with the sources (dos-build --check; on Linux with Open Watcom and the
+Ghidra exports, otherwise it only checks the data applies to RACING.EXE) and holds no game bytes: none of
 its code matches a stretch of 16 or more bytes of RACING.EXE (except plain text of
 our own that happens to match a common phrase, which it lists). Prints the zip's
 contents. It doesn't publish anything.
@@ -16,10 +17,15 @@ Example:
 
 import hashlib
 import json
+import sys
+import tempfile
 import zipfile
+from pathlib import Path
 
 import dos_build
+import dos_patch
 from common import DATA, ROOT, WORK
+from dropin_build import WATCOM
 from dropin_package import LICENCES, MANIFEST, ZIP_DATE, crlf, game_checksums
 from prepkit import rel
 
@@ -39,13 +45,27 @@ def shares_game_bytes(code, game, run=16):
     return [i for i in found if i not in text], text
 
 
+def can_rebuild():
+    return (sys.platform.startswith("linux") and (WATCOM / "binl64" / "wcc386").exists()
+            and (dos_build.EXPORTS / "calls.csv").exists())
+
+
 def main(args):
     if args and args[0] in ("-h", "--help"):
         print(__doc__)
         return 0
-    if dos_build.main(["--check"]):
-        print("dos-package: run python3 brr.py dos-build first")
-        return 1
+    if can_rebuild():
+        if dos_build.main(["--check"]):
+            print("dos-package: run python3 brr.py dos-build first")
+            return 1
+    else:
+        print("dos-package: NOTE: can't rebuild the patch here (that needs Linux, Open Watcom and the "
+              "Ghidra exports), so the committed data/dos-patches.json is packaged as it is. "
+              "Make releases on the development PC, where it's checked against src/dospatch/.")
+        with tempfile.TemporaryDirectory() as temp:
+            if dos_patch.main([str(dos_build.GAME), "-o", str(Path(temp) / "BRRFIX.EXE"), "--force"]):
+                print("dos-package: data/dos-patches.json doesn't apply to work/game/RACING.EXE")
+                return 1
     spec = json.loads((DATA / "dos-patches.json").read_text())
     version = spec["version"]
     game = dos_build.GAME.read_bytes()
