@@ -1,13 +1,15 @@
 """win-headers: check WINRACE.EXE's section headers, and write a copy that modern Windows accepts.
 
-The 1996 Watcom linker left every section's VirtualSize at 0, and gave the uninitialised
-data section (.bss) a SizeOfRawData of about 900 KB with no data in the file. Windows 95
-and Wine load that; the suspicion (likely, not yet confirmed) is that Windows NT-family
-loaders refuse it ("This app can't run on your PC"). This command lists such problems
-and writes work/build/winheaders/WINRACE.EXE with only the section headers corrected:
-each VirtualSize set to the size Windows 95 used, and the .bss section's SizeOfRawData
-set to 0. It checks that both files give the same program in memory. A test tool for
-the director's Windows 10 PC: the copy is game content, so it stays in work/.
+The 1996 Watcom linker left every section's VirtualSize at 0, gave the uninitialised
+data section (.bss) a SizeOfRawData of about 900 KB with no data in the file, and left a
+64 KB gap between that section and the next. Windows 95 and Wine load that; Windows 10
+refuses it ("This app can't run on your PC", error 193). A first correction without the
+gap still failed on Windows 10 (playtest 2026-11-09); Windows NT-family loaders refuse
+gaps between sections (likely; ReactOS, which follows NT, does). This command lists the
+problems and writes work/build/winheaders/WINRACE.EXE with only the section headers
+corrected, as the launcher does (src/launcher/winfix.c): each VirtualSize reaches the
+next section (or the end of the image), and .bss gets no file data. It checks that both
+files give the same program in memory. The copy is game content, so it stays in work/.
 Example:
     python3 brr.py win-headers
 """
@@ -55,11 +57,16 @@ def corrected(data):
     """(the header-corrected file, [(section name, problems)])."""
     fixed = bytearray(data)
     report = []
-    for s in sections(data)[0]:
+    found, size_of_image, _ = sections(data)
+    for i, s in enumerate(found):
         problems = []
+        end = found[i + 1]["va"] if i + 1 < len(found) else size_of_image
         if s["vsize"] == 0:
             problems.append("VirtualSize 0")
-            struct.pack_into("<I", fixed, s["at"] + 8, s["rsize"])
+        covered = s["va"] + -(-(s["vsize"] or s["rsize"]) // 0x1000) * 0x1000
+        if covered < end:
+            problems.append(f"a gap of 0x{end - covered:X} bytes before the next section")
+        struct.pack_into("<I", fixed, s["at"] + 8, end - s["va"])
         if s["rsize"] and s["raw"] + s["rsize"] > len(data):
             problems.append(f"raw data 0x{s['raw']:X}+0x{s['rsize']:X} runs past the end of the "
                             f"file (0x{len(data):X} bytes)")

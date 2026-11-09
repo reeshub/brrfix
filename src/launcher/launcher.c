@@ -463,16 +463,20 @@ static int checks_pass(void)
         return 0;
     }
     state = brr_win_state(folder);
-    if (state == BRR_WIN_ORIGINAL) {
+    /* also when an earlier launcher's correction is there and WINRACE.ORI is the original */
+    if (state == BRR_WIN_ORIGINAL || (state == BRR_WIN_OTHER && brr_win_backup_is_original(folder))) {
         /* Windows 95-ME and Wine can also start the file as it is, so a "No" isn't fatal there */
         int optional = windows_9x || under_wine;
         if (MessageBoxA(NULL, "WINRACE.EXE needs a small correction: the 1996 linker wrote its file headers "
                         "carelessly, and Windows 10 and 11 refuse to start it.\n\nCorrect them now? Only the "
-                        "headers change (13 bytes); the game is the same, and works on every version of "
+                        "headers change; the game is the same, and works on every version of "
                         "Windows. The original is kept as WINRACE.ORI.", "Big Red Racing",
                         MB_YESNO | MB_ICONQUESTION) != IDYES) {
-            if (!optional)
+            if (!optional) {
+                MessageBoxA(NULL, "Without the correction, this version of Windows can't start the game.",
+                            "Big Red Racing", MB_OK | MB_ICONINFORMATION);
                 return 0;
+            }
         } else if (brr_win_correct(folder, message, sizeof message) < 0) {
             MessageBoxA(NULL, message, "Big Red Racing", MB_OK | MB_ICONERROR);
             if (!optional)

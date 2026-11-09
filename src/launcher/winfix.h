@@ -9,6 +9,8 @@ enum { BRR_WIN_MISSING, BRR_WIN_ORIGINAL, BRR_WIN_CORRECTED, BRR_WIN_OTHER };
 
 /* What WINRACE.EXE in folder is: the v2.25 file as installed, or header-corrected */
 int brr_win_state(const char *folder);
+/* WINRACE.ORI is the original v2.25 file */
+int brr_win_backup_is_original(const char *folder);
 /* 0 done, 1 nothing to do, -1 failed (nothing changed unless the message says so) */
 int brr_win_correct(const char *folder, char *message, unsigned size);
 

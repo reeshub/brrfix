@@ -91,16 +91,17 @@ static void put32(uint8_t *p, uint32_t value)
     p[0] = (uint8_t)value; p[1] = (uint8_t)(value >> 8); p[2] = (uint8_t)(value >> 16); p[3] = (uint8_t)(value >> 24);
 }
 
-/* VirtualSize 0 becomes SizeOfRawData; uninitialised sections get no file data */
+/* Each section's VirtualSize reaches the next section (Windows NT refuses gaps between
+ * sections, and VirtualSize 0); uninitialised sections get no file data */
 static void correct(uint8_t *data)
 {
-    uint32_t pe = get32(data + 0x3C);
+    uint32_t pe = get32(data + 0x3C), image_size = get32(data + pe + 24 + 56);
     unsigned count = data[pe + 6] | data[pe + 7] << 8, optional = data[pe + 20] | data[pe + 21] << 8, i;
     uint8_t *table = data + pe + 24 + optional;
     for (i = 0; i < count; i++) {
         uint8_t *s = table + 40 * i;
-        if (!get32(s + 8))
-            put32(s + 8, get32(s + 16));
+        uint32_t end = i + 1 < count ? get32(s + 40 + 12) : image_size;
+        put32(s + 8, end - get32(s + 12));
         if ((get32(s + 36) & 0x80) && get32(s + 16)) {
             put32(s + 16, 0);
             put32(s + 20, 0);
@@ -108,16 +109,24 @@ static void correct(uint8_t *data)
     }
 }
 
+int brr_win_backup_is_original(const char *folder)
+{
+    char path[PATH_SIZE];
+    join(path, folder, "WINRACE.ORI");
+    return state_of(path) == BRR_WIN_ORIGINAL;
+}
+
 int brr_win_correct(const char *folder, char *message, unsigned size)
 {
     char exe[PATH_SIZE], backup[PATH_SIZE], fresh[PATH_SIZE];
     size_t length = 0;
     uint8_t *data;
-    int kept, ok;
+    int kept, ok, redo = 0;
     FILE *f;
     join(exe, folder, "WINRACE.EXE");
     join(backup, folder, "WINRACE.ORI");
     join(fresh, folder, "WINRACE.NEW");
+    kept = state_of(backup);
     switch (state_of(exe)) {
     case BRR_WIN_CORRECTED:
         say(message, size, "WINRACE.EXE is already corrected. Nothing was changed.");
@@ -125,16 +134,19 @@ int brr_win_correct(const char *folder, char *message, unsigned size)
     case BRR_WIN_ORIGINAL:
         break;
     default:
-        say(message, size, "WINRACE.EXE isn't the v2.25 file this correction is for. Nothing was changed.");
-        return -1;
+        /* for example corrected by an earlier version of the launcher: start again from the original */
+        if (kept != BRR_WIN_ORIGINAL) {
+            say(message, size, "WINRACE.EXE isn't the v2.25 file this correction is for. Nothing was changed.");
+            return -1;
+        }
+        redo = 1;
     }
-    kept = state_of(backup);
     if (kept != BRR_WIN_MISSING && kept != BRR_WIN_ORIGINAL) {
         say(message, size, "WINRACE.ORI is already there, and it isn't the original WINRACE.EXE. Move or "
             "rename it, then try again. Nothing was changed.");
         return -1;
     }
-    data = load(exe, &length);
+    data = load(redo ? backup : exe, &length);
     if (!data) {
         say(message, size, "Couldn't read WINRACE.EXE. Nothing was changed.");
         return -1;
@@ -156,13 +168,16 @@ int brr_win_correct(const char *folder, char *message, unsigned size)
     }
     if (kept == BRR_WIN_ORIGINAL ? remove(exe) != 0 : rename(exe, backup) != 0) {
         remove(fresh);
-        say(message, size, "Couldn't rename WINRACE.EXE to WINRACE.ORI (is it read-only?). Nothing was changed.");
+        say(message, size, "Couldn't replace WINRACE.EXE (is it read-only?). Nothing was changed.");
         return -1;
     }
     if (rename(fresh, exe) != 0) {
-        rename(backup, exe);
+        if (!redo)
+            rename(backup, exe);
         remove(fresh);
-        say(message, size, "Couldn't rename WINRACE.NEW to WINRACE.EXE. The original WINRACE.EXE is back in place.");
+        say(message, size, redo ? "Couldn't rename WINRACE.NEW to WINRACE.EXE. The original is still "
+            "WINRACE.ORI: rename it to WINRACE.EXE." : "Couldn't rename WINRACE.NEW to WINRACE.EXE. The "
+            "original WINRACE.EXE is back in place.");
         return -1;
     }
     say(message, size, "WINRACE.EXE is corrected. The original is saved as WINRACE.ORI.");
