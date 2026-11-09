@@ -77,6 +77,15 @@ Before starting the game it checks WINRACE.EXE is v2.25, that the drop-in and
 cnc-ddraw are there, and that the music folder has tracks. It stays running
 until the game ends, so Steam counts your play time.
 
+The DOS version
+---------------
+The launcher can also fix the DOS version (RACING.EXE, v2.24 from the v2.25
+update) for playing on an old PC or in DOSBox: press "Patch the DOS version".
+It patches RACING.EXE in the game folder (or asks where the DOS version is),
+keeping the original as RACING.ORI; press it again to put the original back.
+This does the same as BRRPATCH.EXE, the DOS patch download, for PCs that can't
+run DOS programs.
+
 Music
 -----
 The game's music was CD audio. Without the CD, put the tracks in a folder

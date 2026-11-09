@@ -1,10 +1,10 @@
 Big Red Racing DOS patch
 ========================
 
-A patcher for the DOS version of Big Red Racing (1996), v2.24 (from the
-official v2.25 patch). It reads your own RACING.EXE and writes a fixed copy,
-BRRFIX.EXE, beside it, for original PCs and for DOSBox. Your RACING.EXE is
-never changed.
+BRRPATCH.EXE fixes the DOS version of Big Red Racing (1996), v2.24 (from the
+official v2.25 update), for original PCs and for DOSBox. It patches the game's
+RACING.EXE where it is, and keeps the original as RACING.ORI, so you can put
+it back at any time.
 
 What it fixes
 -------------
@@ -25,67 +25,56 @@ What it fixes
 "Fast machine" means one that draws a frame in 3 ticks (3/70 s) or less, on
 average: a fast Pentium, or DOSBox with plenty of cycles. On slower machines,
 such as a 486, the patched game runs exactly as fast as the original, with the
-same detail: there's nothing to smooth between, and waiting for the screen would
-only cost time. The camera fixes (finer angles, steady lean) apply on every
-machine. The patch's own code uses
-only 386/486 instructions and whole-number arithmetic (no maths coprocessor
-needed, like the game).
+same detail. The camera fixes apply on every machine. The patch's own code
+uses only 386/486 instructions and whole-number arithmetic.
 
 You need
 --------
-- Your own copy of Big Red Racing for DOS, installed and updated with the
-  official v2.25 patch. Check: RACING.EXE should be 629,472 bytes, SHA-256
-  @RACING_SHA256@
-  (The patcher refuses any other file, with a message.)
-- A modern PC with Python 3.8 or newer (Windows, Linux or macOS) to run the
-  patcher. The patched game then runs on the DOS machine without Python.
+Your own copy of Big Red Racing for DOS, installed and updated with the
+official v2.25 update. Check: RACING.EXE should be 629,472 bytes, SHA-256
+@RACING_SHA256@
+BRRPATCH refuses any other file, and changes nothing.
 
-Patching
---------
-1. Unzip this folder anywhere.
-2. Run the patcher on your RACING.EXE, for example on Windows:
-       py dos_patch.py C:\BIGRED\RACING.EXE
-   or on Linux and macOS:
-       python3 dos_patch.py ~/bigred/RACING.EXE
-   It writes BRRFIX.EXE in the same folder (or choose with -o NAME).
-3. Optional: check the result:
-       python3 dos_patch.py --verify C:\BIGRED\BRRFIX.EXE
-Options (all fixes are on unless you turn them off):
-   --no-camera --no-interpolation --no-fine-angles --no-roll-fix --no-retrace
-   --cap N      the catch-up cap on fast machines, 1 to 35 ticks (default 8)
-   python3 dos_patch.py --help lists everything.
+Patching on a DOS PC (or a Windows 95/98/ME MS-DOS Prompt)
+---------------------------------------------------------
+1. Copy BRRPATCH.EXE into the game's folder, for example C:\BIGRED, next to
+   RACING.EXE. It fits on a floppy disk.
+2. In that folder, type:
+       BRRPATCH
+   (or BRRPATCH C:\BIGRED from anywhere). Checking and patching take a few
+   seconds on a 486.
+3. Start the game as usual, with RACING. The main menu shows the patch at the
+   bottom right, for example "V2.24R F0.1 CIARV": patch 0.1 with the Camera,
+   Interpolation, fine Angles, Roll and retrace (V) fixes on.
+It needs about 650 KB of free disk space while it works.
 
-On an original PC
------------------
-1. Copy BRRFIX.EXE (about 645 KB: it fits on a floppy disk) into the game's
-   folder, for example C:\BIGRED, next to RACING.EXE and DOS4GW.EXE.
-2. Start it with BRRFIX instead of RACING. Everything else is the same: the CD,
-   the sound settings, your saved players, and switches such as -DIAGS.
-3. The main menu shows the version and the fixes chosen at the bottom right,
-   for example "V2.24R F0.1 CIARV": patch 0.1 with the Camera, Interpolation,
-   fine Angles, Roll and retrace (V) fixes on.
-Modem play (MODEM.BAT) still starts the original RACING.
+To put the original back:
+       BRRPATCH /U
+BRRPATCH /? lists the options.
 
 In DOSBox
 ---------
-Copy BRRFIX.EXE into the game folder you mount as C:, and run BRRFIX. Give
-DOSBox plenty of CPU (for example cycles=max, or a fixed number high enough
-for 70 frames a second) to get the smooth picture.
-DOSBox shows the game's 70 Hz picture on your monitor's refresh rate: on a
-60 Hz monitor some frames are always shown twice, whatever the game does, which
-looks like a slight judder. A 120 Hz, 144 Hz or variable-refresh (G-Sync,
-FreeSync) display helps.
+Copy BRRPATCH.EXE into the folder you mount as C:, then run BRRPATCH and
+RACING in DOSBox as above. Give DOSBox plenty of CPU (for example cycles=max,
+or a fixed number high enough for 70 frames a second) to get the smooth
+picture. DOSBox shows the game's 70 Hz picture on your monitor's refresh rate:
+on a 60 Hz monitor some frames are always shown twice, whatever the game does,
+which looks like a slight judder. A 120 Hz, 144 Hz or variable-refresh
+(G-Sync, FreeSync) display helps.
 
-Going back to the original
---------------------------
-Delete BRRFIX.EXE and start RACING as before: RACING.EXE was never changed.
+On modern Windows
+-----------------
+BRRPATCH.EXE is a DOS program, so 64-bit Windows can't run it. Use the
+Windows version's launcher instead (Big Red Racing.exe, from the drop-in fix
+download): its "Patch the DOS version" button does the same, and pressed again
+puts the original back. Or run BRRPATCH in DOSBox.
 
 What's in this zip
 ------------------
-- dos_patch.py        the patcher (Python, standard library only)
-- dos-patches.json    the patch: our own compiled code, where it goes, and
-                      checksums of the places it changes. No part of the game.
-- README.txt          this file
+- BRRPATCH.EXE   the patcher (a DOS program; no DOS extender needed). It holds
+                 only our own code and the list of changes: no part of the
+                 game. It checks your RACING.EXE before and after patching.
+- README.TXT     this file
 
 About
 -----
