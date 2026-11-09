@@ -57,6 +57,7 @@
    "GetProcAddress",
    "GetProcessHeap",
    "GetStdHandle",
+   "GetSystemDirectoryA",
    "GetVersion",
    "HeapAlloc",
    "HeapFree",

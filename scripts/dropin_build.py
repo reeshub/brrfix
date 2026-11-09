@@ -465,9 +465,42 @@ def build():
     text = (SOURCE / "ddraw.ini").read_text().replace("\r\n", "\n")
     (OUT / "ddraw.ini").write_bytes(text.replace("\n", "\r\n").encode("ascii"))
     check_dll(dll)
+    build_dplay()
     build_launcher(manifest)
     print(f"  built {rel(dll)} ({dll.stat().st_size:,} bytes) with Open Watcom, "
           f"and {rel(OUT / 'BRRFIX.INI')}")
+
+
+def build_dplay():
+    """DPLAY.DLL: our stand-in for DirectX 3's DirectPlay (Windows 10 and 11 have none), which
+    WINRACE.EXE imports by ordinal: 1 DirectPlayCreate, 2 DirectPlayEnumerate."""
+    env = watcom_env()
+    obj = OUT / "obj" / "dplay.obj"
+    obj.parent.mkdir(exist_ok=True)
+    run_tool([str(watcom_bin() / "wcc386"), *CFLAGS, f"-fo={obj}", str(SOURCE / "dplay.c")], env,
+             "compiling dplay.c")
+    dll = OUT / "DPLAY.DLL"
+    dll.unlink(missing_ok=True)
+    script = OUT / "dplay.lnk"
+    script.write_text("\n".join([
+        "system nt_dll initinstance terminstance",
+        f"name '{dll}'",
+        f"option quiet, caseexact, map='{OUT / 'DPLAY.map'}'",
+        "option osversion=4.0",
+        "runtime windows=4.0",
+        f"file '{obj}'",
+        "export 'DirectPlayCreate'.1='_DirectPlayCreate@12'",
+        "export 'DirectPlayEnumerate'.2='_DirectPlayEnumerate@8'",
+    ]) + "\n")
+    run_tool([str(watcom_bin() / "wlink"), f"@{script}"], env, "linking DPLAY.DLL")
+    pe = PE(dll.read_bytes())
+    if pe.exports() != [(1, "DirectPlayCreate"), (2, "DirectPlayEnumerate")]:
+        raise BuildError(f"DPLAY.DLL's exports aren't ordinals 1 and 2: {pe.exports()}")
+    extra = [name for name in pe.imports() if name.lower() not in SYSTEM_DLLS]
+    if extra:
+        raise BuildError(f"DPLAY.DLL imports non-system DLLs: {', '.join(extra)}")
+    print(f"  built {rel(dll)} ({dll.stat().st_size:,} bytes): exports 1:DirectPlayCreate, "
+          f"2:DirectPlayEnumerate; imports {', '.join(pe.imports())}")
 
 
 def check_dll(dll):

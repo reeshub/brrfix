@@ -124,6 +124,7 @@ def main(args):
     files = {"Big Red Racing.exe": (BUILD / "Big Red Racing.exe").read_bytes(),
              "Big Red Launcher Help.txt": (BUILD / "Big Red Launcher Help.txt").read_bytes(),
              "TIMER.DLL": dll.read_bytes(),
+             "DPLAY.DLL": (BUILD / "DPLAY.DLL").read_bytes(),
              "BRRFIX.INI": crlf((SOURCE / "BRRFIX.INI").read_text()),
              "ddraw.ini": crlf((SOURCE / "ddraw.ini").read_text()),
              "ddraw.dll": cnc["ddraw.dll"],

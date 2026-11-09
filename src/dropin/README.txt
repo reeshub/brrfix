@@ -38,6 +38,9 @@ What's in this zip
 - Big Red Racing.exe  Big Red Launcher: settings, checks, then starts the game
 - Big Red Launcher Help.txt  what every setting in the launcher does
 - TIMER.DLL           the fix itself (replaces the game's own TIMER.DLL)
+- DPLAY.DLL           stands in for DirectX 3's DirectPlay, which Windows 10
+                      and 11 lack (the game won't start without it); it passes
+                      network play on to a real DirectPlay if there is one
 - BRRFIX.INI          its settings (each one explained in the file)
 - ddraw.dll, Shaders  cnc-ddraw, the open-source DirectDraw (MIT licence), for
                       modern Windows, Wine and Proton
@@ -49,13 +52,13 @@ Install (Windows 95 to 11)
 1. Back up: in the game folder (for example C:\BIGRED), rename the game's own
    TIMER.DLL to TIMER.ORI.
 2. Copy everything from this zip into the game folder.
-   On Windows 95, 98 and ME you can leave out ddraw.dll, ddraw.ini and Shaders:
-   their own DirectDraw draws the game properly.
+   On Windows 95, 98 and ME you can leave out ddraw.dll, ddraw.ini, Shaders and
+   DPLAY.DLL: their own DirectX draws the game properly and has DirectPlay.
 3. Start Big Red Racing.exe (make a shortcut to it if you like).
    The first time, it offers to correct WINRACE.EXE: the 1996 linker wrote its
    file headers carelessly, and Windows 10 and 11 refuse to start it. Only the
-   headers change (13 bytes), the corrected file works on every version of
-   Windows, and the original is kept as WINRACE.ORI.
+   headers change, the corrected file works on every version of Windows, and
+   the original is kept as WINRACE.ORI.
 To undo: delete the files from this zip and rename TIMER.ORI back to TIMER.DLL
 (and, if it's there, WINRACE.ORI back to WINRACE.EXE).
 
