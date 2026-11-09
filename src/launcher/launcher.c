@@ -420,7 +420,13 @@ static DWORD start_game(const char *arguments)
     memset(&startup, 0, sizeof startup);
     startup.cb = sizeof startup;
     if (!CreateProcessA(exe, command, NULL, NULL, FALSE, 0, NULL, folder, &startup, &process)) {
-        MessageBoxA(NULL, "WINRACE.EXE couldn't be started.", "Big Red Racing", MB_OK | MB_ICONERROR);
+        char text[300];
+        DWORD error = GetLastError();
+        int n = wsprintfA(text, "WINRACE.EXE couldn't be started.\n\nWindows error %lu: ", (unsigned long)error);
+        if (!FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, error, 0,
+                            text + n, (DWORD)(sizeof text - n), NULL))
+            text[n - 2] = 0;
+        MessageBoxA(NULL, text, "Big Red Racing", MB_OK | MB_ICONERROR);
         return 1;
     }
     CloseHandle(process.hThread);
