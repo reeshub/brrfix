@@ -1,0 +1,171 @@
+# Big Red Launcher @VERSION@ by ctrl-alt-rees
+
+ctrl-alt-rees.com
+
+Big Red Launcher starts the Windows version of Big Red Racing (1996) with the
+drop-in fix, and lets you choose its settings. This file explains every setting
+in its window. Rest the mouse on a setting to see a one-line reminder.
+
+Start the game with **Big Red Racing.exe**. To see the settings window again
+after ticking "Skip this window next time", hold **Shift** while starting it,
+or start it with **-setup**.
+
+## Display
+
+**Mode**
+
+- **In its own window:** the game's own 1996 window, with its menu bar (About,
+  Modes, Language), as on a Windows 95 desktop.
+- **Full screen:** the game fills the screen, without asking.
+- **Ask, as in 1996:** the game asks each time, as the original did.
+
+**Window size** (in a window only)
+
+How big the window is, in whole multiples of the game's 320x200 picture.
+"Largest that fits" picks the biggest that fits on your screen.
+
+**4:3 shape, as a 1996 monitor** (in a window only)
+
+The game's picture is 320x200, but 1996 monitors showed it at 4:3, so
+everything looked a little taller. Ticked, the picture's height is stretched by
+1.2 to match. Unticked, pixels are square and sharp.
+
+**Full screen** (in full screen only; not on Windows 95, 98 or ME)
+
+How the picture fills the screen:
+
+- **Integer (sharp):** the largest whole-number size that fits, with square
+  pixels and black borders. 4x on the Steam Deck, which fills its screen.
+- **4:3 sharp:** the 1996 monitor shape, as big as fits, kept sharp.
+- **4:3 nearest:** the same shape with plain pixels; some rows and columns are
+  one screen pixel wider than others.
+- **Stretch:** fills the whole screen, whatever its shape.
+- **Smooth:** slightly blurred, as cnc-ddraw does by default.
+
+## Smoothness
+
+**Interpolation (smooth motion)**
+
+The game's physics moves the trucks 35 times a second. With interpolation, the
+trucks and the camera are drawn in between those steps, so a modern PC shows
+smooth motion at its full frame rate instead of 35 jerky steps a second. The
+physics itself is exactly the same either way.
+
+**Camera smoothing**
+
+Experimental: softens the camera's movement further. The camera stutter is
+already fixed without it, so leave it Off unless you want to experiment.
+
+**Frame limit**
+
+The most pictures drawn each second. "Display's rate" matches your screen's
+refresh rate, which is usually best. "Unlocked" draws as many as your PC can.
+The game itself runs at the same speed whatever you choose.
+
+**Vsync (no tearing, a little lag)**
+
+Waits for the screen to finish each refresh before showing the next picture,
+so there are no horizontal tears when the camera turns. It can add a little
+input lag.
+
+## Music
+
+**CD music from ripped tracks**
+
+The game's music was CD audio. Ticked, it's played from ripped tracks in the
+music folder instead, with no CD needed. Put one file per CD track in the
+folder, named by track number: track02.flac, Track02.ogg, 02.wav,
+"02 - Title.flac" and so on (FLAC, Ogg Vorbis or 16-bit WAV). The window says
+how many tracks it found.
+
+**Volume**
+
+The music's volume, on top of the game's own CD volume option.
+
+**Folder and Browse**
+
+Where the ripped tracks are: MUSIC (a folder next to the game) by default, or
+any folder you choose with Browse.
+
+## Controller
+
+Not on Windows 95, 98 or ME, which have no support for modern pads.
+
+**Modern pad (XInput)**
+
+An Xbox-style pad, including the Steam Deck's controls, works as the game's
+joystick: the left stick steers, and A and B are the joystick's buttons. In the
+game, choose the joystick in the controls menu.
+
+**Deadzone**
+
+How far the stick has to move before steering starts. Raise it if the truck
+drifts with the stick at rest.
+
+**Sensitivity**
+
+How much stick movement gives full lock: at 100% you reach full lock at the
+end of the stick's travel; higher values reach it sooner.
+
+**Layout**
+
+- **Triggers:** the right trigger accelerates, the left one brakes and
+  reverses.
+- **Stick:** push the stick up to accelerate and down to brake, as with the
+  original joystick.
+
+## Advanced
+
+**Tick rate**
+
+How many game ticks there are each second. 70.0 matches the DOS version and
+real time. The 1996 Windows version ran at 71.43, about 2% fast; choose it to
+compare.
+
+**Catch-up**
+
+If the PC stalls for a moment, the game catches up on the time it missed. "8
+ticks" catches up at most about a tenth of a second in one picture, which keeps
+the picture steadier; "35 (original)" behaves as in 1996.
+
+**Log**
+
+Writes BRRFIX.LOG next to the game: what was fixed and how the clock ran. Send
+it with any bug report.
+
+**Defaults**
+
+Puts every setting back to its default. Press Save or Play to keep them.
+
+## The buttons
+
+- **Skip this window next time:** starts the game straight away from now on.
+  Hold Shift while starting, or start with -setup, to see this window again.
+- **Patch the DOS version:** fixes the DOS version's RACING.EXE (the same game
+  fixes, for DOS PCs and DOSBox), keeping the original as RACING.ORI. Press it
+  again on a patched file to put the original back.
+- **Help:** opens this file (or press F1).
+- **Play:** saves the settings and starts the game.
+- **Save:** saves the settings without starting the game.
+- **Quit:** closes the window without saving.
+
+## Windows 10 and 11
+
+Modern Windows refuses to start the 1996 WINRACE.EXE as it is: the linker that
+made it in 1996 wrote its file headers carelessly, which Windows 95 didn't
+mind. The first time you press Play on Windows 10 or 11, the launcher offers to
+correct them. Only the headers change (13 bytes), and the original is kept as
+WINRACE.ORI. To undo, delete WINRACE.EXE and rename WINRACE.ORI to WINRACE.EXE.
+
+## Starting from Steam
+
+Add Big Red Racing.exe to Steam as a non-Steam game. Launch options:
+**-play** skips the settings window, **-setup** always shows it. Any other
+options are passed on to the game.
+
+## Where the settings are kept
+
+BRRFIX.INI (the fix's settings) and ddraw.ini (cnc-ddraw's, for full screen),
+next to the game. Each setting is explained in the files, and some that the
+window doesn't show can be changed there. The launcher changes only the values
+it shows, and keeps everything else in the files as it was.

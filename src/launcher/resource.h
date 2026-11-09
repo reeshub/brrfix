@@ -6,6 +6,7 @@
 #define IDC_ASPECT       1003
 #define IDC_PRESET       1004
 #define IDC_PRESET_LABEL 1005
+#define IDC_SCALE_LABEL  1006
 #define IDC_INTERP       1010
 #define IDC_SMOOTHING    1011
 #define IDC_FRAMES       1012
@@ -15,6 +16,7 @@
 #define IDC_FOLDER       1022
 #define IDC_BROWSE       1023
 #define IDC_TRACKS       1024
+#define IDC_VOLUME_LABEL 1025
 #define IDC_PAD          1030
 #define IDC_DEADZONE     1031
 #define IDC_SENSITIVITY  1032
@@ -30,3 +32,4 @@
 #define IDC_SKIP         1050
 #define IDC_SAVE         1051
 #define IDC_DOSPATCH     1052
+#define IDC_HELPFILE     1053

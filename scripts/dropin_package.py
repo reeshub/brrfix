@@ -122,6 +122,7 @@ def main(args):
     third_party = third_party_text(cnc_licence, {k: v for k, v in shaders.items() if "interpolation" in k})
     (ROOT / "THIRD-PARTY.txt").write_text(third_party)
     files = {"Big Red Racing.exe": (BUILD / "Big Red Racing.exe").read_bytes(),
+             "Big Red Launcher Help.txt": (BUILD / "Big Red Launcher Help.txt").read_bytes(),
              "TIMER.DLL": dll.read_bytes(),
              "BRRFIX.INI": crlf((SOURCE / "BRRFIX.INI").read_text()),
              "ddraw.ini": crlf((SOURCE / "ddraw.ini").read_text()),

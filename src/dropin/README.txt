@@ -34,7 +34,8 @@ official patch. Check: WINRACE.EXE should be 534,016 bytes, SHA-256
 
 What's in this zip
 ------------------
-- Big Red Racing.exe  the launcher: settings, checks, then starts the game
+- Big Red Racing.exe  Big Red Launcher: settings, checks, then starts the game
+- Big Red Launcher Help.txt  what every setting in the launcher does
 - TIMER.DLL           the drop-in fix (replaces the game's own TIMER.DLL)
 - BRRFIX.INI          its settings (each one explained in the file)
 - ddraw.dll, Shaders  cnc-ddraw, the open-source DirectDraw (MIT licence), for

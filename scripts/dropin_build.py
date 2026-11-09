@@ -16,9 +16,11 @@ Example:
 import hashlib
 import json
 import os
+import re
 import shutil
 import struct
 import subprocess
+import textwrap
 import urllib.request
 
 from common import DATA, ROOT, WORK
@@ -271,54 +273,121 @@ LAUNCHER = "Big Red Racing.exe"
 BRRPATCH_SOURCE = ROOT / "src" / "brrpatch"
 LAUNCHER_FILES = [LAUNCHER_SOURCE / "launcher.c", LAUNCHER_SOURCE / "winfix.c", SOURCE / "sha256.c",
                   SOURCE / "tracks.c", BRRPATCH_SOURCE / "brrpatch.c"]
-LAUNCHER_DLLS = SYSTEM_DLLS | {"shell32.dll"}
-
-# Our own icon, drawn here: a red tile with "BR" in white, 16 colours (Windows 95 shows them all)
-FONT = {"B": ["1110", "1001", "1001", "1110", "1001", "1001", "1110"],
-        "R": ["1110", "1001", "1001", "1110", "1010", "1001", "1001"]}
-
-
-def icon_image(size):
-    """size x size palette indices: 0 black, 1 dark red, 2 red, 3 white, 4 yellow."""
-    image = [[2] * size for _ in range(size)]
-    for i in range(size):  # a dark frame
-        for j in (0, size - 1):
-            image[i][j] = image[j][i] = 0
-    for i in range(size):  # a yellow racing stripe along the bottom
-        for j in range(size - size // 5, size - size // 8):
-            if 0 < i < size - 1:
-                image[j][i] = 4
-    scale = 3 if size >= 32 else 1
-    left = (size - (4 * 2 + 1) * scale) // 2
-    top = (size - size // 5 - 7 * scale) // 2
-    for n, letter in enumerate("BR"):
-        for y, row in enumerate(FONT[letter]):
-            for x, bit in enumerate(row):
-                if bit == "1":
-                    for dy in range(scale):
-                        for dx in range(scale):
-                            image[top + y * scale + dy][left + (n * 5 + x) * scale + dx] = 3
-    return image
+LAUNCHER_DLLS = SYSTEM_DLLS | {"shell32.dll", "comctl32.dll"}
+HELP_SOURCE = LAUNCHER_SOURCE / "HELP.md"
+HELP_FILE = "Big Red Launcher Help.txt"
+RT_ICON, RT_GROUP_ICON = 3, 14
 
 
-def write_icon(path):
-    palette = [(0, 0, 0), (128, 0, 0), (204, 0, 0), (255, 255, 255), (255, 204, 0)] + [(0, 0, 0)] * 11
+def resources(pe, wanted):
+    """{name or id: data} for one resource type, first language of each."""
+    rva, size = pe.dirs[2]
+    if not size:
+        return {}
+    base = pe.offset(rva)
+
+    def entries(at):
+        named, ids = struct.unpack_from("<12xHH", pe.data, at)
+        return [struct.unpack_from("<II", pe.data, at + 16 + 8 * i) for i in range(named + ids)]
+
+    found = {}
+    for kind, below in entries(base):
+        if kind != wanted:
+            continue
+        for name, langs in entries(base + (below & 0x7FFFFFFF)):
+            _, leaf = entries(base + (langs & 0x7FFFFFFF))[0]
+            data_rva, data_size = struct.unpack_from("<II", pe.data, base + leaf)
+            start = pe.offset(data_rva)
+            found[name] = pe.data[start:start + data_size]
+    return found
+
+
+def extract_icon(exe, path):
+    """The game's own icon (its first icon group) from WINRACE.EXE, as an .ico file
+    (the director confirmed it may be used, 2026-11-09)."""
+    pe = PE(exe)
+    groups = resources(pe, RT_GROUP_ICON)
+    icons = resources(pe, RT_ICON)
+    if not groups:
+        raise BuildError("WINRACE.EXE has no icon")
+    group = next(iter(groups.values()))
+    count = struct.unpack_from("<H", group, 4)[0]
     entries, images = [], []
-    for size in (32, 16):
-        image = icon_image(size)
-        xor = b"".join(bytes((row[x] << 4) | row[x + 1] for x in range(0, size, 2)).ljust(((size // 2 + 3) // 4) * 4, b"\0")
-                       for row in reversed(image))
-        mask = bytes(((size // 8 + 3) // 4) * 4) * size  # fully opaque
-        header = struct.pack("<IiiHHIIiiII", 40, size, size * 2, 1, 4, 0, len(xor) + len(mask), 0, 0, 16, 0)
-        colours = b"".join(struct.pack("<BBBB", b, g, r, 0) for r, g, b in palette)
-        images.append(header + colours + xor + mask)
-        entries.append((size, len(images[-1])))
-    offset = 6 + 16 * len(entries)
-    out = struct.pack("<HHH", 0, 1, len(entries))
-    for (size, length), _ in zip(entries, images):
-        out += struct.pack("<BBBBHHII", size, size, 16, 0, 1, 4, length, offset)
-        offset += length
+    for i in range(count):
+        fields = struct.unpack_from("<BBBBHHIH", group, 6 + 14 * i)
+        images.append(icons[fields[7]])
+        entries.append(fields[:7])
+    out = struct.pack("<HHH", 0, 1, count)
+    offset = 6 + 16 * count
+    for fields, image in zip(entries, images):
+        out += struct.pack("<BBBBHHII", *fields[:6], len(image), offset)
+        offset += len(image)
     path.write_bytes(out + b"".join(images))
+    return count
+
+
+def inline_text(text):
+    text = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r"\1 (\2)", text)
+    text = re.sub(r"\*\*([^*]+)\*\*", r"\1", text)
+    text = re.sub(r"(?<![\w*])\*([^*]+)\*(?![\w*])", r"\1", text)
+    return text.replace("`", "")
+
+
+def markdown_to_text(markdown, width=78):
+    """Plain text for Notepad from our simple Markdown: headings underlined, paragraphs and
+    list items wrapped, code blocks indented, links written out."""
+    out, paragraph, indent, code = [], [], "", False
+
+    def flush():
+        nonlocal paragraph, indent
+        if paragraph:
+            first, rest = (indent, " " * len(indent)) if indent else ("", "")
+            out.extend(textwrap.wrap(inline_text(" ".join(paragraph)), width, initial_indent=first,
+                                     subsequent_indent=rest, break_on_hyphens=False))
+        paragraph, indent = [], ""
+
+    for line in markdown.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            flush()
+            code = not code
+            continue
+        if code:
+            out.append("    " + line)
+            continue
+        heading = re.match(r"(#{1,3}) (.*)", stripped)
+        item = re.match(r"([-*]|\d+\.) (.*)", stripped)
+        if not stripped:
+            flush()
+            if out and out[-1]:
+                out.append("")
+        elif heading:
+            flush()
+            title = inline_text(heading.group(2))
+            out.append(title)
+            if len(heading.group(1)) < 3:
+                out.append(("=" if len(heading.group(1)) == 1 else "-") * len(title))
+        elif item and not line.startswith("  "):
+            flush()
+            indent = ("- " if item.group(1) in "-*" else item.group(1) + " ")
+            paragraph = [item.group(2)]
+        elif item:
+            flush()
+            indent = "  " + ("- " if item.group(1) in "-*" else item.group(1) + " ")
+            paragraph = [item.group(2)]
+        else:
+            paragraph.append(stripped)
+    flush()
+    return "\n".join(out).strip() + "\n"
+
+
+def write_help(path):
+    text = markdown_to_text(HELP_SOURCE.read_text().replace("@VERSION@", launcher_version()))
+    path.write_bytes(text.replace("\n", "\r\n").encode("ascii"))
+
+
+def launcher_version():
+    return re.search(r'BRRFIX_VERSION "([^"]+)"', (SOURCE / "version.h").read_text()).group(1)
 
 
 def build_launcher(manifest):
@@ -333,7 +402,8 @@ def build_launcher(manifest):
         " * installed and with its section headers corrected (win-headers) */\n"
         f'#define GAME_EXE_SHA256 "{manifest["sha256"]}"\n#define GAME_EXE_SIZE {manifest["size"]}u\n'
         f'#define GAME_EXE_CORRECTED_SHA256 "{corrected_sha256()}"\n')
-    write_icon(OUT / "launcher.ico")
+    extract_icon((GAME / "WINRACE.EXE").read_bytes(), OUT / "launcher.ico")
+    write_help(OUT / HELP_FILE)
     files = []
     for source in LAUNCHER_FILES:
         obj = objects / (source.stem + ".obj")
@@ -358,6 +428,7 @@ def build_launcher(manifest):
         "runtime windows=4.0",
         f"option resource='{res}'",
         "library shell32.lib",
+        "library comctl32.lib",
         *[f"file '{f}'" for f in files],
     ]) + "\n")
     run_tool([str(watcom_bin() / "wlink"), f"@{script}"], env, "linking the launcher")

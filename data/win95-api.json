@@ -8,6 +8,9 @@
   "note": "Exported by Windows 95 but only as stubs that fail (Unicode); they come from the Open Watcom runtime, which uses the ANSI versions on Windows 9x"
  },
  "windows95": {
+  "COMCTL32.DLL": [
+   "InitCommonControls"
+  ],
   "GDI32.DLL": [
    "GetDeviceCaps",
    "PatBlt",
@@ -36,6 +39,7 @@
    "GetCPInfo",
    "GetCommandLineA",
    "GetCommandLineW",
+   "GetConsoleMode",
    "GetCurrentProcess",
    "GetCurrentThreadId",
    "GetEnvironmentVariableA",
@@ -65,9 +69,11 @@
    "MultiByteToWideChar",
    "QueryPerformanceCounter",
    "QueryPerformanceFrequency",
+   "ReadConsoleInputA",
    "ReadFile",
    "ResumeThread",
    "SetConsoleCtrlHandler",
+   "SetConsoleMode",
    "SetEnvironmentVariableA",
    "SetEvent",
    "SetFilePointer",
@@ -88,6 +94,7 @@
    "WaitForMultipleObjects",
    "WaitForSingleObject",
    "WideCharToMultiByte",
+   "WriteConsoleA",
    "WriteFile",
    "WritePrivateProfileStringA",
    "lstrcatA",
@@ -99,13 +106,16 @@
   ],
   "SHELL32.DLL": [
    "SHBrowseForFolderA",
-   "SHGetPathFromIDListA"
+   "SHGetPathFromIDListA",
+   "ShellExecuteA"
   ],
   "USER32.DLL": [
    "CallWindowProcA",
    "CharUpperA",
    "CheckDlgButton",
+   "CreateWindowExA",
    "DialogBoxParamA",
+   "EnableWindow",
    "EndDialog",
    "GetAsyncKeyState",
    "GetDC",

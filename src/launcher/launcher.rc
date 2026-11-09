@@ -1,4 +1,5 @@
-/* The launcher's resources: settings window, version information, icon (our own) */
+/* The launcher's resources: settings window, version information, and the game's own icon
+ * (taken from the player's WINRACE.EXE by dropin-build) */
 #include <windows.h>
 #include "resource.h"
 #include "version.h"
@@ -7,13 +8,13 @@ IDI_APP ICON "launcher.ico"
 
 IDD_SETTINGS DIALOG 0, 0, 324, 258
 STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX
-CAPTION "Big Red Racing"
+CAPTION "Big Red Launcher"
 FONT 8, "MS Sans Serif"
 BEGIN
     GROUPBOX        "Display", -1, 6, 4, 154, 80
     LTEXT           "&Mode:", -1, 12, 18, 40, 8
     COMBOBOX        IDC_MODE, 56, 16, 98, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    LTEXT           "&Window size:", -1, 12, 34, 44, 8
+    LTEXT           "&Window size:", IDC_SCALE_LABEL, 12, 34, 44, 8
     COMBOBOX        IDC_SCALE, 56, 32, 98, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
     AUTOCHECKBOX    "4:3 &shape, as a 1996 monitor", IDC_ASPECT, 12, 49, 140, 10, WS_TABSTOP
     LTEXT           "&Full screen:", IDC_PRESET_LABEL, 12, 66, 44, 8
@@ -29,7 +30,7 @@ BEGIN
 
     GROUPBOX        "Music", -1, 6, 88, 154, 66
     AUTOCHECKBOX    "CD &music from ripped tracks", IDC_MUSIC, 12, 100, 140, 10, WS_TABSTOP
-    LTEXT           "V&olume:", -1, 12, 116, 40, 8
+    LTEXT           "V&olume:", IDC_VOLUME_LABEL, 12, 116, 40, 8
     COMBOBOX        IDC_VOLUME, 56, 114, 50, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
     EDITTEXT        IDC_FOLDER, 12, 130, 102, 12, ES_AUTOHSCROLL | WS_TABSTOP
     PUSHBUTTON      "&Browse...", IDC_BROWSE, 116, 129, 38, 14, WS_TABSTOP
@@ -55,6 +56,7 @@ BEGIN
     AUTOCHECKBOX    "S&kip this window next time", IDC_SKIP, 8, 200, 140, 10, WS_TABSTOP
     LTEXT           "To see it again, hold Shift while starting the game, or start it with -setup. Steam launch options: -play skips it, -setup shows it.", -1, 8, 212, 200, 24
     PUSHBUTTON      "Patch the DOS ve&rsion...", IDC_DOSPATCH, 8, 238, 96, 14, WS_TABSTOP
+    PUSHBUTTON      "Help", IDC_HELPFILE, 108, 238, 40, 14, WS_TABSTOP
     DEFPUSHBUTTON   "&Play", IDOK, 214, 236, 34, 16, WS_TABSTOP
     PUSHBUTTON      "&Save", IDC_SAVE, 250, 236, 34, 16, WS_TABSTOP
     PUSHBUTTON      "&Quit", IDCANCEL, 286, 236, 32, 16, WS_TABSTOP
@@ -70,12 +72,14 @@ BEGIN
     BEGIN
         BLOCK "080904E4"
         BEGIN
-            VALUE "CompanyName", "Big Red Racing preservation project\0"
-            VALUE "FileDescription", "Big Red Racing\0"
+            VALUE "CompanyName", "ctrl-alt-rees (ctrl-alt-rees.com)\0"
+            VALUE "FileDescription", "Big Red Launcher\0"
             VALUE "FileVersion", BRRFIX_VERSION "\0"
-            VALUE "ProductName", "Big Red Racing launcher (drop-in fix)\0"
+            VALUE "LegalCopyright", "Big Red Launcher by ctrl-alt-rees, ctrl-alt-rees.com\0"
+            VALUE "Comments", "Big Red Launcher by ctrl-alt-rees. ctrl-alt-rees.com\0"
+            VALUE "ProductName", "Big Red Launcher\0"
             VALUE "ProductVersion", BRRFIX_VERSION "\0"
-            VALUE "InternalName", "Big Red Racing\0"
+            VALUE "InternalName", "Big Red Launcher\0"
             VALUE "OriginalFilename", "Big Red Racing.exe\0"
         END
     END

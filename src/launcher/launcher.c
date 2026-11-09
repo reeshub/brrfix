@@ -1,4 +1,4 @@
-/* Big Red Racing.exe: the launcher (round 2, item 8). Our own program, placed next to
+/* Big Red Racing.exe: Big Red Launcher by ctrl-alt-rees (round 2, item 8). Our own program, placed next to
  * WINRACE.EXE, so Steam shows a proper name. It shows a settings window (which can be
  * skipped), checks the game's files, then starts WINRACE.EXE and waits for it to exit.
  *
@@ -14,7 +14,10 @@
  * on disk, with the same code as BRRPATCH.EXE, for players on modern Windows. On modern
  * Windows it also corrects WINRACE.EXE's section headers (winfix.c), keeping WINRACE.ORI. */
 #include <windows.h>
+#include <commctrl.h>
 #include <shlobj.h>
+#include <shellapi.h>
+#include <stddef.h>
 #include <string.h>
 #include "resource.h"
 #include "version.h"
@@ -25,6 +28,9 @@
 
 static char folder[MAX_PATH], brrfix_ini[MAX_PATH], ddraw_ini[MAX_PATH];
 static int windows_9x, under_wine;
+
+/* made from HELP.md by dropin-build */
+#define HELP_FILE "Big Red Launcher Help.txt"
 
 /* ---- choices, in the order the combo boxes show them ---- */
 struct choice { const char *label, *value; };
@@ -103,6 +109,88 @@ static const char *chosen(HWND dialog, int id, const struct choice *list)
 
 static void check(HWND dialog, int id, int on) { CheckDlgButton(dialog, id, on ? BST_CHECKED : BST_UNCHECKED); }
 static int checked(HWND dialog, int id) { return IsDlgButtonChecked(dialog, id) == BST_CHECKED; }
+static void enable(HWND dialog, int id, int on) { EnableWindow(GetDlgItem(dialog, id), on); }
+
+/* Grey out what the other choices make irrelevant */
+static void update_enabled(HWND dialog)
+{
+    static const int music_controls[] = {IDC_VOLUME_LABEL, IDC_VOLUME, IDC_FOLDER, IDC_BROWSE, IDC_TRACKS};
+    static const int pad_controls[] = {IDC_PAD_L1, IDC_DEADZONE, IDC_PAD_L2, IDC_SENSITIVITY, IDC_PAD_L3, IDC_LAYOUT};
+    const char *mode = chosen(dialog, IDC_MODE, modes);
+    int window = lstrcmpiA(mode, "fullscreen") != 0, full = lstrcmpiA(mode, "windowed") != 0;
+    size_t i;
+    enable(dialog, IDC_SCALE_LABEL, window);
+    enable(dialog, IDC_SCALE, window);
+    enable(dialog, IDC_ASPECT, window);
+    enable(dialog, IDC_PRESET_LABEL, full);
+    enable(dialog, IDC_PRESET, full);
+    for (i = 0; i < sizeof music_controls / sizeof music_controls[0]; i++)
+        enable(dialog, music_controls[i], checked(dialog, IDC_MUSIC));
+    for (i = 0; i < sizeof pad_controls / sizeof pad_controls[0]; i++)
+        enable(dialog, pad_controls[i], checked(dialog, IDC_PAD));
+}
+
+/* One line on each setting, shown when the mouse rests on it */
+static const struct { int id; const char *text; } tips[] = {
+    {IDC_MODE, "In its own window with the 1996 menu bar, full screen, or ask each time as the original did."},
+    {IDC_SCALE, "How big the window is, in whole multiples of the game's 320x200 picture."},
+    {IDC_ASPECT, "Stretch the picture's height by 1.2, as a 1996 monitor did. Off: square, sharp pixels."},
+    {IDC_PRESET, "How the picture fills the screen in full screen: sharp with borders, 4:3, stretched or smooth."},
+    {IDC_INTERP, "Draws the trucks and the camera between the game's 35 physics steps a second, for smooth motion."},
+    {IDC_SMOOTHING, "Experimental: softens the camera's movement further. Not needed for the stutter fix."},
+    {IDC_FRAMES, "The most pictures drawn a second. The game itself runs at the same speed whatever you choose."},
+    {IDC_VSYNC, "Waits for the screen's refresh before each picture: no tearing, slightly more input lag."},
+    {IDC_MUSIC, "Plays the CD music from ripped tracks (trackNN.flac, .ogg or .wav) instead of the CD."},
+    {IDC_VOLUME, "Music volume, on top of the game's own CD volume option."},
+    {IDC_FOLDER, "The folder with the ripped tracks: MUSIC next to the game, or a full path."},
+    {IDC_BROWSE, "Choose the folder with the ripped tracks."},
+    {IDC_PAD, "Use an Xbox-style pad as the game's joystick (choose the joystick in the game's controls menu)."},
+    {IDC_DEADZONE, "How far the stick moves before steering starts."},
+    {IDC_SENSITIVITY, "How much stick gives full lock: above 100% reaches it sooner."},
+    {IDC_LAYOUT, "Triggers: right accelerates, left brakes. Stick: push up and down, as the original."},
+    {IDC_RATE, "Game ticks a second: 70.0 matches the DOS version and real time; the 1996 Windows version ran 2% fast."},
+    {IDC_CAP, "After a hiccup, how much game time can pass in one picture: 8 ticks, or 35 as the original."},
+    {IDC_LOG, "Writes BRRFIX.LOG next to the game: what was fixed, for bug reports."},
+    {IDC_DEFAULTS, "Puts every setting back to its default (press Save or Play to keep them)."},
+    {IDC_SKIP, "Start the game straight away next time. Hold Shift while starting to see this window again."},
+    {IDC_DOSPATCH, "Fixes the DOS version's RACING.EXE for DOS PCs and DOSBox, keeping the original as RACING.ORI."},
+    {IDC_HELPFILE, "Opens the help file, which explains every setting (F1)."},
+    {IDOK, "Saves the settings and starts the game."},
+    {IDC_SAVE, "Saves the settings without starting the game."},
+    {IDCANCEL, "Closes this window without saving."}};
+
+#ifndef TTTOOLINFOA_V1_SIZE
+#define TTTOOLINFOA_V1_SIZE offsetof(TOOLINFOA, lParam)
+#endif
+
+static void add_tips(HWND dialog)
+{
+    HWND tip = CreateWindowExA(0, TOOLTIPS_CLASSA, NULL, WS_POPUP | TTS_ALWAYSTIP, CW_USEDEFAULT, CW_USEDEFAULT,
+                               CW_USEDEFAULT, CW_USEDEFAULT, dialog, NULL, GetModuleHandleA(NULL), NULL);
+    TOOLINFOA info;
+    size_t i;
+    if (!tip)
+        return;
+    SendMessageA(tip, TTM_SETMAXTIPWIDTH, 0, 360);
+    for (i = 0; i < sizeof tips / sizeof tips[0]; i++) {
+        memset(&info, 0, sizeof info);
+        info.cbSize = TTTOOLINFOA_V1_SIZE;  /* the size Windows 95's first common controls accept */
+        info.uFlags = TTF_IDISHWND | TTF_SUBCLASS;
+        info.hwnd = dialog;
+        info.uId = (UINT)(DWORD)GetDlgItem(dialog, tips[i].id);
+        info.lpszText = (LPSTR)tips[i].text;
+        SendMessageA(tip, TTM_ADDTOOLA, 0, (LPARAM)&info);
+    }
+}
+
+static void open_help(HWND dialog)
+{
+    char path[MAX_PATH];
+    wsprintfA(path, "%s\\%s", folder, HELP_FILE);
+    if ((DWORD)ShellExecuteA(dialog, "open", path, NULL, folder, SW_SHOWNORMAL) <= 32)
+        MessageBoxA(dialog, "The help file (" HELP_FILE ") isn't next to the launcher.", "Big Red Launcher",
+                    MB_OK | MB_ICONINFORMATION);
+}
 
 static void music_folder(const char *setting, char *out)
 {
@@ -171,6 +259,7 @@ static void load(HWND dialog, int defaults)
         check(dialog, IDC_SKIP, ini_flag("launcher", "skip", 0));
 #undef GET
     show_track_count(dialog);
+    update_enabled(dialog);
 }
 
 static void save(HWND dialog)
@@ -280,10 +369,11 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
                                            IDC_PAD_L1, IDC_PAD_L2, IDC_PAD_L3};
         char title[96];
         size_t i;
-        wsprintfA(title, "Big Red Racing (drop-in fix %s)", BRRFIX_VERSION);
+        wsprintfA(title, "Big Red Launcher %s by ctrl-alt-rees", BRRFIX_VERSION);
         SetWindowTextA(dialog, title);
         SendMessageA(dialog, WM_SETICON, ICON_BIG, (LPARAM)LoadIconA(GetModuleHandleA(NULL), MAKEINTRESOURCEA(IDI_APP)));
         load(dialog, 0);
+        add_tips(dialog);
         if (windows_9x) {  /* no cnc-ddraw (DirectDraw does full screen itself) and no XInput */
             ShowWindow(GetDlgItem(dialog, IDC_PRESET), SW_HIDE);
             ShowWindow(GetDlgItem(dialog, IDC_PRESET_LABEL), SW_HIDE);
@@ -292,8 +382,23 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
         }
         return TRUE;
     }
+    if (message == WM_HELP) {
+        open_help(dialog);
+        return TRUE;
+    }
     if (message == WM_COMMAND) {
         switch (LOWORD(wparam)) {
+        case IDC_MODE:
+            if (HIWORD(wparam) == CBN_SELCHANGE)
+                update_enabled(dialog);
+            return TRUE;
+        case IDC_MUSIC:
+        case IDC_PAD:
+            update_enabled(dialog);
+            return TRUE;
+        case IDC_HELPFILE:
+            open_help(dialog);
+            return TRUE;
         case IDOK:
             save(dialog);
             EndDialog(dialog, IDOK);
@@ -479,6 +584,7 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE previous, LPSTR command_line, i
     windows_9x = (GetVersion() & 0x80000000u) != 0;
     under_wine = GetProcAddress(GetModuleHandleA("ntdll.dll"), "wine_get_version") != NULL;
     split_arguments(GetCommandLineA(), arguments, &play, &setup);
+    InitCommonControls();
     show_window = !ini_flag("launcher", "skip", 0);
     if (setup || (GetAsyncKeyState(VK_SHIFT) & 0x8000))
         show_window = 1;
