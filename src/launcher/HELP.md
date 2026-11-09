@@ -2,8 +2,8 @@
 
 ctrl-alt-rees.com
 
-Big Red Launcher starts the Windows version of Big Red Racing (1996) with the
-drop-in fix, and lets you choose its settings. This file explains every setting
+Big Red Launcher fixes and starts the Windows version of Big Red Racing (1996),
+and lets you choose its settings. This file explains every setting
 in its window. Rest the mouse on a setting to see a one-line reminder.
 
 Start the game with **Big Red Racing.exe**. To see the settings window again
@@ -149,13 +149,14 @@ Puts every setting back to its default. Press Save or Play to keep them.
 - **Save:** saves the settings without starting the game.
 - **Quit:** closes the window without saving.
 
-## Windows 10 and 11
+## Correcting WINRACE.EXE
 
-Modern Windows refuses to start the 1996 WINRACE.EXE as it is: the linker that
-made it in 1996 wrote its file headers carelessly, which Windows 95 didn't
-mind. The first time you press Play on Windows 10 or 11, the launcher offers to
-correct them. Only the headers change (13 bytes), and the original is kept as
-WINRACE.ORI. To undo, delete WINRACE.EXE and rename WINRACE.ORI to WINRACE.EXE.
+Windows 10 and 11 refuse to start the 1996 WINRACE.EXE as it is: the linker
+that made it in 1996 wrote its file headers carelessly, which Windows 95 didn't
+mind. The first time you press Play, the launcher offers to correct them. Only
+the headers change (13 bytes); the corrected file works on every version of
+Windows, and the original is kept as WINRACE.ORI. To undo, delete WINRACE.EXE
+and rename WINRACE.ORI to WINRACE.EXE.
 
 ## Starting from Steam
 

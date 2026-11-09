@@ -1,6 +1,6 @@
-"""dropin-package: zip the drop-in fix for players: our files only.
+"""dropin-package: zip Big Red Launcher for players: our files only.
 
-Writes work/release/brr-dropin-fix-<version>.zip containing our TIMER.DLL and launcher
+Writes work/release/big-red-launcher-<version>.zip containing our TIMER.DLL and launcher
 (Big Red Racing.exe, from work/build/dropin/ - run dropin-build first), BRRFIX.INI and
 ddraw.ini (defaults, with comments), README.txt, THIRD-PARTY.txt, LICENSE.txt once the
 project has a licence, and cnc-ddraw (ddraw.dll and the three shaders our presets use),
@@ -23,7 +23,7 @@ import zipfile
 from common import DATA, ROOT, WORK
 from prepkit import rel
 
-HELP = "zip the drop-in fix for players (our files only, checked against the game manifest)"
+HELP = "zip Big Red Launcher for players (our files only, checked against the game manifest)"
 
 SOURCE = ROOT / "src" / "dropin"
 BUILD = WORK / "build" / "dropin"
@@ -82,8 +82,8 @@ def licence_block(text, start_marker):
 
 def third_party_text(cnc_licence, shaders):
     from dropin_build import DECODERS
-    parts = ["Third-party code in the Big Red Racing drop-in fix",
-             "===================================================",
+    parts = ["Third-party code in Big Red Launcher",
+             "====================================",
              "Everything else in this package is the project's own code. Each part below is",
              "pinned to a release or commit and checked by SHA-256 when the package is built.", ""]
     parts += ["cnc-ddraw " + CNC_DDRAW["version"] + " (ddraw.dll, Shaders\\nearest-neighbor.glsl)",
@@ -140,7 +140,7 @@ def main(args):
         print("dropin-package: REFUSED, game content: " + "; ".join(refused))
         return 1
     RELEASE.mkdir(parents=True, exist_ok=True)
-    out = RELEASE / f"brr-dropin-fix-{version}.zip"
+    out = RELEASE / f"big-red-launcher-{version}.zip"
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as archive:
         for name, data in files.items():
             info = zipfile.ZipInfo(name, ZIP_DATE)

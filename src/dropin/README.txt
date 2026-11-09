@@ -1,5 +1,6 @@
-Big Red Racing drop-in fix
-==========================
+Big Red Launcher by ctrl-alt-rees
+=================================
+ctrl-alt-rees.com
 
 A replacement TIMER.DLL for the Windows 95 version of Big Red Racing (1996),
 patched to v2.25. It makes the original game run on modern Windows and on
@@ -23,8 +24,8 @@ It contains no part of the game. TIMER.DLL changes the game's code only in
 memory while it runs, and only after checking that WINRACE.EXE is the exact
 v2.25 file and that every place it changes is as expected. If anything doesn't
 match, it changes nothing, writes why to BRRFIX.LOG, and works like the
-original TIMER.DLL. (On Windows 10 and 11 the launcher also corrects
-WINRACE.EXE's file headers on disk, keeping the original: see Install.)
+original TIMER.DLL. (The launcher also corrects WINRACE.EXE's file headers on
+disk, keeping the original: see Install.)
 
 You need
 --------
@@ -36,7 +37,7 @@ What's in this zip
 ------------------
 - Big Red Racing.exe  Big Red Launcher: settings, checks, then starts the game
 - Big Red Launcher Help.txt  what every setting in the launcher does
-- TIMER.DLL           the drop-in fix (replaces the game's own TIMER.DLL)
+- TIMER.DLL           the fix itself (replaces the game's own TIMER.DLL)
 - BRRFIX.INI          its settings (each one explained in the file)
 - ddraw.dll, Shaders  cnc-ddraw, the open-source DirectDraw (MIT licence), for
                       modern Windows, Wine and Proton
@@ -51,10 +52,10 @@ Install (Windows 95 to 11)
    On Windows 95, 98 and ME you can leave out ddraw.dll, ddraw.ini and Shaders:
    their own DirectDraw draws the game properly.
 3. Start Big Red Racing.exe (make a shortcut to it if you like).
-   On Windows 10 and 11 it first offers to correct WINRACE.EXE: the 1996
-   linker wrote its file headers carelessly, and modern Windows refuses to
-   start it. Only the headers change (13 bytes), and the original is kept as
-   WINRACE.ORI.
+   The first time, it offers to correct WINRACE.EXE: the 1996 linker wrote its
+   file headers carelessly, and Windows 10 and 11 refuse to start it. Only the
+   headers change (13 bytes), the corrected file works on every version of
+   Windows, and the original is kept as WINRACE.ORI.
 To undo: delete the files from this zip and rename TIMER.ORI back to TIMER.DLL
 (and, if it's there, WINRACE.ORI back to WINRACE.EXE).
 
@@ -80,7 +81,7 @@ Esc (Quit), so a controller mapped to keys by Steam Input can use it.
 - "Skip this window next time" starts the game straight away from then on.
 - To see the window again: hold Shift while starting, or start with -setup.
 - Steam launch options: -play skips the window, -setup always shows it.
-Before starting the game it checks WINRACE.EXE is v2.25, that the drop-in and
+Before starting the game it checks WINRACE.EXE is v2.25, that our TIMER.DLL and
 cnc-ddraw are there, and that the music folder has tracks. It stays running
 until the game ends, so Steam counts your play time.
 

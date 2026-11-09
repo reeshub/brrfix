@@ -463,23 +463,27 @@ static int checks_pass(void)
         return 0;
     }
     state = brr_win_state(folder);
-    /* Windows 95-ME and Wine start the file as it is */
-    if (state == BRR_WIN_ORIGINAL && !windows_9x && !under_wine) {
-        if (MessageBoxA(NULL, "This version of Windows can't start WINRACE.EXE as it is: the 1996 linker "
-                        "wrote its file headers carelessly, which Windows 95 didn't mind.\n\nCorrect them now? "
-                        "Only the headers change (13 bytes); the game is the same. The original is kept "
-                        "as WINRACE.ORI.", "Big Red Racing", MB_YESNO | MB_ICONQUESTION) != IDYES)
-            return 0;
-        if (brr_win_correct(folder, message, sizeof message) < 0) {
+    if (state == BRR_WIN_ORIGINAL) {
+        /* Windows 95-ME and Wine can also start the file as it is, so a "No" isn't fatal there */
+        int optional = windows_9x || under_wine;
+        if (MessageBoxA(NULL, "WINRACE.EXE needs a small correction: the 1996 linker wrote its file headers "
+                        "carelessly, and Windows 10 and 11 refuse to start it.\n\nCorrect them now? Only the "
+                        "headers change (13 bytes); the game is the same, and works on every version of "
+                        "Windows. The original is kept as WINRACE.ORI.", "Big Red Racing",
+                        MB_YESNO | MB_ICONQUESTION) != IDYES) {
+            if (!optional)
+                return 0;
+        } else if (brr_win_correct(folder, message, sizeof message) < 0) {
             MessageBoxA(NULL, message, "Big Red Racing", MB_OK | MB_ICONERROR);
-            return 0;
+            if (!optional)
+                return 0;
         }
     } else if (state != BRR_WIN_ORIGINAL && state != BRR_WIN_CORRECTED
                && !ask("WINRACE.EXE isn't the v2.25 version (from the official v2.25 patch). "
-                       "The drop-in fix will leave the game unchanged.\n\nStart anyway?"))
+                       "Big Red Launcher will leave the game unchanged.\n\nStart anyway?"))
         return 0;
     wsprintfA(path, "%s\\TIMER.DLL", folder);
-    if (!file_contains(path, "BRRFIX.INI") && !ask("The TIMER.DLL here isn't the drop-in fix (it may be the "
+    if (!file_contains(path, "BRRFIX.INI") && !ask("The TIMER.DLL here isn't Big Red Launcher's (it may be the "
                                                    "game's own). The game will run without the fixes, and "
                                                    "may not run at all on modern Windows.\n\nStart anyway?"))
         return 0;

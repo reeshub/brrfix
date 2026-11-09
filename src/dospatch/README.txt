@@ -64,10 +64,10 @@ which looks like a slight judder. A 120 Hz, 144 Hz or variable-refresh
 
 On modern Windows
 -----------------
-BRRPATCH.EXE is a DOS program, so 64-bit Windows can't run it. Use the
-Windows version's launcher instead (Big Red Racing.exe, from the drop-in fix
-download): its "Patch the DOS version" button does the same, and pressed again
-puts the original back. Or run BRRPATCH in DOSBox.
+BRRPATCH.EXE is a DOS program, so 64-bit Windows can't run it. Use Big Red
+Launcher instead (Big Red Racing.exe, from the Big Red Launcher download):
+its "Patch the DOS version" button does the same, and pressed again puts the
+original back. Or run BRRPATCH in DOSBox.
 
 What's in this zip
 ------------------

@@ -199,7 +199,7 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
         brr_clock_setup();
         load_config();
         open_log();
-        brr_log("Big Red Racing drop-in fix %s (TIMER.DLL replacement)", BRRFIX_VERSION);
+        brr_log("Big Red Launcher %s (TIMER.DLL replacement)", BRRFIX_VERSION);
         brr_log("config: vga=%d clock=%d cap=%d interpolation=%d camera=%d source=%s "
                 "tick_rate=%u.%03u catch_up_cap=%d frame_limit=%d vsync=%d pacing=%s delay=%d.%03u camera_smoothing=%d fine_angles=%d roll_fix=%d",
                 cfg.fix_vga, cfg.fix_clock, cfg.fix_cap, cfg.fix_interpolation, cfg.fix_camera,

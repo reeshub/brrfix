@@ -1,4 +1,4 @@
-"""dropin-build: build the drop-in fix, a replacement TIMER.DLL, into work/build/dropin/.
+"""dropin-build: build Big Red Launcher (a replacement TIMER.DLL and the launcher) into work/build/dropin/.
 
 1. Checks work/game/WINRACE.EXE is the v2.25 file from the game manifest.
 2. Checks every patch site and protected range in data/dropin-patches.json against it
@@ -26,7 +26,7 @@ import urllib.request
 from common import DATA, ROOT, WORK
 from prepkit import rel
 
-HELP = "build the drop-in fix (a replacement TIMER.DLL) into work/build/dropin/"
+HELP = "build Big Red Launcher (a replacement TIMER.DLL and the launcher) into work/build/dropin/"
 
 SOURCE = ROOT / "src" / "dropin"
 OUT = WORK / "build" / "dropin"

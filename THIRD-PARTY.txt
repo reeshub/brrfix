@@ -1,5 +1,5 @@
-Third-party code in the Big Red Racing drop-in fix
-===================================================
+Third-party code in Big Red Launcher
+====================================
 Everything else in this package is the project's own code. Each part below is
 pinned to a release or commit and checked by SHA-256 when the package is built.
 
