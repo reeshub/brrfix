@@ -51,17 +51,11 @@ def memory_image(data):
     return bytes(image[size_of_headers:])
 
 
-def main(args):
-    if args and args[0] in ("-h", "--help"):
-        print(__doc__)
-        return 0
-    if not SOURCE.exists():
-        print("win-headers: work/game/WINRACE.EXE is missing: run python3 brr.py prepare")
-        return 1
-    data = SOURCE.read_bytes()
+def corrected(data):
+    """(the header-corrected file, [(section name, problems)])."""
     fixed = bytearray(data)
-    found, _, _ = sections(data)
-    for s in found:
+    report = []
+    for s in sections(data)[0]:
         problems = []
         if s["vsize"] == 0:
             problems.append("VirtualSize 0")
@@ -72,12 +66,26 @@ def main(args):
         if s["flags"] & UNINITIALISED and s["rsize"]:
             struct.pack_into("<I", fixed, s["at"] + 16, 0)
             struct.pack_into("<I", fixed, s["at"] + 20, 0)
+        report.append((s, problems))
+    return bytes(fixed), report
+
+
+def main(args):
+    if args and args[0] in ("-h", "--help"):
+        print(__doc__)
+        return 0
+    if not SOURCE.exists():
+        print("win-headers: work/game/WINRACE.EXE is missing: run python3 brr.py prepare")
+        return 1
+    data = SOURCE.read_bytes()
+    fixed, report = corrected(data)
+    for s, problems in report:
         print(f"  {s['name']:9} at 0x{s['va']:06X}: " + ("; ".join(problems) if problems else "fine"))
-    if memory_image(data) != memory_image(bytes(fixed)):
+    if memory_image(data) != memory_image(fixed):
         print("win-headers: FAILED: the corrected copy would load differently")
         return 1
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "WINRACE.EXE").write_bytes(bytes(fixed))
+    (OUT / "WINRACE.EXE").write_bytes(fixed)
     changed = sum(a != b for a, b in zip(data, fixed))
     print(f"  wrote {rel(OUT / 'WINRACE.EXE')}: {changed} header bytes changed, the same program in memory")
     print("win-headers: done")

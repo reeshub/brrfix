@@ -24,7 +24,7 @@ import sys
 import dos_build
 import dos_patch
 from common import DATA, ROOT, WORK
-from dropin_build import WATCOM, BuildError, run_tool, watcom_env
+from dropin_build import WATCOM, BuildError, run_tool, watcom_bin, watcom_env
 from prepkit import rel
 
 HELP = "build BRRPATCH.EXE, the DOS patcher for players (patches RACING.EXE in place, with a backup)"
@@ -163,7 +163,7 @@ def compile_dos():
     files = []
     for source in C_FILES:
         obj = objects / (source.stem + ".obj")
-        run_tool([str(WATCOM / "binl64" / "wcc"), *CFLAGS, f"-i={OUT}", f"-i={SOURCE}", f"-i={SHA_SOURCE}",
+        run_tool([str(watcom_bin() / "wcc"), *CFLAGS, f"-i={OUT}", f"-i={SOURCE}", f"-i={SHA_SOURCE}",
                   f"-fo={obj}", str(source)], env, f"compiling {source.name}")
         files.append(obj)
     EXE.unlink(missing_ok=True)
@@ -175,7 +175,7 @@ def compile_dos():
         "option stack=8k",
         *[f"file '{f}'" for f in files],
     ]) + "\n")
-    run_tool([str(WATCOM / "binl64" / "wlink"), f"@{script}"], env, "linking BRRPATCH.EXE")
+    run_tool([str(watcom_bin() / "wlink"), f"@{script}"], env, "linking BRRPATCH.EXE")
     data = EXE.read_bytes()
     if data[:2] != b"MZ" or len(data) > 200_000:
         raise BuildError(f"{rel(EXE)} isn't a plausible DOS program ({len(data):,} bytes)")

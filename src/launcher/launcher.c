@@ -11,16 +11,17 @@
  * holding Shift while starting also shows it. Anything else goes to WINRACE.EXE.
  *
  * The "Patch the DOS version" button patches (or restores) the DOS version's RACING.EXE
- * on disk, with the same code as BRRPATCH.EXE, for players on modern Windows. */
+ * on disk, with the same code as BRRPATCH.EXE, for players on modern Windows. On modern
+ * Windows it also corrects WINRACE.EXE's section headers (winfix.c), keeping WINRACE.ORI. */
 #include <windows.h>
 #include <shlobj.h>
 #include <string.h>
 #include "resource.h"
 #include "version.h"
 #include "game.h"
-#include "sha256.h"
 #include "tracks.h"
 #include "brrpatch.h"
+#include "winfix.h"
 
 static char folder[MAX_PATH], brrfix_ini[MAX_PATH], ddraw_ini[MAX_PATH];
 static int windows_9x, under_wine;
@@ -346,39 +347,31 @@ static int file_contains(const char *path, const char *needle)
     return found;
 }
 
-static int exe_is_v225(const char *path)
-{
-    HANDLE f = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
-    DWORD size, got = 0;
-    uint8_t *data, digest[32];
-    char hex[65];
-    int ok = 0;
-    if (f == INVALID_HANDLE_VALUE)
-        return 0;
-    size = GetFileSize(f, NULL);
-    data = size == GAME_EXE_SIZE ? (uint8_t *)HeapAlloc(GetProcessHeap(), 0, size) : NULL;
-    if (data && ReadFile(f, data, size, &got, NULL) && got == size) {
-        brr_sha256(data, size, digest);
-        brr_sha256_hex(digest, hex);
-        ok = !lstrcmpA(hex, GAME_EXE_SHA256);
-    }
-    if (data)
-        HeapFree(GetProcessHeap(), 0, data);
-    CloseHandle(f);
-    return ok;
-}
-
 static int checks_pass(void)
 {
-    char path[MAX_PATH], setting[MAX_PATH];
+    char path[MAX_PATH], setting[MAX_PATH], message[300];
+    int state;
     wsprintfA(path, "%s\\WINRACE.EXE", folder);
     if (GetFileAttributesA(path) == 0xFFFFFFFFu) {
         MessageBoxA(NULL, "WINRACE.EXE isn't here. Put Big Red Racing.exe in the game's folder, next to "
                     "WINRACE.EXE.", "Big Red Racing", MB_OK | MB_ICONERROR);
         return 0;
     }
-    if (!exe_is_v225(path) && !ask("WINRACE.EXE isn't the v2.25 version (from the official v2.25 patch). "
-                                   "The drop-in fix will leave the game unchanged.\n\nStart anyway?"))
+    state = brr_win_state(folder);
+    /* Windows 95-ME and Wine start the file as it is */
+    if (state == BRR_WIN_ORIGINAL && !windows_9x && !under_wine) {
+        if (MessageBoxA(NULL, "This version of Windows can't start WINRACE.EXE as it is: the 1996 linker "
+                        "wrote its file headers carelessly, which Windows 95 didn't mind.\n\nCorrect them now? "
+                        "Only the headers change (13 bytes); the game is the same. The original is kept "
+                        "as WINRACE.ORI.", "Big Red Racing", MB_YESNO | MB_ICONQUESTION) != IDYES)
+            return 0;
+        if (brr_win_correct(folder, message, sizeof message) < 0) {
+            MessageBoxA(NULL, message, "Big Red Racing", MB_OK | MB_ICONERROR);
+            return 0;
+        }
+    } else if (state != BRR_WIN_ORIGINAL && state != BRR_WIN_CORRECTED
+               && !ask("WINRACE.EXE isn't the v2.25 version (from the official v2.25 patch). "
+                       "The drop-in fix will leave the game unchanged.\n\nStart anyway?"))
         return 0;
     wsprintfA(path, "%s\\TIMER.DLL", folder);
     if (!file_contains(path, "BRRFIX.INI") && !ask("The TIMER.DLL here isn't the drop-in fix (it may be the "

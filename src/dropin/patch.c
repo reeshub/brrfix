@@ -50,6 +50,10 @@ static int exe_matches(void)
     }
     hash_hex(buffer, size, hex);
     HeapFree(GetProcessHeap(), 0, buffer);
+    if (strcmp(hex, EXPECTED_EXE_CORRECTED_SHA256) == 0) {
+        brr_log("check: %s is the v2.25 WINRACE.EXE with corrected section headers (SHA-256 matches)", path);
+        return 1;
+    }
     if (strcmp(hex, EXPECTED_EXE_SHA256) != 0) {
         brr_log("check: %s has SHA-256 %s, not the v2.25 WINRACE.EXE (%s)", path, hex,
                 EXPECTED_EXE_SHA256);

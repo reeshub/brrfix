@@ -19,11 +19,12 @@ Linux/Steam Deck through Proton, and makes it run smoothly:
   set them to 0 for the original look).
 - The physics is left exactly as it was: the same game, bit for bit.
 
-It contains no part of the game. It changes the game only in memory while it
-runs, never on disk, and only after checking that WINRACE.EXE is the exact
+It contains no part of the game. TIMER.DLL changes the game's code only in
+memory while it runs, and only after checking that WINRACE.EXE is the exact
 v2.25 file and that every place it changes is as expected. If anything doesn't
 match, it changes nothing, writes why to BRRFIX.LOG, and works like the
-original TIMER.DLL.
+original TIMER.DLL. (On Windows 10 and 11 the launcher also corrects
+WINRACE.EXE's file headers on disk, keeping the original: see Install.)
 
 You need
 --------
@@ -49,7 +50,12 @@ Install (Windows 95 to 11)
    On Windows 95, 98 and ME you can leave out ddraw.dll, ddraw.ini and Shaders:
    their own DirectDraw draws the game properly.
 3. Start Big Red Racing.exe (make a shortcut to it if you like).
-To undo: delete the files from this zip and rename TIMER.ORI back to TIMER.DLL.
+   On Windows 10 and 11 it first offers to correct WINRACE.EXE: the 1996
+   linker wrote its file headers carelessly, and modern Windows refuses to
+   start it. Only the headers change (13 bytes), and the original is kept as
+   WINRACE.ORI.
+To undo: delete the files from this zip and rename TIMER.ORI back to TIMER.DLL
+(and, if it's there, WINRACE.ORI back to WINRACE.EXE).
 
 Steam Deck and Linux (Proton)
 -----------------------------
