@@ -100,6 +100,31 @@ static LRESULT CALLBACK mouse_filter(int code, WPARAM removed, LPARAM lparam)
     return CallNextHookEx(mouse_hook, code, removed, lparam);
 }
 
+/* KEY.DLL's keyboard hook (_KEY_Handler@12) records a key press whenever Windows calls it,
+ * also with HC_NOREMOVE, when something only peeks at the message queue. cnc-ddraw peeks
+ * while it presents a full-screen frame, so a menu key could count two or three times
+ * (playtests 2026-11-10; never in a window, where we present). Our hook, installed after
+ * KEY.DLL's and so called first, keeps those peeks from reaching it. */
+static HHOOK key_hook;
+
+static LRESULT CALLBACK key_filter(int code, WPARAM wparam, LPARAM lparam)
+{
+    if (code == HC_NOREMOVE)
+        return 0;
+    return CallNextHookEx(key_hook, code, wparam, lparam);
+}
+
+void brr_install_key_filter(void)
+{
+    static int tried;
+    if (tried || !cfg.fix_keys || !GAME_HWND)
+        return;
+    tried = 1;
+    key_hook = SetWindowsHookExA(WH_KEYBOARD, key_filter, NULL, GetWindowThreadProcessId(GAME_HWND, NULL));
+    brr_log("keys: %s", key_hook ? "key presses counted once (peeks at the queue no longer reach KEY.DLL)"
+                                  : "couldn't install the keyboard filter");
+}
+
 static LRESULT CALLBACK window_proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
 {
     LRESULT result = CallWindowProcA(game_proc, window, message, wparam, lparam);

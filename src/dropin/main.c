@@ -76,6 +76,7 @@ static void load_config(void)
     cfg.fix_cap = ini_int(path, "fixes", "cap", 1);
     cfg.fix_interpolation = ini_int(path, "fixes", "interpolation", 1);
     cfg.fix_camera = ini_int(path, "fixes", "camera", 1);
+    cfg.fix_keys = ini_int(path, "fixes", "keys", 1);
     GetPrivateProfileStringA("clock", "source", "qpc", text, sizeof text, path);
     cfg.clock_original = lstrcmpiA(text, "original") == 0;
     cfg.rate_milli = (uint32_t)ini_milli(path, "clock", "tick_rate", 70000);
@@ -118,7 +119,7 @@ static void load_config(void)
         cfg.music_volume = 100;
     cfg.music_follow_game = ini_int(path, "music", "follow_game_volume", 1);
     GetPrivateProfileStringA("music", "folder", "MUSIC", cfg.music_folder, sizeof cfg.music_folder, path);
-    GetPrivateProfileStringA("display", "mode", "windowed", text, sizeof text, path);
+    GetPrivateProfileStringA("display", "mode", "fullscreen", text, sizeof text, path);
     cfg.display_mode = !lstrcmpiA(text, "fullscreen") ? DISPLAY_FULLSCREEN
                      : !lstrcmpiA(text, "ask") ? DISPLAY_ASK : DISPLAY_WINDOWED;
     GetPrivateProfileStringA("clock", "pacing", "dropin", text, sizeof text, path);

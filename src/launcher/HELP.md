@@ -14,9 +14,9 @@ or start it with **-setup**.
 
 **Mode**
 
+- **Full screen** (the default): the game fills the screen, without asking.
 - **Windowed:** the game's own 1996 window, with its menu bar (About,
   Modes, Language), as on a Windows 95 desktop.
-- **Full screen:** the game fills the screen, without asking.
 
 **Window size** (in a window only)
 

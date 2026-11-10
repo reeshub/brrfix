@@ -109,10 +109,11 @@ With no tracks there, the game plays a real CD if there is one.
 
 Display and scaling
 -------------------
-By default the game runs in its own window with its 1996 menu bar (About,
-Modes, Language), as big as fits on your screen, with exact colours. Full
-screen: pick it in the launcher (or [display] mode=fullscreen in BRRFIX.INI,
-and windowed=false in ddraw.ini). For full screen, ddraw.ini has presets:
+By default the game fills the screen, at your desktop's own resolution, with
+sharp whole-number scaling. Windowed: pick it in the launcher (or [display]
+mode=windowed in BRRFIX.INI, and windowed=true in ddraw.ini): the game's own
+window with its 1996 menu bar (About, Modes, Language), as big as fits on your
+screen, with exact colours. For full screen, ddraw.ini has presets:
 integer (sharp, square pixels; the default), 4:3 sharp, 4:3 nearest, stretch
 and smooth.
 

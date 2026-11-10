@@ -36,7 +36,7 @@ static int windows_9x, under_wine;
 struct choice { const char *label, *value; };
 
 static const struct choice modes[] = {
-    {"Windowed", "windowed"}, {"Full screen", "fullscreen"}, {0, 0}};
+    {"Full screen", "fullscreen"}, {"Windowed", "windowed"}, {0, 0}};
 static const struct choice scales[] = {
     {"Largest that fits", "auto"}, {"1x (320x200)", "1"}, {"2x", "2"}, {"3x", "3"}, {"4x", "4"},
     {"5x", "5"}, {"6x", "6"}, {0, 0}};
@@ -220,20 +220,29 @@ static void load(HWND dialog, int defaults)
     char v[MAX_PATH];
     const char *f = defaults ? NULL : brrfix_ini, *d = defaults ? NULL : ddraw_ini;
 #define GET(file, section, key, fallback) (ini_get(file, section, key, fallback, v, sizeof v), v)
-    fill(dialog, IDC_MODE, modes, GET(f, "display", "mode", "windowed"));
+    fill(dialog, IDC_MODE, modes, GET(f, "display", "mode", "fullscreen"));
     fill(dialog, IDC_SCALE, scales, GET(f, "display", "window_scale", "auto"));
     check(dialog, IDC_ASPECT, !lstrcmpiA(GET(f, "display", "aspect", "4:3"), "4:3"));
-    {   /* which preset ddraw.ini matches: by its boxing, aspect_ratio and shader */
+    {   /* the full-screen preset: as saved in BRRFIX.INI, or else whichever ddraw.ini matches,
+         * by its boxing, maintas, aspect_ratio and shader */
         char boxing[16], aspect[16], shader[MAX_PATH], maintas[16];
         int i, found = 0;
-        ini_get(d, "ddraw", "boxing", "true", boxing, sizeof boxing);
-        ini_get(d, "ddraw", "maintas", "true", maintas, sizeof maintas);
-        ini_get(d, "ddraw", "aspect_ratio", "", aspect, sizeof aspect);
-        ini_get(d, "ddraw", "shader", preset_keys[0][3], shader, sizeof shader);
+        ini_get(f, "display", "fullscreen_scaling", "", v, sizeof v);
         for (i = 0; i < 5; i++)
-            if (!lstrcmpiA(boxing, preset_keys[i][0]) && !lstrcmpiA(maintas, preset_keys[i][1])
-                && !lstrcmpiA(aspect, preset_keys[i][2]) && !lstrcmpiA(shader, preset_keys[i][3]))
-                found = i;
+            if (!lstrcmpiA(v, presets[i].value))
+                break;
+        if (i < 5)
+            found = i;
+        else {
+            ini_get(d, "ddraw", "boxing", "true", boxing, sizeof boxing);
+            ini_get(d, "ddraw", "maintas", "true", maintas, sizeof maintas);
+            ini_get(d, "ddraw", "aspect_ratio", "", aspect, sizeof aspect);
+            ini_get(d, "ddraw", "shader", preset_keys[0][3], shader, sizeof shader);
+            for (i = 0; i < 5; i++)
+                if (!lstrcmpiA(boxing, preset_keys[i][0]) && !lstrcmpiA(maintas, preset_keys[i][1])
+                    && !lstrcmpiA(aspect, preset_keys[i][2]) && !lstrcmpiA(shader, preset_keys[i][3]))
+                    found = i;
+        }
         fill(dialog, IDC_PRESET, presets, presets[found].value);
     }
     check(dialog, IDC_INTERP, defaults ? 1 : ini_flag("fixes", "interpolation", 1));
@@ -269,6 +278,9 @@ static void save(HWND dialog)
     int preset = (int)SendDlgItemMessageA(dialog, IDC_PRESET, CB_GETCURSEL, 0, 0), i;
     static const char *const preset_names[5] = {"boxing", "maintas", "aspect_ratio", "shader", "d3d9_filter"};
     ini_set(brrfix_ini, "display", "mode", mode);
+    if (preset < 0 || preset > 4)
+        preset = 0;
+    ini_set(brrfix_ini, "display", "fullscreen_scaling", presets[preset].value);
     ini_set(brrfix_ini, "display", "window_scale", chosen(dialog, IDC_SCALE, scales));
     ini_set(brrfix_ini, "display", "aspect", checked(dialog, IDC_ASPECT) ? "4:3" : "square");
     ini_set(brrfix_ini, "fixes", "interpolation", checked(dialog, IDC_INTERP) ? "1" : "0");
@@ -303,8 +315,10 @@ static void save(HWND dialog)
             ini_set(ddraw_ini, "ddraw", "fullscreen", full ? "true" : "false");
         }
         ini_set(ddraw_ini, "ddraw", "vsync", checked(dialog, IDC_VSYNC) ? "true" : "false");
-        if (preset < 0 || preset > 4)
-            preset = 0;
+        /* In a window, no letterbox: under Wine cnc-ddraw otherwise moves the mouse by the
+         * borders it would have drawn (playtest 2026-11-10: 60 pixels at 960x720) */
+        if (lstrcmpiA(mode, "fullscreen"))
+            preset = 3;
         for (i = 0; i < 5; i++)
             ini_set(ddraw_ini, "ddraw", preset_names[i], preset_keys[preset][i]);
     }
