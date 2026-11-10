@@ -111,6 +111,7 @@
    "ShellExecuteA"
   ],
   "USER32.DLL": [
+   "CallNextHookEx",
    "CallWindowProcA",
    "CharUpperA",
    "CheckDlgButton",
@@ -122,6 +123,7 @@
    "GetDC",
    "GetDlgItem",
    "GetDlgItemTextA",
+   "GetWindowThreadProcessId",
    "IsDlgButtonChecked",
    "LoadCursorA",
    "LoadIconA",
@@ -134,6 +136,7 @@
    "SetDlgItemTextA",
    "SetWindowLongA",
    "SetWindowTextA",
+   "SetWindowsHookExA",
    "ShowWindow",
    "SystemParametersInfoA",
    "wsprintfA"

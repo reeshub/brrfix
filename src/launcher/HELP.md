@@ -57,7 +57,7 @@ already fixed without it, so leave it Off unless you want to experiment.
 
 **Frame limit**
 
-The most pictures drawn each second. "Display's rate" matches your screen's
+The most pictures drawn each second. "Display rate" matches your screen's
 refresh rate, which is usually best. "Unlocked" draws as many as your PC can.
 The game itself runs at the same speed whatever you choose.
 

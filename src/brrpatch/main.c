@@ -48,6 +48,7 @@ int main(int argc, char **argv)
     char message[512];
     int undo = 0, result, i;
     printf("Big Red Racing DOS patch %s\n", brr_dos_version());
+    printf("For support please visit ctrl-alt-rees.com\n\n");
     for (i = 1; i < argc; i++) {
         const char *arg = argv[i];
         if ((arg[0] == '/' || arg[0] == '-') && arg[1] && !arg[2]) {
@@ -65,6 +66,14 @@ int main(int argc, char **argv)
         }
         folder = arg;
     }
+    if (!undo)
+        printf("This patch makes these changes to RACING.EXE:\n"
+               " - finer camera angles and a steady camera lean: no more camera stutter\n"
+               " - two camera calculations no longer depend on the frame rate\n"
+               " - on fast PCs, vehicles drawn between physics steps: 70 pictures a second\n"
+               " - on fast PCs, each picture shown at the screen's refresh: no tearing\n"
+               " - on fast PCs, a shorter catch-up after a pause\n"
+               "The physics is unchanged, and a 486 runs it exactly as before.\n\n");
     printf(undo ? "Putting the original back" : "Patching RACING.EXE");
     fflush(stdout);
     brr_dos_progress = dot;

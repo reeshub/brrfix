@@ -76,18 +76,33 @@ static void find_real_functions(void)
 static int max_w, max_h;
 static int picture_w, picture_h, shown_w, shown_h;  /* the game's frame, and its size in the window */
 
+/* Mouse messages (0x200-0x209) carry a position in the window; in a window the game uses it
+ * as a position in its picture (FUN_00420D88), so they're scaled back down as the game takes
+ * them from its message queue (WH_GETMESSAGE). Scaling in our window procedure instead
+ * worked on Windows but not under Wine, where it isn't always first in line (playtest
+ * 2026-11-10: no scaled messages at all). */
+static HHOOK mouse_hook;
+
+static LRESULT CALLBACK mouse_filter(int code, WPARAM removed, LPARAM lparam)
+{
+    MSG *msg = (MSG *)lparam;
+    if (code == HC_ACTION && removed == PM_REMOVE && msg->hwnd == GAME_HWND && brr_gdi_present
+        && *GAME_WINDOWED && msg->message >= WM_MOUSEFIRST && msg->message <= 0x209 && shown_w > 0
+        && shown_h > 0) {
+        static int logged;
+        long x = (short)LOWORD(msg->lParam), y = (short)HIWORD(msg->lParam);
+        long gx = x * picture_w / shown_w, gy = y * picture_h / shown_h;
+        if (!logged++)
+            brr_log("mouse: scaling the window's mouse positions into the picture (first: %ld,%ld -> %ld,%ld)",
+                    x, y, gx, gy);
+        msg->lParam = MAKELPARAM((WORD)(short)gx, (WORD)(short)gy);
+    }
+    return CallNextHookEx(mouse_hook, code, removed, lparam);
+}
+
 static LRESULT CALLBACK window_proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
 {
-    LRESULT result;
-    /* Mouse messages (0x200-0x209) carry a position in the window; in a window the game
-     * uses it as a position in its picture (FUN_00420D88), so scale it back down. */
-    if (message >= WM_MOUSEFIRST && message <= 0x209 && shown_w > 0 && shown_h > 0) {
-        long x = (short)LOWORD(lparam), y = (short)HIWORD(lparam);
-        x = x * picture_w / shown_w;
-        y = y * picture_h / shown_h;
-        lparam = MAKELPARAM((WORD)(short)x, (WORD)(short)y);
-    }
-    result = CallWindowProcA(game_proc, window, message, wparam, lparam);
+    LRESULT result = CallWindowProcA(game_proc, window, message, wparam, lparam);
     if (cfg.debug_log_mouse && message >= WM_MOUSEFIRST && message <= 0x209) {
         static int logged;
         if (logged++ < 40)
@@ -135,6 +150,8 @@ static void keep_window_size(HWND window, int w, int h)
         find_real_functions();
     if (!game_proc)
         game_proc = (WNDPROC)SetWindowLongA(window, GWL_WNDPROC, (LONG)window_proc);
+    if (!mouse_hook)
+        mouse_hook = SetWindowsHookExA(WH_GETMESSAGE, mouse_filter, NULL, GetWindowThreadProcessId(window, NULL));
     real_client_rect(window, &client);
     if (client.right == want_w && client.bottom == want_h)
         return;

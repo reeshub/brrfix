@@ -46,7 +46,7 @@ static const struct choice presets[] = {
 static const struct choice smoothings[] = {
     {"Off", "0"}, {"Light", "25"}, {"Medium", "50"}, {"Strong", "100"}, {0, 0}};
 static const struct choice frame_limits[] = {
-    {"Display's rate", "auto"}, {"Unlocked", "0"}, {"30 fps", "30"}, {"60 fps", "60"}, {"120 fps", "120"},
+    {"Display rate", "auto"}, {"Unlocked", "0"}, {"30 fps", "30"}, {"60 fps", "60"}, {"120 fps", "120"},
     {"144 fps", "144"}, {"240 fps", "240"}, {0, 0}};
 static const struct choice volumes[] = {
     {"100%", "100"}, {"90%", "90"}, {"80%", "80"}, {"70%", "70"}, {"60%", "60"}, {"50%", "50"}, {"40%", "40"},
@@ -299,6 +299,8 @@ static void save(HWND dialog)
             ini_set(ddraw_ini, "ddraw", "hook", full ? "4" : "0");
             ini_set(ddraw_ini, "ddraw", "adjmouse", full ? "true" : "false");
             ini_set(ddraw_ini, "ddraw", "devmode", full ? "false" : "true");
+            /* at the desktop's own resolution: otherwise Windows switches to the game's (blurry) */
+            ini_set(ddraw_ini, "ddraw", "fullscreen", full ? "true" : "false");
         }
         ini_set(ddraw_ini, "ddraw", "vsync", checked(dialog, IDC_VSYNC) ? "true" : "false");
         if (preset < 0 || preset > 4)
