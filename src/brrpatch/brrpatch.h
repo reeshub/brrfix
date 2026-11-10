@@ -14,5 +14,7 @@ int brr_dos_patch(const char *folder, char *message, unsigned size);
 int brr_dos_restore(const char *folder, char *message, unsigned size);
 const char *brr_dos_version(void);
 const char *brr_dos_tag(void);
+/* Called every 64 KB read or written, if set (BRRPATCH.EXE prints a dot) */
+extern void (*brr_dos_progress)(void);
 
 #endif

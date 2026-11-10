@@ -36,6 +36,12 @@ static void usage(void)
            "The original is kept as RACING.ORI. Start the game as usual, with RACING.\n");
 }
 
+static void dot(void)
+{
+    putchar('.');
+    fflush(stdout);
+}
+
 int main(int argc, char **argv)
 {
     const char *folder = "";
@@ -59,9 +65,12 @@ int main(int argc, char **argv)
         }
         folder = arg;
     }
-    printf("Checking RACING.EXE...\n");
+    printf(undo ? "Putting the original back" : "Patching RACING.EXE");
+    fflush(stdout);
+    brr_dos_progress = dot;
     result = undo ? brr_dos_restore(folder, message, sizeof message)
                   : brr_dos_patch(folder, message, sizeof message);
+    printf("\n");
     wrapped(message);
     if (result == 0 && !undo)
         printf("Start the game as usual, with RACING. BRRPATCH /U puts the original back.\n");

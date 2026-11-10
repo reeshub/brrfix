@@ -22,6 +22,15 @@
 
 static uint8_t buffer[CHUNK];
 
+void (*brr_dos_progress)(void);
+
+static void progress(void)
+{
+    static unsigned chunks;
+    if (brr_dos_progress && ++chunks % (65536U / CHUNK) == 0)
+        brr_dos_progress();
+}
+
 const char *brr_dos_version(void) { return BRR_PATCH_VERSION; }
 const char *brr_dos_tag(void) { return BRR_PATCH_TAG; }
 
@@ -65,6 +74,7 @@ static int file_state(const char *path)
     while ((got = fread(buffer, 1, CHUNK, f)) > 0) {
         brr_sha256_update(&s, buffer, got);
         total += (uint32_t)got;
+        progress();
     }
     failed = ferror(f);
     fclose(f);
@@ -87,6 +97,7 @@ int brr_dos_state(const char *folder)
 static int put(FILE *out, struct brr_sha256_state *s, const uint8_t *data, size_t size)
 {
     brr_sha256_update(s, data, size);
+    progress();
     return fwrite(data, 1, size, out) == size;
 }
 
