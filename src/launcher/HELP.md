@@ -17,7 +17,6 @@ or start it with **-setup**.
 - **In its own window:** the game's own 1996 window, with its menu bar (About,
   Modes, Language), as on a Windows 95 desktop.
 - **Full screen:** the game fills the screen, without asking.
-- **Ask, as in 1996:** the game asks each time, as the original did.
 
 **Window size** (in a window only)
 
@@ -46,10 +45,10 @@ How the picture fills the screen:
 
 **Interpolation (smooth motion)**
 
-The game's physics moves the trucks 35 times a second. With interpolation, the
-trucks and the camera are drawn in between those steps, so a modern PC shows
-smooth motion at its full frame rate instead of 35 jerky steps a second. The
-physics itself is exactly the same either way.
+The game's physics moves the vehicles 35 times a second. With interpolation,
+the vehicles and the camera are drawn in between those steps, so a modern PC
+shows smooth motion at its full frame rate instead of 35 jerky steps a second.
+The physics itself is exactly the same either way.
 
 **Camera smoothing**
 
@@ -62,7 +61,7 @@ The most pictures drawn each second. "Display's rate" matches your screen's
 refresh rate, which is usually best. "Unlocked" draws as many as your PC can.
 The game itself runs at the same speed whatever you choose.
 
-**Vsync (no tearing, a little lag)**
+**Vsync**
 
 Waits for the screen to finish each refresh before showing the next picture,
 so there are no horizontal tears when the camera turns. It can add a little
@@ -99,7 +98,7 @@ game, choose the joystick in the controls menu.
 
 **Deadzone**
 
-How far the stick has to move before steering starts. Raise it if the truck
+How far the stick has to move before steering starts. Raise it if the vehicle
 drifts with the stick at rest.
 
 **Sensitivity**
@@ -118,24 +117,36 @@ end of the stick's travel; higher values reach it sooner.
 
 **Tick rate**
 
-How many game ticks there are each second. 70.0 matches the DOS version and
-real time. The 1996 Windows version ran at 71.43, about 2% fast; choose it to
-compare.
+The game's clock "ticks" a fixed number of times a second, and everything in
+it, the physics, the timers and the countdown, moves on by ticks.
+
+- **71.43 (Windows original):** the rate the 1996 Windows version ran at
+  (the default). It's about 2% faster than real time.
+- **70.0 (DOS original):** the DOS version's rate, which matches real seconds.
 
 **Catch-up**
 
-If the PC stalls for a moment, the game catches up on the time it missed. "8
-ticks" catches up at most about a tenth of a second in one picture, which keeps
-the picture steadier; "35 (original)" behaves as in 1996.
+The game runs its physics in ticks, and before each picture it runs as many
+ticks as have passed on the clock since the last picture. Usually that's one
+or two. But if the PC pauses for a moment (loading, another program, a hiccup
+in Windows), many ticks pile up, and the game runs them all at once before it
+draws again: on screen, everything jumps forward to where it should be by now.
+
+Catch-up sets how many ticks it will run at once:
+
+- **8 ticks** (the default): at most about a tenth of a second at once. After a
+  long pause the game skips the rest of the missed time instead of jumping, so
+  the picture stays steadier, and the race carries on a fraction of a second
+  behind the clock.
+- **35 (original):** up to half a second at once, as in 1996.
+
+The physics is the same either way; only how a pause is made up changes.
 
 **Log**
 
-Writes BRRFIX.LOG next to the game: what was fixed and how the clock ran. Send
-it with any bug report.
-
-**Defaults**
-
-Puts every setting back to its default. Press Save or Play to keep them.
+Writes BRRFIX.LOG next to the game: what was fixed and how the clock ran. It's
+off by default; turn it on if you're reporting a problem, and send the file
+with your report.
 
 ## The buttons
 
@@ -145,6 +156,8 @@ Puts every setting back to its default. Press Save or Play to keep them.
   fixes, for DOS PCs and DOSBox), keeping the original as RACING.ORI. Press it
   again on a patched file to put the original back.
 - **Help:** opens this file (or press F1).
+- **Defaults:** puts every setting back to its default. Press Save or Play to
+  keep them.
 - **Play:** saves the settings and starts the game.
 - **Save:** saves the settings without starting the game.
 - **Quit:** closes the window without saving.
@@ -154,7 +167,7 @@ Puts every setting back to its default. Press Save or Play to keep them.
 Windows 10 and 11 refuse to start the 1996 WINRACE.EXE as it is: the linker
 that made it in 1996 wrote its file headers carelessly, which Windows 95 didn't
 mind. The first time you press Play, the launcher offers to correct them. Only
-the headers change (13 bytes); the corrected file works on every version of
+the headers change; the corrected file works on every version of
 Windows, and the original is kept as WINRACE.ORI. To undo, delete WINRACE.EXE
 and rename WINRACE.ORI to WINRACE.EXE.
 

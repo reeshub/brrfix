@@ -26,7 +26,7 @@ BEGIN
     COMBOBOX        IDC_SMOOTHING, 236, 30, 76, 70, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
     LTEXT           "Frame &limit:", -1, 172, 48, 62, 8
     COMBOBOX        IDC_FRAMES, 236, 46, 76, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    AUTOCHECKBOX    "&Vsync (no tearing, a little lag)", IDC_VSYNC, 172, 64, 140, 10, WS_TABSTOP
+    AUTOCHECKBOX    "&Vsync", IDC_VSYNC, 172, 64, 140, 10, WS_TABSTOP
 
     GROUPBOX        "Music", -1, 6, 88, 154, 66
     AUTOCHECKBOX    "CD &music from ripped tracks", IDC_MUSIC, 12, 100, 140, 10, WS_TABSTOP
@@ -47,16 +47,16 @@ BEGIN
 
     GROUPBOX        "Advanced", -1, 6, 158, 312, 36
     LTEXT           "&Tick rate:", -1, 12, 172, 34, 8
-    COMBOBOX        IDC_RATE, 48, 170, 92, 50, CBS_DROPDOWNLIST | WS_TABSTOP
-    LTEXT           "&Catch-up:", -1, 146, 172, 34, 8
-    COMBOBOX        IDC_CAP, 182, 170, 54, 50, CBS_DROPDOWNLIST | WS_TABSTOP
-    AUTOCHECKBOX    "Lo&g", IDC_LOG, 242, 171, 28, 10, WS_TABSTOP
-    PUSHBUTTON      "D&efaults", IDC_DEFAULTS, 272, 169, 40, 14, WS_TABSTOP
+    COMBOBOX        IDC_RATE, 48, 170, 100, 50, CBS_DROPDOWNLIST | WS_TABSTOP
+    LTEXT           "&Catch-up:", -1, 156, 172, 34, 8
+    COMBOBOX        IDC_CAP, 192, 170, 64, 50, CBS_DROPDOWNLIST | WS_TABSTOP
+    AUTOCHECKBOX    "Lo&g", IDC_LOG, 266, 171, 40, 10, WS_TABSTOP
 
     AUTOCHECKBOX    "S&kip this window next time", IDC_SKIP, 8, 200, 140, 10, WS_TABSTOP
     LTEXT           "To see it again, hold Shift while starting the game, or start it with -setup. Steam launch options: -play skips it, -setup shows it.", -1, 8, 212, 200, 24
     PUSHBUTTON      "Patch the DOS ve&rsion...", IDC_DOSPATCH, 8, 238, 96, 14, WS_TABSTOP
     PUSHBUTTON      "Help", IDC_HELPFILE, 108, 238, 40, 14, WS_TABSTOP
+    PUSHBUTTON      "D&efaults", IDC_DEFAULTS, 152, 238, 40, 14, WS_TABSTOP
     DEFPUSHBUTTON   "&Play", IDOK, 214, 236, 34, 16, WS_TABSTOP
     PUSHBUTTON      "&Save", IDC_SAVE, 250, 236, 34, 16, WS_TABSTOP
     PUSHBUTTON      "&Quit", IDCANCEL, 286, 236, 32, 16, WS_TABSTOP
@@ -72,12 +72,11 @@ BEGIN
     BEGIN
         BLOCK "080904E4"
         BEGIN
-            VALUE "CompanyName", "ctrl-alt-rees (ctrl-alt-rees.com)\0"
+            VALUE "CompanyName", "ctrl-alt-rees.com\0"
             VALUE "FileDescription", "Big Red Launcher\0"
             VALUE "FileVersion", BRRFIX_VERSION "\0"
-            VALUE "LegalCopyright", "Big Red Launcher by ctrl-alt-rees, ctrl-alt-rees.com\0"
             VALUE "Comments", "Big Red Launcher by ctrl-alt-rees. ctrl-alt-rees.com\0"
-            VALUE "ProductName", "Big Red Launcher\0"
+            VALUE "ProductName", "Big Red Launcher by ctrl-alt-rees\0"
             VALUE "ProductVersion", BRRFIX_VERSION "\0"
             VALUE "InternalName", "Big Red Launcher\0"
             VALUE "OriginalFilename", "Big Red Racing.exe\0"

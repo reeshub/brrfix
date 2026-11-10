@@ -13,7 +13,7 @@ What it fixes
   and the camera's lean flicked with every step. The race is now drawn with
   finer angles and a steady lean.
 - Smooth movement on fast machines: the game's physics runs 35 times a second;
-  the trucks and the follow camera are now drawn between physics steps, so a
+  the vehicles and the follow camera are now drawn between physics steps, so a
   fast machine shows 70 different pictures a second instead of 35.
 - Tear-free frames on fast machines: each frame is shown at the start of the
   screen's vertical retrace (once per refresh: 70 Hz at 320x200).

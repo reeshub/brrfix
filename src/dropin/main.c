@@ -78,9 +78,9 @@ static void load_config(void)
     cfg.fix_camera = ini_int(path, "fixes", "camera", 1);
     GetPrivateProfileStringA("clock", "source", "qpc", text, sizeof text, path);
     cfg.clock_original = lstrcmpiA(text, "original") == 0;
-    cfg.rate_milli = (uint32_t)ini_milli(path, "clock", "tick_rate", 70000);
+    cfg.rate_milli = (uint32_t)ini_milli(path, "clock", "tick_rate", 71430);
     if (cfg.rate_milli < 1000 || cfg.rate_milli > 1000000)
-        cfg.rate_milli = 70000;
+        cfg.rate_milli = 71430;
     cfg.cap = ini_int(path, "clock", "catch_up_cap", 8);
     if (cfg.cap < 1 || cfg.cap > 255)
         cfg.cap = 8;
@@ -131,7 +131,7 @@ static void load_config(void)
         cfg.camera_smoothing = 0;
     cfg.camera_roll_fix = ini_int(path, "camera", "roll_fix", 1);
     cfg.fine_angles = ini_int(path, "camera", "fine_angles", 1);
-    cfg.log = ini_int(path, "log", "log", 1);
+    cfg.log = ini_int(path, "log", "log", 0);
     cfg.log_clock = ini_int(path, "log", "clock", 1);
     cfg.log_state = ini_int(path, "log", "state", 0);
     cfg.log_camera = ini_int(path, "log", "camera", 0);

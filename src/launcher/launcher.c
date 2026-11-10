@@ -36,7 +36,7 @@ static int windows_9x, under_wine;
 struct choice { const char *label, *value; };
 
 static const struct choice modes[] = {
-    {"In its own window", "windowed"}, {"Full screen", "fullscreen"}, {"Ask, as in 1996", "ask"}, {0, 0}};
+    {"In its own window", "windowed"}, {"Full screen", "fullscreen"}, {0, 0}};
 static const struct choice scales[] = {
     {"Largest that fits", "auto"}, {"1x (320x200)", "1"}, {"2x", "2"}, {"3x", "3"}, {"4x", "4"},
     {"5x", "5"}, {"6x", "6"}, {0, 0}};
@@ -56,7 +56,7 @@ static const struct choice deadzones[] = {
 static const struct choice sensitivities[] = {
     {"50%", "50"}, {"75%", "75"}, {"100%", "100"}, {"125%", "125"}, {"150%", "150"}, {"200%", "200"}, {0, 0}};
 static const struct choice layouts[] = {{"Triggers", "triggers"}, {"Stick", "stick"}, {0, 0}};
-static const struct choice rates[] = {{"70.0 (steady)", "70.0"}, {"71.43 (original)", "71.43"}, {0, 0}};
+static const struct choice rates[] = {{"71.43 (Windows original)", "71.43"}, {"70.0 (DOS original)", "70.0"}, {0, 0}};
 static const struct choice caps[] = {{"8 ticks", "8"}, {"35 (original)", "35"}, {0, 0}};
 
 /* the cnc-ddraw keys for each full-screen preset: boxing, maintas, aspect_ratio, shader, d3d9_filter */
@@ -132,11 +132,11 @@ static void update_enabled(HWND dialog)
 
 /* One line on each setting, shown when the mouse rests on it */
 static const struct { int id; const char *text; } tips[] = {
-    {IDC_MODE, "In its own window with the 1996 menu bar, full screen, or ask each time as the original did."},
+    {IDC_MODE, "In its own window with the 1996 menu bar, or full screen."},
     {IDC_SCALE, "How big the window is, in whole multiples of the game's 320x200 picture."},
     {IDC_ASPECT, "Stretch the picture's height by 1.2, as a 1996 monitor did. Off: square, sharp pixels."},
     {IDC_PRESET, "How the picture fills the screen in full screen: sharp with borders, 4:3, stretched or smooth."},
-    {IDC_INTERP, "Draws the trucks and the camera between the game's 35 physics steps a second, for smooth motion."},
+    {IDC_INTERP, "Draws the vehicles and the camera between the game's 35 physics steps a second, for smooth motion."},
     {IDC_SMOOTHING, "Experimental: softens the camera's movement further. Not needed for the stutter fix."},
     {IDC_FRAMES, "The most pictures drawn a second. The game itself runs at the same speed whatever you choose."},
     {IDC_VSYNC, "Waits for the screen's refresh before each picture: no tearing, slightly more input lag."},
@@ -148,8 +148,8 @@ static const struct { int id; const char *text; } tips[] = {
     {IDC_DEADZONE, "How far the stick moves before steering starts."},
     {IDC_SENSITIVITY, "How much stick gives full lock: above 100% reaches it sooner."},
     {IDC_LAYOUT, "Triggers: right accelerates, left brakes. Stick: push up and down, as the original."},
-    {IDC_RATE, "Game ticks a second: 70.0 matches the DOS version and real time; the 1996 Windows version ran 2% fast."},
-    {IDC_CAP, "After a hiccup, how much game time can pass in one picture: 8 ticks, or 35 as the original."},
+    {IDC_RATE, "Game ticks a second: 71.43 as the 1996 Windows version ran, or 70.0 as the DOS version (real time)."},
+    {IDC_CAP, "After a pause, how much missed game time is caught up at once: 8 ticks, or 35 as the original (see Help)."},
     {IDC_LOG, "Writes BRRFIX.LOG next to the game: what was fixed, for bug reports."},
     {IDC_DEFAULTS, "Puts every setting back to its default (press Save or Play to keep them)."},
     {IDC_SKIP, "Start the game straight away next time. Hold Shift while starting to see this window again."},
@@ -252,9 +252,9 @@ static void load(HWND dialog, int defaults)
     fill(dialog, IDC_DEADZONE, deadzones, GET(f, "controller", "deadzone", "15"));
     fill(dialog, IDC_SENSITIVITY, sensitivities, GET(f, "controller", "sensitivity", "100"));
     fill(dialog, IDC_LAYOUT, layouts, GET(f, "controller", "layout", "triggers"));
-    fill(dialog, IDC_RATE, rates, GET(f, "clock", "tick_rate", "70.0"));
+    fill(dialog, IDC_RATE, rates, GET(f, "clock", "tick_rate", "71.43"));
     fill(dialog, IDC_CAP, caps, GET(f, "clock", "catch_up_cap", "8"));
-    check(dialog, IDC_LOG, defaults ? 1 : ini_flag("log", "log", 1));
+    check(dialog, IDC_LOG, defaults ? 0 : ini_flag("log", "log", 0));
     if (!defaults)
         check(dialog, IDC_SKIP, ini_flag("launcher", "skip", 0));
 #undef GET

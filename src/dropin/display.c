@@ -111,12 +111,13 @@ static LRESULT CALLBACK window_proc(HWND window, UINT message, WPARAM wparam, LP
  * window itself when it changes screen. */
 static void keep_window_size(HWND window, int w, int h)
 {
-    static int last_w, last_h, want_w, want_h, logged;
+    static int last_w, last_h, want_w, want_h, logged, centre;
     RECT client, frame, work;
     int scale = cfg.window_scale;
     if (w != last_w || h != last_h) {
         last_w = w;
         last_h = h;
+        centre = 1;
         if (!scale) {
             SystemParametersInfoA(SPI_GETWORKAREA, 0, &work, 0);
             for (scale = 8; scale > 1; scale--)
@@ -143,13 +144,26 @@ static void keep_window_size(HWND window, int w, int h)
     max_h = (frame.bottom - frame.top) + want_h - client.bottom;
     {
         static int tries;
-        BOOL ok = real_set_window_pos(window, NULL, 0, 0, max_w, max_h, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+        int x = 0, y = 0;
+        UINT flags = SWP_NOZORDER | SWP_NOACTIVATE;
+        BOOL ok;
         RECT after;
+        /* centred on the desktop when the size is first set, not when the player has moved it */
+        if (centre) {
+            SystemParametersInfoA(SPI_GETWORKAREA, 0, &work, 0);
+            x = work.left + ((work.right - work.left) - max_w) / 2;
+            y = work.top + ((work.bottom - work.top) - max_h) / 2;
+            if (x < work.left) x = work.left;
+            if (y < work.top) y = work.top;
+            centre = 0;
+        } else
+            flags |= SWP_NOMOVE;
+        ok = real_set_window_pos(window, NULL, x, y, max_w, max_h, flags);
         real_client_rect(window, &after);
         if (tries++ < 5)
-            brr_log("display: resize to %dx%d outer: %s; client now %ldx%ld (was %ldx%ld)", max_w, max_h,
-                    ok ? "ok" : "failed", (long)after.right, (long)after.bottom, (long)client.right,
-                    (long)client.bottom);
+            brr_log("display: resize to %dx%d outer%s: %s; client now %ldx%ld (was %ldx%ld)", max_w, max_h,
+                    flags & SWP_NOMOVE ? "" : ", centred", ok ? "ok" : "failed", (long)after.right,
+                    (long)after.bottom, (long)client.right, (long)client.bottom);
     }
 }
 
