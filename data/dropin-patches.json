@@ -197,6 +197,22 @@
    "length": 4,
    "patch": "The config reader (0x40F09C), case 2 (lang): MOV EDX,0x44AFF4 -> our scratch buffer, so DEFAULT.CFG and the players' own .CFG files (loaded after name entry) don't override the launcher's language; the in-game Language menu still works for the session",
    "sha256": "5dce564bbed2030544911a5fabde8f02799c151054250d68dfa5a5739690a730"
+  },
+  {
+   "name": "resolution_display",
+   "fix": "resolution",
+   "address": "0x44A618",
+   "length": 8,
+   "patch": "Data: the display size the game starts with, 320x200 -> 640x480, before WinMain. The window (0x401390), DirectDraw (0x42C590, called from 0x42405A) and every screen's set-up read it, so the game starts in its high-resolution mode, as after menu command 0x65 (keypad +)",
+   "sha256": "81b93d22e25f4e97416d3108e44ca737f16cad0813a62e2db2af84d60f243663"
+  },
+  {
+   "name": "resolution_frame",
+   "fix": "resolution",
+   "address": "0x44BFB8",
+   "length": 12,
+   "patch": "Data: the frame's width, height and size, 320, 200, 64000 -> 640, 480, 307200 (command 0x65 sets the same)",
+   "sha256": "8662c16b435cad5152a47376dc7e14c8c74e62138bb606013db7a786c98b89c0"
   }
  ],
  "protected_about": "Game functions reachable from the race tick (direct calls, Phase 3 call graph) except approach_clamped, which is patched on purpose. The DLL hashes them before and after patching.",

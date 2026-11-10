@@ -122,6 +122,7 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "camera")) return cfg.fix_camera;
     if (!strcmp(fix, "mode_switch")) return cfg.fix_mode_switch;
     if (!strcmp(fix, "language")) return cfg.language >= 1 && cfg.language <= 7;
+    if (!strcmp(fix, "resolution")) return cfg.resolution_high;
     return 0;
 }
 
@@ -180,6 +181,12 @@ static int replacement(const struct site_info *s, uint8_t *out)
         put_abs32(out, (void *)language_code);
     } else if (!strcmp(n, "language_config") && s->length == 4) {
         put_abs32(out, (void *)language_scratch);
+    } else if (!strcmp(n, "resolution_display") && s->length == 8) {
+        static const uint32_t size[2] = {640, 480};
+        memcpy(out, size, 8);
+    } else if (!strcmp(n, "resolution_frame") && s->length == 12) {
+        static const uint32_t size[3] = {640, 480, 640 * 480};
+        memcpy(out, size, 12);
     } else if (!strcmp(n, "joystick_call") && s->length == 5) {
         out[0] = 0xE8;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_joystick);

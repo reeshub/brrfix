@@ -112,7 +112,6 @@ extern uint32_t brr_display_windowed, brr_display_fullscreen, brr_display_prompt
 int __cdecl brr_display_choice(uint32_t depth);
 int __cdecl brr_present_gdi(void);
 void brr_install_key_filter(void);
-void brr_display_screen(int screen);
 BOOL WINAPI brr_set_menu(HWND window, HMENU menu);
 void brr_hook_present(void);
 extern int brr_gdi_present;

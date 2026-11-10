@@ -124,29 +124,6 @@ void brr_install_key_filter(void)
                                   : "couldn't install the keyboard filter");
 }
 
-/* The window's menu commands (WndProc's WM_COMMAND, 0x4020F0): 0x64 low and 0x65 high
- * resolution (also keypad - and +, sent by the frame handler at 0x402064), 0x66 and 0x67
- * the switches between window and full screen (also Tab), 0x6E-0x74 the languages.
- * The resolution is applied on the game's first frame (the name-entry screen has already
- * been entered by then, at 0x428C43-0x428C4D) by posting the same command, as if the
- * player had chosen it there, if the game isn't set that way already. (The language is
- * set at start-up instead: sites language_start and language_config.) */
-#define GAME_DISPLAY_W   (*(volatile int32_t *)0x44A618)
-
-void brr_display_screen(int screen)
-{
-    static int done;
-    HWND window = GAME_HWND;
-    if (done || !window || !GAME_DD_ACTIVE)
-        return;
-    done = 1;
-    if (cfg.resolution_high != (GAME_DISPLAY_W == 640)) {
-        PostMessageA(window, WM_COMMAND, cfg.resolution_high ? 0x65 : 0x64, 0);
-        brr_log("display: %s resolution from the first screen (0x%02X)", cfg.resolution_high ? "high, 640x480"
-                : "low, 320x200", screen);
-    }
-}
-
 /* Site set_menu_call: WndProc's SetMenu, after it loads the menu for the language. Without
  * the switches between window and full screen, which break the window (director, 2026-11-10). */
 BOOL WINAPI brr_set_menu(HWND window, HMENU menu)
