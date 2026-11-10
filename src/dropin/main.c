@@ -80,11 +80,11 @@ static void load_config(void)
     cfg.fix_mode_switch = ini_int(path, "fixes", "mode_switch", 1);
     GetPrivateProfileStringA("display", "resolution", "high", text, sizeof text, path);
     cfg.resolution_high = !lstrcmpiA(text, "high");
-    GetPrivateProfileStringA("display", "language", "game", text, sizeof text, path);
+    GetPrivateProfileStringA("display", "language", "ENG", text, sizeof text, path);
     {
         static const char *const codes[] = {"ENG", "USA", "FRE", "GER", "ITA", "SPA", "JAP"};
         int i;
-        cfg.language = 0;
+        cfg.language = 1;
         for (i = 0; i < 7; i++)
             if (!lstrcmpiA(text, codes[i]))
                 cfg.language = i + 1;

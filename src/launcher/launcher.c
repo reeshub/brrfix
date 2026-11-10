@@ -39,7 +39,7 @@ static const struct choice modes[] = {
     {"Full screen", "fullscreen"}, {"Windowed", "windowed"}, {0, 0}};
 static const struct choice resolutions[] = {{"High (640x480)", "high"}, {"Low (320x200)", "low"}, {0, 0}};
 static const struct choice languages[] = {
-    {"As last set in the game", "game"}, {"English", "ENG"}, {"USA", "USA"}, {"French", "FRE"},
+    {"English", "ENG"}, {"USA", "USA"}, {"French", "FRE"},
     {"German", "GER"}, {"Italian", "ITA"}, {"Spanish", "SPA"}, {"Japanese", "JAP"}, {0, 0}};
 static const struct choice scales[] = {
     {"Largest that fits", "auto"}, {"1x (320x200)", "1"}, {"2x", "2"}, {"3x", "3"}, {"4x", "4"},
@@ -230,7 +230,7 @@ static void load(HWND dialog, int defaults)
 #define GET(file, section, key, fallback) (ini_get(file, section, key, fallback, v, sizeof v), v)
     fill(dialog, IDC_MODE, modes, GET(f, "display", "mode", "fullscreen"));
     fill(dialog, IDC_RESOLUTION, resolutions, GET(f, "display", "resolution", "high"));
-    fill(dialog, IDC_LANGUAGE, languages, GET(f, "display", "language", "game"));
+    fill(dialog, IDC_LANGUAGE, languages, GET(f, "display", "language", "ENG"));
     fill(dialog, IDC_SCALE, scales, GET(f, "display", "window_scale", "auto"));
     check(dialog, IDC_ASPECT, !lstrcmpiA(GET(f, "display", "aspect", "4:3"), "4:3"));
     {   /* the full-screen preset: as saved in BRRFIX.INI, or else whichever ddraw.ini matches,

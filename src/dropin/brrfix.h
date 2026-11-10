@@ -24,7 +24,7 @@
 struct brr_config {
     int fix_vga, fix_clock, fix_cap, fix_interpolation, fix_camera, fix_keys, fix_mode_switch;
     int resolution_high;     /* [display] resolution=high: the game's 640x480 mode (keypad +) */
-    int language;            /* [display] language: 0 = the game's own, else 1-7 (ENG ... JAP) */
+    int language;            /* [display] language: 1-7 (ENG, USA, FRE, GER, ITA, SPA, JAP) */
     int clock_original;      /* emulate the original 14 ms callback timer instead */
     uint32_t rate_milli;     /* ticks per 1000 s: 70000 = 70.0 Hz */
     int cap;                 /* catch-up cap in ticks (original 35) */

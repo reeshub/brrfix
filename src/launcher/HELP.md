@@ -23,8 +23,9 @@ or start it with **-setup**.
 **Resolution**
 
 - **High (640x480)** (the default): the game's own sharper mode, which it
-  only offered through its window's Modes menu or keypad +. Races are drawn
-  at 640x480; the menus are the same 320x200 pictures, doubled.
+  only offered through its window's Modes menu or keypad +. It applies from
+  the first screen. Races are drawn at 640x480; the menus are the same
+  320x200 pictures, doubled.
 - **Low (320x200):** as the game starts.
 
 In the game, keypad + and - still switch between them.
@@ -86,9 +87,9 @@ input lag.
 
 **Language**
 
-The game's language, as in its window's Language menu: English, USA, French,
-German, Italian, Spanish or Japanese. "As last set in the game" leaves it
-alone.
+The game's language, as in its window's Language menu: English (the default),
+USA, French, German, Italian, Spanish or Japanese. It applies from the first
+screen, "Enter your name".
 
 ## Music
 
