@@ -89,7 +89,8 @@ input lag.
 
 The game's language, as in its window's Language menu: English (the default),
 USA, French, German, Italian, Spanish or Japanese. It applies from the first
-screen, "Enter your name".
+screen, "Enter your name". The window's Language menu still works, but only
+until the game is closed: next time, this setting is used again.
 
 ## Music
 

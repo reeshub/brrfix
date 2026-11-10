@@ -19,6 +19,8 @@ uint32_t brr_orig_present_window = 0x42CD2C;
  * "V2.24WR (09-05-96)" was) */
 static const char version_text[] = "FIX" BRRFIX_VERSION;
 static const char version_number[] = "V2.25";  /* the installed patch; the game still said V2.24 */
+static char language_code[4];       /* the game's start-up language, from [display] language */
+static char language_scratch[256];  /* where the config files' lang lines go instead */
 
 static void hash_hex(const void *data, size_t size, char out[65])
 {
@@ -119,6 +121,7 @@ static int enabled(const char *fix)
         return cfg.fine_angles;
     if (!strcmp(fix, "camera")) return cfg.fix_camera;
     if (!strcmp(fix, "mode_switch")) return cfg.fix_mode_switch;
+    if (!strcmp(fix, "language")) return cfg.language >= 1 && cfg.language <= 7;
     return 0;
 }
 
@@ -171,6 +174,12 @@ static int replacement(const struct site_info *s, uint8_t *out)
     } else if (!strcmp(n, "set_menu_call") && s->length == 7) {
         out[0] = 0xE8;
         put_rel32(out + 1, s->address + 5, (void *)brr_set_menu);
+    } else if (!strcmp(n, "language_start") && s->length == 4) {
+        static const char codes[7][4] = {"ENG", "USA", "FRE", "GER", "ITA", "SPA", "JAP"};
+        memcpy(language_code, codes[cfg.language - 1], 4);
+        put_abs32(out, (void *)language_code);
+    } else if (!strcmp(n, "language_config") && s->length == 4) {
+        put_abs32(out, (void *)language_scratch);
     } else if (!strcmp(n, "joystick_call") && s->length == 5) {
         out[0] = 0xE8;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_joystick);

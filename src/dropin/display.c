@@ -126,18 +126,15 @@ void brr_install_key_filter(void)
 
 /* The window's menu commands (WndProc's WM_COMMAND, 0x4020F0): 0x64 low and 0x65 high
  * resolution (also keypad - and +, sent by the frame handler at 0x402064), 0x66 and 0x67
- * the switches between window and full screen (also Tab), 0x6E-0x74 the languages ENG,
- * USA, FRE, GER, ITA, SPA, JAP. The settings are applied on the game's first frame (the
- * name-entry screen has already been entered by then, at 0x428C43-0x428C4D) by posting
- * the same commands, as if the player had chosen them there; each is sent only if the game
- * isn't set that way already. The language command makes the game enter the screen again
- * (0x44AFEA = the current screen), so its texts change too. */
+ * the switches between window and full screen (also Tab), 0x6E-0x74 the languages.
+ * The resolution is applied on the game's first frame (the name-entry screen has already
+ * been entered by then, at 0x428C43-0x428C4D) by posting the same command, as if the
+ * player had chosen it there, if the game isn't set that way already. (The language is
+ * set at start-up instead: sites language_start and language_config.) */
 #define GAME_DISPLAY_W   (*(volatile int32_t *)0x44A618)
-#define GAME_LANGUAGE    ((const char *)0x44AFF4)
 
 void brr_display_screen(int screen)
 {
-    static const char codes[7][4] = {"ENG", "USA", "FRE", "GER", "ITA", "SPA", "JAP"};
     static int done;
     HWND window = GAME_HWND;
     if (done || !window || !GAME_DD_ACTIVE)
@@ -147,11 +144,6 @@ void brr_display_screen(int screen)
         PostMessageA(window, WM_COMMAND, cfg.resolution_high ? 0x65 : 0x64, 0);
         brr_log("display: %s resolution from the first screen (0x%02X)", cfg.resolution_high ? "high, 640x480"
                 : "low, 320x200", screen);
-    }
-    if (cfg.language >= 1 && cfg.language <= 7 && memcmp(GAME_LANGUAGE, codes[cfg.language - 1], 4)) {
-        PostMessageA(window, WM_COMMAND, 0x6D + cfg.language, 0);
-        brr_log("display: language %s from the first screen (the game had %.3s)", codes[cfg.language - 1],
-                GAME_LANGUAGE);
     }
 }
 

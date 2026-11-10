@@ -181,6 +181,22 @@
    "length": 7,
    "patch": "WndProc's CALL [SetMenu] (after LoadMenuA of AppMenu_<language>) -> CALL brr_set_menu; NOP x2: removes the Modes menu's items 0x66 and 0x67, then calls SetMenu",
    "sha256": "3e3e70dbe681bd2791eefe35a02d53df223b73c9480aa53ab36a0d6b223bbd8a"
+  },
+  {
+   "name": "language_start",
+   "fix": "language",
+   "address": "0x40115F",
+   "length": 4,
+   "patch": "WinMain, before the config is read and before any screen or menu: MOV EAX,[0x44D858] (\"ENG\", stored as the language at 0x44AFF4) -> MOV EAX,[our code], the launcher's [display] language",
+   "sha256": "2cba2f536f007858a432c08080d5fc0826efc1437e84fe5b2201d91b70462fed"
+  },
+  {
+   "name": "language_config",
+   "fix": "language",
+   "address": "0x40F237",
+   "length": 4,
+   "patch": "The config reader (0x40F09C), case 2 (lang): MOV EDX,0x44AFF4 -> our scratch buffer, so DEFAULT.CFG and the players' own .CFG files (loaded after name entry) don't override the launcher's language; the in-game Language menu still works for the session",
+   "sha256": "5dce564bbed2030544911a5fabde8f02799c151054250d68dfa5a5739690a730"
   }
  ],
  "protected_about": "Game functions reachable from the race tick (direct calls, Phase 3 call graph) except approach_clamped, which is patched on purpose. The DLL hashes them before and after patching.",
