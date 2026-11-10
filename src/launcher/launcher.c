@@ -36,7 +36,7 @@ static int windows_9x, under_wine;
 struct choice { const char *label, *value; };
 
 static const struct choice modes[] = {
-    {"In its own window", "windowed"}, {"Full screen", "fullscreen"}, {0, 0}};
+    {"Windowed", "windowed"}, {"Full screen", "fullscreen"}, {0, 0}};
 static const struct choice scales[] = {
     {"Largest that fits", "auto"}, {"1x (320x200)", "1"}, {"2x", "2"}, {"3x", "3"}, {"4x", "4"},
     {"5x", "5"}, {"6x", "6"}, {0, 0}};
@@ -56,7 +56,7 @@ static const struct choice deadzones[] = {
 static const struct choice sensitivities[] = {
     {"50%", "50"}, {"75%", "75"}, {"100%", "100"}, {"125%", "125"}, {"150%", "150"}, {"200%", "200"}, {0, 0}};
 static const struct choice layouts[] = {{"Triggers", "triggers"}, {"Stick", "stick"}, {0, 0}};
-static const struct choice rates[] = {{"71.43 (Windows original)", "71.43"}, {"70.0 (DOS original)", "70.0"}, {0, 0}};
+static const struct choice rates[] = {{"70.0 (DOS original)", "70.0"}, {"71.43 (Windows original)", "71.43"}, {0, 0}};
 static const struct choice caps[] = {{"8 ticks", "8"}, {"35 (original)", "35"}, {0, 0}};
 
 /* the cnc-ddraw keys for each full-screen preset: boxing, maintas, aspect_ratio, shader, d3d9_filter */
@@ -148,7 +148,7 @@ static const struct { int id; const char *text; } tips[] = {
     {IDC_DEADZONE, "How far the stick moves before steering starts."},
     {IDC_SENSITIVITY, "How much stick gives full lock: above 100% reaches it sooner."},
     {IDC_LAYOUT, "Triggers: right accelerates, left brakes. Stick: push up and down, as the original."},
-    {IDC_RATE, "Game ticks a second: 71.43 as the 1996 Windows version ran, or 70.0 as the DOS version (real time)."},
+    {IDC_RATE, "Game ticks a second: 70.0 as the DOS version (real time), or 71.43 as the 1996 Windows version ran (2% fast)."},
     {IDC_CAP, "After a pause, how much missed game time is caught up at once: 8 ticks, or 35 as the original (see Help)."},
     {IDC_LOG, "Writes BRRFIX.LOG next to the game: what was fixed, for bug reports."},
     {IDC_DEFAULTS, "Puts every setting back to its default (press Save or Play to keep them)."},
@@ -222,7 +222,7 @@ static void load(HWND dialog, int defaults)
 #define GET(file, section, key, fallback) (ini_get(file, section, key, fallback, v, sizeof v), v)
     fill(dialog, IDC_MODE, modes, GET(f, "display", "mode", "windowed"));
     fill(dialog, IDC_SCALE, scales, GET(f, "display", "window_scale", "auto"));
-    check(dialog, IDC_ASPECT, !lstrcmpiA(GET(f, "display", "aspect", "square"), "4:3"));
+    check(dialog, IDC_ASPECT, !lstrcmpiA(GET(f, "display", "aspect", "4:3"), "4:3"));
     {   /* which preset ddraw.ini matches: by its boxing, aspect_ratio and shader */
         char boxing[16], aspect[16], shader[MAX_PATH], maintas[16];
         int i, found = 0;
@@ -252,7 +252,7 @@ static void load(HWND dialog, int defaults)
     fill(dialog, IDC_DEADZONE, deadzones, GET(f, "controller", "deadzone", "15"));
     fill(dialog, IDC_SENSITIVITY, sensitivities, GET(f, "controller", "sensitivity", "100"));
     fill(dialog, IDC_LAYOUT, layouts, GET(f, "controller", "layout", "triggers"));
-    fill(dialog, IDC_RATE, rates, GET(f, "clock", "tick_rate", "71.43"));
+    fill(dialog, IDC_RATE, rates, GET(f, "clock", "tick_rate", "70.0"));
     fill(dialog, IDC_CAP, caps, GET(f, "clock", "catch_up_cap", "8"));
     check(dialog, IDC_LOG, defaults ? 0 : ini_flag("log", "log", 0));
     if (!defaults)
@@ -291,6 +291,15 @@ static void save(HWND dialog)
     else {
         /* cnc-ddraw: the window mode follows ours, and the full-screen preset */
         ini_set(ddraw_ini, "ddraw", "windowed", lstrcmpiA(mode, "fullscreen") ? "true" : "false");
+        /* In a window the drop-in draws and scales the picture and the mouse itself, so cnc-ddraw
+         * mustn't lock the pointer to its 320x200 idea of the window, scale the mouse again, or
+         * hook the window; full screen is cnc-ddraw's job, with its defaults (hook=4). */
+        {
+            int full = !lstrcmpiA(mode, "fullscreen");
+            ini_set(ddraw_ini, "ddraw", "hook", full ? "4" : "0");
+            ini_set(ddraw_ini, "ddraw", "adjmouse", full ? "true" : "false");
+            ini_set(ddraw_ini, "ddraw", "devmode", full ? "false" : "true");
+        }
         ini_set(ddraw_ini, "ddraw", "vsync", checked(dialog, IDC_VSYNC) ? "true" : "false");
         if (preset < 0 || preset > 4)
             preset = 0;

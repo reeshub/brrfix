@@ -78,9 +78,9 @@ static void load_config(void)
     cfg.fix_camera = ini_int(path, "fixes", "camera", 1);
     GetPrivateProfileStringA("clock", "source", "qpc", text, sizeof text, path);
     cfg.clock_original = lstrcmpiA(text, "original") == 0;
-    cfg.rate_milli = (uint32_t)ini_milli(path, "clock", "tick_rate", 71430);
+    cfg.rate_milli = (uint32_t)ini_milli(path, "clock", "tick_rate", 70000);
     if (cfg.rate_milli < 1000 || cfg.rate_milli > 1000000)
-        cfg.rate_milli = 71430;
+        cfg.rate_milli = 70000;
     cfg.cap = ini_int(path, "clock", "catch_up_cap", 8);
     if (cfg.cap < 1 || cfg.cap > 255)
         cfg.cap = 8;
@@ -97,7 +97,7 @@ static void load_config(void)
     cfg.window_scale = !lstrcmpiA(text, "auto") ? 0 : ini_int(path, "display", "window_scale", 0);
     if (cfg.window_scale < 0 || cfg.window_scale > 8)
         cfg.window_scale = 0;
-    GetPrivateProfileStringA("display", "aspect", "square", text, sizeof text, path);
+    GetPrivateProfileStringA("display", "aspect", "4:3", text, sizeof text, path);
     cfg.window_aspect43 = !lstrcmpiA(text, "4:3");
     cfg.debug_log_mouse = ini_int(path, "debug", "log_mouse", 0);
     cfg.show_version = ini_int(path, "display", "show_version", 1);

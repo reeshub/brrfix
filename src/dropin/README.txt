@@ -8,8 +8,8 @@ Linux/Steam Deck through Proton, and makes it run smoothly:
 
 - No more "privileged instruction" crash: the game's direct reads of the 1996
   VGA card are replaced.
-- A steady clock at the 1996 Windows version's 71.43 ticks a second, or 70,
-  as the DOS version had (the launcher's "Tick rate").
+- A steady clock at 70 ticks a second, as the DOS version had: real time (the
+  1996 Windows version ran 2% fast, at 71.43, also available).
 - Smooth movement at any refresh rate: the vehicles and the follow camera are
   drawn between the game's physics steps, which happen 35 times a second.
 - Two camera calculations that depended on the frame rate are fixed.

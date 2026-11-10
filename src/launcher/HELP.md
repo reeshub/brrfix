@@ -14,7 +14,7 @@ or start it with **-setup**.
 
 **Mode**
 
-- **In its own window:** the game's own 1996 window, with its menu bar (About,
+- **Windowed:** the game's own 1996 window, with its menu bar (About,
   Modes, Language), as on a Windows 95 desktop.
 - **Full screen:** the game fills the screen, without asking.
 
@@ -23,11 +23,11 @@ or start it with **-setup**.
 How big the window is, in whole multiples of the game's 320x200 picture.
 "Largest that fits" picks the biggest that fits on your screen.
 
-**4:3 shape, as a 1996 monitor** (in a window only)
+**4:3 (non-square pixels)** (in a window only; on by default)
 
 The game's picture is 320x200, but 1996 monitors showed it at 4:3, so
 everything looked a little taller. Ticked, the picture's height is stretched by
-1.2 to match. Unticked, pixels are square and sharp.
+1.2 to match, as the game was meant to be seen. Unticked, pixels are square.
 
 **Full screen** (in full screen only; not on Windows 95, 98 or ME)
 
@@ -120,9 +120,10 @@ end of the stick's travel; higher values reach it sooner.
 The game's clock "ticks" a fixed number of times a second, and everything in
 it, the physics, the timers and the countdown, moves on by ticks.
 
-- **71.43 (Windows original):** the rate the 1996 Windows version ran at
-  (the default). It's about 2% faster than real time.
-- **70.0 (DOS original):** the DOS version's rate, which matches real seconds.
+- **70.0 (DOS original):** the DOS version's rate, which matches real seconds
+  (the default).
+- **71.43 (Windows original):** the rate the 1996 Windows version ran at,
+  about 2% faster than real time.
 
 **Catch-up**
 
@@ -140,7 +141,7 @@ Catch-up sets how many ticks it will run at once:
   behind the clock.
 - **35 (original):** up to half a second at once, as in 1996.
 
-The physics is the same either way; only how a pause is made up changes.
+The physics is the same either way; only how a pause is made up changes. If in doubt, pick 8 on modern systems as it will make the game feel smoother.
 
 **Log**
 
