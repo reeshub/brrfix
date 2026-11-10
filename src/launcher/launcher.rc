@@ -6,60 +6,68 @@
 
 IDI_APP ICON "launcher.ico"
 
-IDD_SETTINGS DIALOG 0, 0, 324, 258
+/* 324x254 dialog units: about 486x413 pixels with its 8-point font at 96 dpi, plus the
+ * title bar, so it fits a 640x480 screen above the taskbar (director, 2026-11-10) */
+IDD_SETTINGS DIALOG 0, 0, 324, 254
 STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX
 CAPTION "Big Red Launcher"
 FONT 8, "MS Sans Serif"
 BEGIN
-    GROUPBOX        "Display", -1, 6, 4, 154, 80
+    GROUPBOX        "Display", -1, 6, 4, 154, 96
     LTEXT           "&Mode:", -1, 12, 18, 40, 8
     COMBOBOX        IDC_MODE, 56, 16, 98, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    LTEXT           "&Window size:", IDC_SCALE_LABEL, 12, 34, 44, 8
-    COMBOBOX        IDC_SCALE, 56, 32, 98, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    AUTOCHECKBOX    "4:3 (non-&square pixels)", IDC_ASPECT, 12, 49, 140, 10, WS_TABSTOP
-    LTEXT           "&Full screen:", IDC_PRESET_LABEL, 12, 66, 44, 8
-    COMBOBOX        IDC_PRESET, 56, 64, 98, 70, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Resolutio&n:", -1, 12, 34, 44, 8
+    COMBOBOX        IDC_RESOLUTION, 56, 32, 98, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "&Window size:", IDC_SCALE_LABEL, 12, 50, 44, 8
+    COMBOBOX        IDC_SCALE, 56, 48, 98, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    AUTOCHECKBOX    "4:3 (non-&square pixels)", IDC_ASPECT, 12, 65, 140, 10, WS_TABSTOP
+    LTEXT           "&Full screen:", IDC_PRESET_LABEL, 12, 82, 44, 8
+    COMBOBOX        IDC_PRESET, 56, 80, 98, 70, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
 
-    GROUPBOX        "Smoothness", -1, 166, 4, 152, 80
+    GROUPBOX        "Smoothness", -1, 166, 4, 152, 70
     AUTOCHECKBOX    "&Interpolation (smooth motion)", IDC_INTERP, 172, 16, 140, 10, WS_TABSTOP
-    LTEXT           "Camera smoot&hing:", -1, 172, 32, 62, 8
-    COMBOBOX        IDC_SMOOTHING, 236, 30, 76, 70, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    LTEXT           "Frame &limit:", -1, 172, 48, 62, 8
-    COMBOBOX        IDC_FRAMES, 236, 46, 76, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    AUTOCHECKBOX    "&Vsync", IDC_VSYNC, 172, 64, 140, 10, WS_TABSTOP
+    LTEXT           "Camera smoot&hing:", -1, 172, 30, 62, 8
+    COMBOBOX        IDC_SMOOTHING, 236, 28, 76, 70, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Frame &limit:", -1, 172, 45, 62, 8
+    COMBOBOX        IDC_FRAMES, 236, 43, 76, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    AUTOCHECKBOX    "&Vsync", IDC_VSYNC, 172, 59, 140, 10, WS_TABSTOP
 
-    GROUPBOX        "Music", -1, 6, 88, 154, 66
-    AUTOCHECKBOX    "CD &music from ripped tracks", IDC_MUSIC, 12, 100, 140, 10, WS_TABSTOP
-    LTEXT           "V&olume:", IDC_VOLUME_LABEL, 12, 116, 40, 8
-    COMBOBOX        IDC_VOLUME, 56, 114, 50, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    EDITTEXT        IDC_FOLDER, 12, 130, 102, 12, ES_AUTOHSCROLL | WS_TABSTOP
-    PUSHBUTTON      "&Browse...", IDC_BROWSE, 116, 129, 38, 14, WS_TABSTOP
-    LTEXT           "", IDC_TRACKS, 12, 144, 142, 8
+    GROUPBOX        "Game", -1, 166, 76, 152, 24
+    LTEXT           "L&anguage:", -1, 172, 87, 40, 8
+    COMBOBOX        IDC_LANGUAGE, 236, 85, 76, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
 
-    GROUPBOX        "Controller", IDC_PAD_GROUP, 166, 88, 152, 66
-    AUTOCHECKBOX    "Modern &pad (XInput)", IDC_PAD, 172, 100, 140, 10, WS_TABSTOP
-    LTEXT           "&Deadzone:", IDC_PAD_L1, 172, 116, 40, 8
-    COMBOBOX        IDC_DEADZONE, 214, 114, 40, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    LTEXT           "Sensiti&vity:", IDC_PAD_L2, 172, 132, 40, 8
-    COMBOBOX        IDC_SENSITIVITY, 214, 130, 40, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    LTEXT           "Layo&ut:", IDC_PAD_L3, 258, 116, 30, 8
-    COMBOBOX        IDC_LAYOUT, 258, 130, 54, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    GROUPBOX        "Music", -1, 6, 104, 154, 66
+    AUTOCHECKBOX    "CD &music from ripped tracks", IDC_MUSIC, 12, 116, 140, 10, WS_TABSTOP
+    LTEXT           "V&olume:", IDC_VOLUME_LABEL, 12, 132, 40, 8
+    COMBOBOX        IDC_VOLUME, 56, 130, 50, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    EDITTEXT        IDC_FOLDER, 12, 146, 102, 12, ES_AUTOHSCROLL | WS_TABSTOP
+    PUSHBUTTON      "&Browse...", IDC_BROWSE, 116, 145, 38, 14, WS_TABSTOP
+    LTEXT           "", IDC_TRACKS, 12, 160, 142, 8
 
-    GROUPBOX        "Advanced", -1, 6, 158, 312, 36
-    LTEXT           "&Tick rate:", -1, 12, 172, 34, 8
-    COMBOBOX        IDC_RATE, 48, 170, 100, 50, CBS_DROPDOWNLIST | WS_TABSTOP
-    LTEXT           "&Catch-up:", -1, 156, 172, 34, 8
-    COMBOBOX        IDC_CAP, 192, 170, 64, 50, CBS_DROPDOWNLIST | WS_TABSTOP
-    AUTOCHECKBOX    "Lo&g", IDC_LOG, 266, 171, 40, 10, WS_TABSTOP
+    GROUPBOX        "Controller", IDC_PAD_GROUP, 166, 104, 152, 66
+    AUTOCHECKBOX    "Modern &pad (XInput)", IDC_PAD, 172, 116, 84, 10, WS_TABSTOP
+    PUSHBUTTON      "Configure...", IDC_JOYCPL, 262, 114, 50, 14, WS_TABSTOP
+    LTEXT           "&Deadzone:", IDC_PAD_L1, 172, 132, 40, 8
+    COMBOBOX        IDC_DEADZONE, 214, 130, 40, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Sensiti&vity:", IDC_PAD_L2, 172, 148, 40, 8
+    COMBOBOX        IDC_SENSITIVITY, 214, 146, 40, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Layo&ut:", IDC_PAD_L3, 262, 132, 30, 8
+    COMBOBOX        IDC_LAYOUT, 262, 146, 50, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
 
-    AUTOCHECKBOX    "S&kip this window next time", IDC_SKIP, 8, 200, 140, 10, WS_TABSTOP
-    LTEXT           "To see it again, hold Shift while starting the game, or start it with -setup. Steam launch options: -play skips it, -setup shows it.", -1, 8, 212, 200, 24
-    PUSHBUTTON      "Patch the DOS ve&rsion...", IDC_DOSPATCH, 8, 238, 96, 14, WS_TABSTOP
-    PUSHBUTTON      "Help", IDC_HELPFILE, 108, 238, 40, 14, WS_TABSTOP
-    PUSHBUTTON      "D&efaults", IDC_DEFAULTS, 152, 238, 40, 14, WS_TABSTOP
-    DEFPUSHBUTTON   "&Play", IDOK, 214, 236, 34, 16, WS_TABSTOP
-    PUSHBUTTON      "&Save", IDC_SAVE, 250, 236, 34, 16, WS_TABSTOP
-    PUSHBUTTON      "&Quit", IDCANCEL, 286, 236, 32, 16, WS_TABSTOP
+    GROUPBOX        "Advanced", -1, 6, 174, 312, 36
+    LTEXT           "&Tick rate:", -1, 12, 188, 34, 8
+    COMBOBOX        IDC_RATE, 48, 186, 100, 50, CBS_DROPDOWNLIST | WS_TABSTOP
+    LTEXT           "&Catch-up:", -1, 156, 188, 34, 8
+    COMBOBOX        IDC_CAP, 192, 186, 64, 50, CBS_DROPDOWNLIST | WS_TABSTOP
+    AUTOCHECKBOX    "Lo&g", IDC_LOG, 266, 187, 40, 10, WS_TABSTOP
+
+    AUTOCHECKBOX    "S&kip this window next time (to see it again, hold Shift while starting, or use -setup)", IDC_SKIP, 8, 216, 310, 10, WS_TABSTOP
+    PUSHBUTTON      "Patch the DOS ve&rsion...", IDC_DOSPATCH, 8, 234, 96, 14, WS_TABSTOP
+    PUSHBUTTON      "Help", IDC_HELPFILE, 108, 234, 40, 14, WS_TABSTOP
+    PUSHBUTTON      "D&efaults", IDC_DEFAULTS, 152, 234, 40, 14, WS_TABSTOP
+    DEFPUSHBUTTON   "&Play", IDOK, 214, 232, 34, 16, WS_TABSTOP
+    PUSHBUTTON      "&Save", IDC_SAVE, 250, 232, 34, 16, WS_TABSTOP
+    PUSHBUTTON      "&Quit", IDCANCEL, 286, 232, 32, 16, WS_TABSTOP
 END
 
 1 VERSIONINFO

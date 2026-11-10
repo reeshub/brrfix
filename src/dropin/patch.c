@@ -15,9 +15,10 @@ uint32_t brr_orig_playback_tick = 0x413400, brr_orig_playback_draw = 0x4131DC;
 uint32_t brr_orig_camera_update = 0x404908;
 uint32_t brr_rotation_continue = 0x446675, brr_game_atan = 0x412A20;
 uint32_t brr_orig_present_window = 0x42CD2C;
-/* shown on the main menu instead of the build date: "V2.24WR FIX0.1.0" (it fits where
+/* shown on the main menu instead of the build date: "V2.25WR FIX0.1.0" (it fits where
  * "V2.24WR (09-05-96)" was) */
 static const char version_text[] = "FIX" BRRFIX_VERSION;
+static const char version_number[] = "V2.25";  /* the installed patch; the game still said V2.24 */
 
 static void hash_hex(const void *data, size_t size, char out[65])
 {
@@ -117,6 +118,7 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "fine_angles"))
         return cfg.fine_angles;
     if (!strcmp(fix, "camera")) return cfg.fix_camera;
+    if (!strcmp(fix, "mode_switch")) return cfg.fix_mode_switch;
     return 0;
 }
 
@@ -162,6 +164,13 @@ static int replacement(const struct site_info *s, uint8_t *out)
         memset(out + 5, 0x90, 5);  /* NOPs after the jump (never reached) */
     } else if (!strcmp(n, "version_date") && s->length == 4) {
         put_abs32(out, (void *)version_text);
+    } else if (!strcmp(n, "version_number") && s->length == 4) {
+        put_abs32(out, (void *)version_number);
+    } else if ((!strcmp(n, "window_command_66") || !strcmp(n, "window_command_67")) && s->length == 4) {
+        put_rel32(out, s->address + 4, (void *)0x402619);  /* WndProc's default: DefWindowProcA */
+    } else if (!strcmp(n, "set_menu_call") && s->length == 7) {
+        out[0] = 0xE8;
+        put_rel32(out + 1, s->address + 5, (void *)brr_set_menu);
     } else if (!strcmp(n, "joystick_call") && s->length == 5) {
         out[0] = 0xE8;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_joystick);

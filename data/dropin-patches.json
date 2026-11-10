@@ -149,6 +149,38 @@
    "length": 4,
    "patch": "FUN_00406330 (main menu version text, \"%s%s %s\"): PUSH 0x44DA0C (the date \"(09-05-96)\") -> our \"FIX<version>\", so the menu reads V2.24WR FIX0.2.0",
    "sha256": "fdb7e788cf056ca0da0039c2d10d89f4adcfbf59e70859ad870ef0b541929f51"
+  },
+  {
+   "name": "version_number",
+   "fix": "version",
+   "address": "0x40636F",
+   "length": 4,
+   "patch": "FUN_00406330 (main menu version text): PUSH 0x44DA1C (\"V2.24\", never updated for the v2.25 patch; the game's own \"V2.25\" is only on the network dialog) -> our \"V2.25\", so the menu reads V2.25WR FIX<version> (director, 2026-11-10)",
+   "sha256": "461fa5c7aaae4b74c2ebcf9e911445d5e5dcddbce67c37ff348ff3fcada452e0"
+  },
+  {
+   "name": "window_command_66",
+   "fix": "mode_switch",
+   "address": "0x40213D",
+   "length": 4,
+   "patch": "WndProc's WM_COMMAND dispatch, command 0x66 (from full screen to a window; Tab in full screen): JBE 0x40235D -> JBE 0x402619 (DefWindowProcA, as for an unknown command). The switch breaks the window (director, 2026-11-10)",
+   "sha256": "dce000bd6e88dda1780751b26e5c44aef51f5ddaf93a687ca5ba9fb5207eb585"
+  },
+  {
+   "name": "window_command_67",
+   "fix": "mode_switch",
+   "address": "0x402147",
+   "length": 4,
+   "patch": "WndProc's WM_COMMAND dispatch, command 0x67 (from a window to full screen; Tab in a window, or the Modes menu's Full screen): JBE 0x4023B6 -> JBE 0x402619 (DefWindowProcA)",
+   "sha256": "c8e6237a9731074e99e511b7822004c06b0fbec1301e11b628dabc0e626847ec"
+  },
+  {
+   "name": "set_menu_call",
+   "fix": "mode_switch",
+   "address": "0x4016E7",
+   "length": 7,
+   "patch": "WndProc's CALL [SetMenu] (after LoadMenuA of AppMenu_<language>) -> CALL brr_set_menu; NOP x2: removes the Modes menu's items 0x66 and 0x67, then calls SetMenu",
+   "sha256": "3e3e70dbe681bd2791eefe35a02d53df223b73c9480aa53ab36a0d6b223bbd8a"
   }
  ],
  "protected_about": "Game functions reachable from the race tick (direct calls, Phase 3 call graph) except approach_clamped, which is patched on purpose. The DLL hashes them before and after patching.",

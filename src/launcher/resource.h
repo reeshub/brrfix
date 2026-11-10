@@ -7,6 +7,8 @@
 #define IDC_PRESET       1004
 #define IDC_PRESET_LABEL 1005
 #define IDC_SCALE_LABEL  1006
+#define IDC_RESOLUTION   1007
+#define IDC_LANGUAGE     1008
 #define IDC_INTERP       1010
 #define IDC_SMOOTHING    1011
 #define IDC_FRAMES       1012
@@ -25,6 +27,7 @@
 #define IDC_PAD_L1       1035
 #define IDC_PAD_L2       1036
 #define IDC_PAD_L3       1037
+#define IDC_JOYCPL       1038
 #define IDC_RATE         1040
 #define IDC_CAP          1041
 #define IDC_LOG          1042

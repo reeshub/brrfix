@@ -77,6 +77,18 @@ static void load_config(void)
     cfg.fix_interpolation = ini_int(path, "fixes", "interpolation", 1);
     cfg.fix_camera = ini_int(path, "fixes", "camera", 1);
     cfg.fix_keys = ini_int(path, "fixes", "keys", 1);
+    cfg.fix_mode_switch = ini_int(path, "fixes", "mode_switch", 1);
+    GetPrivateProfileStringA("display", "resolution", "high", text, sizeof text, path);
+    cfg.resolution_high = !lstrcmpiA(text, "high");
+    GetPrivateProfileStringA("display", "language", "game", text, sizeof text, path);
+    {
+        static const char *const codes[] = {"ENG", "USA", "FRE", "GER", "ITA", "SPA", "JAP"};
+        int i;
+        cfg.language = 0;
+        for (i = 0; i < 7; i++)
+            if (!lstrcmpiA(text, codes[i]))
+                cfg.language = i + 1;
+    }
     GetPrivateProfileStringA("clock", "source", "qpc", text, sizeof text, path);
     cfg.clock_original = lstrcmpiA(text, "original") == 0;
     cfg.rate_milli = (uint32_t)ini_milli(path, "clock", "tick_rate", 70000);

@@ -281,6 +281,7 @@ uint32_t __cdecl brr_clock_read(void)
                 brr_log("screen: 0x%02X (game mode %d)", screen, *(volatile int16_t *)0x49C5C0);
             last_screen = screen;
         }
+        brr_display_screen(screen);
     }
     int64_t wait_start = qpc_raw();
     /* in a window with vsync on, the vertical-blank wait paces an automatic limit */

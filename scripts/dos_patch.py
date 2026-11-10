@@ -17,8 +17,9 @@ changed. The fixes (Phase 3b of the Big Red Racing port; docs/reports/phase-3b-d
 A machine is "fast" while it draws a frame in 3 ticks of 1/70 s or fewer, on average;
 a 486 runs as the original.
 All on by default; the options turn each off. The chosen fixes are recorded in the
-version text on the main menu: "V2.24R F0.1 CIARV" means version 0.1 with the Camera,
-Interpolation, fine Angles, Roll and retrace (V) fixes on.
+version text on the main menu: "V2.25R F0.1 CIARV" means version 0.1 with the Camera,
+Interpolation, fine Angles, Roll and retrace (V) fixes on. (The menu's number becomes
+V2.25, the official update the file comes from; the game itself still said V2.24.)
 
 This file runs on its own (Python 3.8 or newer, standard library only) with
 dos-patches.json beside it, or as "python3 brr.py dos-patch" in the project.
@@ -359,7 +360,7 @@ def parse_input(spec, text):
 
 
 def tag(spec, values):
-    """The short record of the chosen fixes shown on the main menu after "V2.24R" (there's
+    """The short record of the chosen fixes shown on the main menu after "V2.25R" (there's
     room for about ten characters): F and the version, one letter per fix that's on, the
     cap if it isn't the default, and L for a logging build. For example "F0.1 CIARV"."""
     letters = "".join(letter for name, letter in spec["tag_letters"].items() if values.get(name))

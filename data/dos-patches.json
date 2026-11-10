@@ -1768,6 +1768,16 @@
    "target": "_brr_tag",
    "about": "main menu, \"%s%s %s\": PUSH the date -> PUSH brr_tag (\"F0.1 CIARV\": the version and the fixes chosen)",
    "sha256": "e151b62c9a24985be913df2ef7f8e8fe2db3394895890084463c348cf4c356c9"
+  },
+  {
+   "name": "version_number",
+   "fix": "always",
+   "address": "0x7093c",
+   "length": 5,
+   "kind": "bytes",
+   "bytes": "56322e3235",
+   "about": "main menu's version number (pushed at 0x31BDF): \"V2.24\" -> \"V2.25\", the installed patch (director, 2026-11-10; the network version string at 0x70F80 stays)",
+   "sha256": "79d73d1d81bd7cb00d2155e49d48b544bdf3ce9e8fe1bbe16cd55d4f33e4ee4f"
   }
  ],
  "protected_about": "Game functions the race tick reaches (direct calls, Phase 2 call graph), except approach_clamped, which is patched on purpose. They must be byte-for-byte unchanged, fixups too.",

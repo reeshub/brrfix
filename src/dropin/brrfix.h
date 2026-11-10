@@ -22,7 +22,9 @@
 #define GAME_RACE_DRAW     0x414DBCu
 
 struct brr_config {
-    int fix_vga, fix_clock, fix_cap, fix_interpolation, fix_camera, fix_keys;
+    int fix_vga, fix_clock, fix_cap, fix_interpolation, fix_camera, fix_keys, fix_mode_switch;
+    int resolution_high;     /* [display] resolution=high: the game's 640x480 mode (keypad +) */
+    int language;            /* [display] language: 0 = the game's own, else 1-7 (ENG ... JAP) */
     int clock_original;      /* emulate the original 14 ms callback timer instead */
     uint32_t rate_milli;     /* ticks per 1000 s: 70000 = 70.0 Hz */
     int cap;                 /* catch-up cap in ticks (original 35) */
@@ -110,6 +112,8 @@ extern uint32_t brr_display_windowed, brr_display_fullscreen, brr_display_prompt
 int __cdecl brr_display_choice(uint32_t depth);
 int __cdecl brr_present_gdi(void);
 void brr_install_key_filter(void);
+void brr_display_screen(int screen);
+BOOL WINAPI brr_set_menu(HWND window, HMENU menu);
 void brr_hook_present(void);
 extern int brr_gdi_present;
 extern uint32_t brr_present_continue;

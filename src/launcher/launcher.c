@@ -37,6 +37,10 @@ struct choice { const char *label, *value; };
 
 static const struct choice modes[] = {
     {"Full screen", "fullscreen"}, {"Windowed", "windowed"}, {0, 0}};
+static const struct choice resolutions[] = {{"High (640x480)", "high"}, {"Low (320x200)", "low"}, {0, 0}};
+static const struct choice languages[] = {
+    {"As last set in the game", "game"}, {"English", "ENG"}, {"USA", "USA"}, {"French", "FRE"},
+    {"German", "GER"}, {"Italian", "ITA"}, {"Spanish", "SPA"}, {"Japanese", "JAP"}, {0, 0}};
 static const struct choice scales[] = {
     {"Largest that fits", "auto"}, {"1x (320x200)", "1"}, {"2x", "2"}, {"3x", "3"}, {"4x", "4"},
     {"5x", "5"}, {"6x", "6"}, {0, 0}};
@@ -118,10 +122,11 @@ static void update_enabled(HWND dialog)
     static const int pad_controls[] = {IDC_PAD_L1, IDC_DEADZONE, IDC_PAD_L2, IDC_SENSITIVITY, IDC_PAD_L3, IDC_LAYOUT};
     const char *mode = chosen(dialog, IDC_MODE, modes);
     int window = lstrcmpiA(mode, "fullscreen") != 0, full = lstrcmpiA(mode, "windowed") != 0;
+    int low = !lstrcmpiA(chosen(dialog, IDC_RESOLUTION, resolutions), "low");
     size_t i;
     enable(dialog, IDC_SCALE_LABEL, window);
     enable(dialog, IDC_SCALE, window);
-    enable(dialog, IDC_ASPECT, window);
+    enable(dialog, IDC_ASPECT, window && low);  /* 640x480 already is 4:3 */
     enable(dialog, IDC_PRESET_LABEL, full);
     enable(dialog, IDC_PRESET, full);
     for (i = 0; i < sizeof music_controls / sizeof music_controls[0]; i++)
@@ -132,9 +137,10 @@ static void update_enabled(HWND dialog)
 
 /* One line on each setting, shown when the mouse rests on it */
 static const struct { int id; const char *text; } tips[] = {
-    {IDC_MODE, "In its own window with the 1996 menu bar, or full screen."},
-    {IDC_SCALE, "How big the window is, in whole multiples of the game's 320x200 picture."},
-    {IDC_ASPECT, "Stretch the picture's height by 1.2, as a 1996 monitor did. Off: square, sharp pixels."},
+    {IDC_MODE, "Full screen, or the game's own window with its 1996 menu bar."},
+    {IDC_RESOLUTION, "High: the game's sharper 640x480 mode (keypad + in the game). Low: 320x200, as it starts."},
+    {IDC_SCALE, "How big the window is, in whole multiples of the game's picture (320x200 or 640x480)."},
+    {IDC_ASPECT, "At 320x200: stretch the picture's height by 1.2, as a 1996 monitor did. Off: square, sharp pixels."},
     {IDC_PRESET, "How the picture fills the screen in full screen: sharp with borders, 4:3, stretched or smooth."},
     {IDC_INTERP, "Draws the vehicles and the camera between the game's 35 physics steps a second, for smooth motion."},
     {IDC_SMOOTHING, "Experimental: softens the camera's movement further. Not needed for the stutter fix."},
@@ -145,6 +151,8 @@ static const struct { int id; const char *text; } tips[] = {
     {IDC_FOLDER, "The folder with the ripped tracks: MUSIC next to the game, or a full path."},
     {IDC_BROWSE, "Choose the folder with the ripped tracks."},
     {IDC_PAD, "Use an Xbox-style pad as the game's joystick (choose the joystick in the game's controls menu)."},
+    {IDC_JOYCPL, "Opens Windows' game controller settings, to set up and calibrate a joystick or pad."},
+    {IDC_LANGUAGE, "The game's language, as in its window's Language menu."},
     {IDC_DEADZONE, "How far the stick moves before steering starts."},
     {IDC_SENSITIVITY, "How much stick gives full lock: above 100% reaches it sooner."},
     {IDC_LAYOUT, "Triggers: right accelerates, left brakes. Stick: push up and down, as the original."},
@@ -221,6 +229,8 @@ static void load(HWND dialog, int defaults)
     const char *f = defaults ? NULL : brrfix_ini, *d = defaults ? NULL : ddraw_ini;
 #define GET(file, section, key, fallback) (ini_get(file, section, key, fallback, v, sizeof v), v)
     fill(dialog, IDC_MODE, modes, GET(f, "display", "mode", "fullscreen"));
+    fill(dialog, IDC_RESOLUTION, resolutions, GET(f, "display", "resolution", "high"));
+    fill(dialog, IDC_LANGUAGE, languages, GET(f, "display", "language", "game"));
     fill(dialog, IDC_SCALE, scales, GET(f, "display", "window_scale", "auto"));
     check(dialog, IDC_ASPECT, !lstrcmpiA(GET(f, "display", "aspect", "4:3"), "4:3"));
     {   /* the full-screen preset: as saved in BRRFIX.INI, or else whichever ddraw.ini matches,
@@ -278,6 +288,8 @@ static void save(HWND dialog)
     int preset = (int)SendDlgItemMessageA(dialog, IDC_PRESET, CB_GETCURSEL, 0, 0), i;
     static const char *const preset_names[5] = {"boxing", "maintas", "aspect_ratio", "shader", "d3d9_filter"};
     ini_set(brrfix_ini, "display", "mode", mode);
+    ini_set(brrfix_ini, "display", "resolution", chosen(dialog, IDC_RESOLUTION, resolutions));
+    ini_set(brrfix_ini, "display", "language", chosen(dialog, IDC_LANGUAGE, languages));
     if (preset < 0 || preset > 4)
         preset = 0;
     ini_set(brrfix_ini, "display", "fullscreen_scaling", presets[preset].value);
@@ -390,9 +402,9 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
 {
     (void)lparam;
     if (message == WM_INITDIALOG) {
-        static const int pad_controls[] = {IDC_PAD_GROUP, IDC_PAD, IDC_DEADZONE, IDC_SENSITIVITY, IDC_LAYOUT,
+        static const int pad_controls[] = {IDC_PAD, IDC_DEADZONE, IDC_SENSITIVITY, IDC_LAYOUT,
                                            IDC_PAD_L1, IDC_PAD_L2, IDC_PAD_L3};
-        char title[96];
+        char title[96], steam[8];
         size_t i;
         wsprintfA(title, "Big Red Launcher %s by ctrl-alt-rees", BRRFIX_VERSION);
         SetWindowTextA(dialog, title);
@@ -405,6 +417,9 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
             for (i = 0; i < sizeof pad_controls / sizeof pad_controls[0]; i++)
                 ShowWindow(GetDlgItem(dialog, pad_controls[i]), SW_HIDE);
         }
+        /* under Proton, Steam Input sets up controllers */
+        if (GetEnvironmentVariableA("STEAM_COMPAT_DATA_PATH", steam, sizeof steam))
+            ShowWindow(GetDlgItem(dialog, IDC_JOYCPL), SW_HIDE);
         return TRUE;
     }
     if (message == WM_HELP) {
@@ -414,6 +429,7 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
     if (message == WM_COMMAND) {
         switch (LOWORD(wparam)) {
         case IDC_MODE:
+        case IDC_RESOLUTION:
             if (HIWORD(wparam) == CBN_SELCHANGE)
                 update_enabled(dialog);
             return TRUE;
@@ -442,6 +458,11 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
             return TRUE;
         case IDC_DOSPATCH:
             patch_dos(dialog);
+            return TRUE;
+        case IDC_JOYCPL:
+            if ((DWORD)ShellExecuteA(dialog, "open", "control.exe", "joy.cpl", NULL, SW_SHOWNORMAL) <= 32)
+                MessageBoxA(dialog, "Windows' game controller settings (joy.cpl) aren't available here.",
+                            "Big Red Launcher", MB_OK | MB_ICONINFORMATION);
             return TRUE;
         case IDC_FOLDER:
             if (HIWORD(wparam) == EN_KILLFOCUS)

@@ -16,18 +16,30 @@ or start it with **-setup**.
 
 - **Full screen** (the default): the game fills the screen, without asking.
 - **Windowed:** the game's own 1996 window, with its menu bar (About,
-  Modes, Language), as on a Windows 95 desktop.
+  Modes, Language), as on a Windows 95 desktop. Its Modes menu no longer
+  offers Full screen, and Tab no longer switches: that switch broke the
+  window. Choose the mode here instead.
+
+**Resolution**
+
+- **High (640x480)** (the default): the game's own sharper mode, which it
+  only offered through its window's Modes menu or keypad +. Races are drawn
+  at 640x480; the menus are the same 320x200 pictures, doubled.
+- **Low (320x200):** as the game starts.
+
+In the game, keypad + and - still switch between them.
 
 **Window size** (in a window only)
 
-How big the window is, in whole multiples of the game's 320x200 picture.
-"Largest that fits" picks the biggest that fits on your screen.
+How big the window is, in whole multiples of the game's picture (320x200 or
+640x480). "Largest that fits" picks the biggest that fits on your screen.
 
-**4:3 (non-square pixels)** (in a window only; on by default)
+**4:3 (non-square pixels)** (in a window at low resolution only; on by default)
 
-The game's picture is 320x200, but 1996 monitors showed it at 4:3, so
-everything looked a little taller. Ticked, the picture's height is stretched by
-1.2 to match, as the game was meant to be seen. Unticked, pixels are square.
+The game's low-resolution picture is 320x200, but 1996 monitors showed it at
+4:3, so everything looked a little taller. Ticked, the picture's height is
+stretched by 1.2 to match, as the game was meant to be seen. Unticked, pixels
+are square. At 640x480 the picture already has the 4:3 shape.
 
 **Full screen** (in full screen only; not on Windows 95, 98 or ME)
 
@@ -35,6 +47,9 @@ How the picture fills the screen:
 
 - **Integer (sharp):** the largest whole-number size that fits, with square
   pixels and black borders. 4x on the Steam Deck, which fills its screen.
+  At high resolution (640x480) a screen needs to be at least 960 pixels tall
+  for 2x; on smaller screens the picture is shown at 1x, so 4:3 sharp may
+  suit them better.
 - **4:3 sharp:** the 1996 monitor shape, as big as fits, kept sharp.
 - **4:3 nearest:** the same shape with plain pixels; some rows and columns are
   one screen pixel wider than others.
@@ -67,6 +82,14 @@ Waits for the screen to finish each refresh before showing the next picture,
 so there are no horizontal tears when the camera turns. It can add a little
 input lag.
 
+## Game
+
+**Language**
+
+The game's language, as in its window's Language menu: English, USA, French,
+German, Italian, Spanish or Japanese. "As last set in the game" leaves it
+alone.
+
 ## Music
 
 **CD music from ripped tracks**
@@ -88,7 +111,15 @@ any folder you choose with Browse.
 
 ## Controller
 
-Not on Windows 95, 98 or ME, which have no support for modern pads.
+**Configure**
+
+Opens Windows' own game controller settings, where you can set up and
+calibrate a joystick or pad (the Windows version of the game has no
+calibration screen of its own; the DOS version does). Not shown under
+Proton, where Steam sets up controllers.
+
+The settings below are not on Windows 95, 98 or ME, which have no support
+for modern pads.
 
 **Modern pad (XInput)**
 

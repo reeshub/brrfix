@@ -101,10 +101,9 @@ static LRESULT CALLBACK mouse_filter(int code, WPARAM removed, LPARAM lparam)
 }
 
 /* KEY.DLL's keyboard hook (_KEY_Handler@12) records a key press whenever Windows calls it,
- * also with HC_NOREMOVE, when something only peeks at the message queue. cnc-ddraw peeks
- * while it presents a full-screen frame, so a menu key could count two or three times
- * (playtests 2026-11-10; never in a window, where we present). Our hook, installed after
- * KEY.DLL's and so called first, keeps those peeks from reaching it. */
+ * also with HC_NOREMOVE, when something only peeks at the message queue. Our hook, installed
+ * after KEY.DLL's and so called first, keeps those peeks from reaching it. (This did not
+ * cure the doubled keys in full screen, playtest 2026-11-10 PM2; still under investigation.) */
 static HHOOK key_hook;
 
 static LRESULT CALLBACK key_filter(int code, WPARAM wparam, LPARAM lparam)
@@ -123,6 +122,39 @@ void brr_install_key_filter(void)
     key_hook = SetWindowsHookExA(WH_KEYBOARD, key_filter, NULL, GetWindowThreadProcessId(GAME_HWND, NULL));
     brr_log("keys: %s", key_hook ? "key presses counted once (peeks at the queue no longer reach KEY.DLL)"
                                   : "couldn't install the keyboard filter");
+}
+
+/* The window's menu commands (WndProc's WM_COMMAND, 0x4020F0): 0x64 low and 0x65 high
+ * resolution (also keypad - and +, sent by the frame handler at 0x402064), 0x66 and 0x67
+ * the switches between window and full screen (also Tab), 0x6E-0x74 the languages ENG,
+ * USA, FRE, GER, ITA, SPA, JAP. The settings are sent once, as the main menu (screen 0x08)
+ * first appears, exactly as if the player had chosen them. */
+void brr_display_screen(int screen)
+{
+    static int done;
+    HWND window = GAME_HWND;
+    if (done || screen != 0x08 || !window)
+        return;
+    done = 1;
+    if (cfg.language) {
+        PostMessageA(window, WM_COMMAND, 0x6D + cfg.language, 0);
+        brr_log("display: language %d of 7 ([display] language)", cfg.language);
+    }
+    if (cfg.resolution_high) {
+        PostMessageA(window, WM_COMMAND, 0x65, 0);
+        brr_log("display: high resolution, 640x480 ([display] resolution=high)");
+    }
+}
+
+/* Site set_menu_call: WndProc's SetMenu, after it loads the menu for the language. Without
+ * the switches between window and full screen, which break the window (director, 2026-11-10). */
+BOOL WINAPI brr_set_menu(HWND window, HMENU menu)
+{
+    if (menu) {
+        DeleteMenu(menu, 0x66, MF_BYCOMMAND);
+        DeleteMenu(menu, 0x67, MF_BYCOMMAND);
+    }
+    return SetMenu(window, menu);
 }
 
 static LRESULT CALLBACK window_proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
@@ -147,13 +179,13 @@ static LRESULT CALLBACK window_proc(HWND window, UINT message, WPARAM wparam, LP
 
 /* The window's client area: the frame times window_scale (auto = the largest whole
  * number that fits in 85% of the desktop's work area), the height times 1.2 with
- * aspect=4:3. Re-applied whenever the client area differs, as the game sizes its
- * window itself when it changes screen. */
+ * aspect=4:3 for a 320x200-shaped frame (640x480 already is 4:3). Re-applied whenever
+ * the client area differs, as the game sizes its window itself when it changes screen. */
 static void keep_window_size(HWND window, int w, int h)
 {
     static int last_w, last_h, want_w, want_h, logged, centre;
     RECT client, frame, work;
-    int scale = cfg.window_scale;
+    int scale = cfg.window_scale, stretch = cfg.window_aspect43 && w * 3 != h * 4;
     if (w != last_w || h != last_h) {
         last_w = w;
         last_h = h;
@@ -162,14 +194,14 @@ static void keep_window_size(HWND window, int w, int h)
             SystemParametersInfoA(SPI_GETWORKAREA, 0, &work, 0);
             for (scale = 8; scale > 1; scale--)
                 if (w * scale <= (work.right - work.left) * 85 / 100
-                    && h * scale * (cfg.window_aspect43 ? 6 : 5) / 5 <= (work.bottom - work.top) * 85 / 100)
+                    && h * scale * (stretch ? 6 : 5) / 5 <= (work.bottom - work.top) * 85 / 100)
                     break;
         }
         want_w = w * scale;
-        want_h = cfg.window_aspect43 ? h * scale * 6 / 5 : h * scale;
+        want_h = stretch ? h * scale * 6 / 5 : h * scale;
         if (logged++ < 4)
             brr_log("display: window %dx%d (frame %dx%d, scale %d%s)", want_w, want_h, w, h, scale,
-                    cfg.window_aspect43 ? ", 4:3" : "");
+                    stretch ? ", 4:3" : "");
     }
     if (!real_set_window_pos)
         find_real_functions();

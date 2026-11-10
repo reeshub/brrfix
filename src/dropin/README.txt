@@ -19,6 +19,11 @@ Linux/Steam Deck through Proton, and makes it run smoothly:
   finer angles and a steady lean (BRRFIX.INI, [camera]: fine_angles, roll_fix;
   set them to 0 for the original look).
 - The physics is left exactly as it was: the same game, bit for bit.
+- The game's sharper 640x480 mode by default (it was only reachable from its
+  window's menu or keypad +), and its language chosen in the launcher.
+- The window's Full screen switch (and Tab), which broke the window, removed.
+- The main menu says V2.25, the official update you installed (the game
+  itself still said V2.24), with Big Red Launcher's version.
 
 It contains no part of the game. TIMER.DLL changes the game's code only in
 memory while it runs, and only after checking that WINRACE.EXE is the exact
