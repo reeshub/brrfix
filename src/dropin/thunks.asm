@@ -28,6 +28,9 @@
         extrn   _brr_display_choice:near
         extrn   _brr_before_joystick:near
         extrn   _brr_orig_joystick_to_keys:dword
+        extrn   _brr_before_menu_hotspots:near
+        extrn   _brr_after_menu_hotspots:near
+        extrn   _brr_orig_menu_hotspots:dword
         extrn   _brr_present_gdi:near
         extrn   _brr_gdi_present:dword
         extrn   _brr_present_continue:dword
@@ -43,6 +46,7 @@
         public  _brr_rotation_original, _brr_call_rotation_original
         public  _brr_call_game_atan, _brr_hook_cam4, _brr_hook_present_window
         public  _brr_hook_display_choice, _brr_hook_present, _brr_hook_joystick
+        public  _brr_hook_menu_hotspots
 
         .code
 
@@ -261,6 +265,19 @@ _brr_hook_joystick:
         call    _brr_before_joystick
         popad
         jmp     dword ptr [_brr_orig_joystick_to_keys]
+
+; run_screen_frame's per-tick call to menu_hotspots_tick (0x428D31): our code before
+; and after it (keys.c); the original runs in between, unchanged. DL is the frame's
+; tick counter, so every register is kept.
+_brr_hook_menu_hotspots:
+        pushad
+        call    _brr_before_menu_hotspots
+        popad
+        call    dword ptr [_brr_orig_menu_hotspots]
+        pushad
+        call    _brr_after_menu_hotspots
+        popad
+        ret
 
 ; camera_mode4: AX = [ESI+10h] as before, but "previous" ([ESI+46h]) is only
 ; updated when this frame ran at least one tick (frame_ticks, 44BF80h).

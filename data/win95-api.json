@@ -102,6 +102,7 @@
    "SHGetPathFromIDListA"
   ],
   "USER32.DLL": [
+   "CallNextHookEx",
    "CallWindowProcA",
    "CharUpperA",
    "CheckDlgButton",
@@ -122,6 +123,7 @@
    "SetCursor",
    "SetDlgItemTextA",
    "SetWindowLongA",
+   "SetWindowsHookExA",
    "SetWindowTextA",
    "ShowWindow",
    "SystemParametersInfoA",

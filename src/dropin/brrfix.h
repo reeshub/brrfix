@@ -23,6 +23,7 @@
 
 struct brr_config {
     int fix_vga, fix_clock, fix_cap, fix_interpolation, fix_camera;
+    int fix_menu_keys;       /* one menu action per key press (keys.c) */
     int clock_original;      /* emulate the original 14 ms callback timer instead */
     uint32_t rate_milli;     /* ticks per 1000 s: 70000 = 70.0 Hz */
     int cap;                 /* catch-up cap in ticks (original 35) */
@@ -52,6 +53,7 @@ struct brr_config {
     int debug_hold_roll;            /* diagnostic: draw the follow camera with no roll */
     int fine_angles;                /* [camera] fine_angles: draw with angles finer than 64 units */
     int debug_prove_fine_angles;    /* run the proof against the original routine at the first race draw */
+    int debug_log_keys;             /* log keyboard events, the key table and menu key hotspots */
 };
 
 extern struct brr_config cfg;
@@ -100,6 +102,12 @@ extern uint32_t brr_orig_joystick_to_keys;
 void brr_controller_start(void);
 void __cdecl brr_before_joystick(void);
 void brr_hook_joystick(void);
+
+/* keys.c */
+extern uint32_t brr_orig_menu_hotspots;
+void __cdecl brr_before_menu_hotspots(void);
+void __cdecl brr_after_menu_hotspots(void);
+void brr_hook_menu_hotspots(void);
 
 /* music.c */
 int brr_music_check(void);

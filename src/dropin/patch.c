@@ -110,6 +110,8 @@ static int enabled(const char *fix)
         return cfg.show_version;
     if (!strcmp(fix, "controller"))
         return cfg.controller || cfg.debug_pad_test;
+    if (!strcmp(fix, "keys"))
+        return cfg.fix_menu_keys || cfg.debug_log_keys;
     if (!strcmp(fix, "display"))
         return cfg.display_mode != DISPLAY_ASK;
     if (!strcmp(fix, "vsync"))
@@ -165,6 +167,9 @@ static int replacement(const struct site_info *s, uint8_t *out)
     } else if (!strcmp(n, "joystick_call") && s->length == 5) {
         out[0] = 0xE8;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_joystick);
+    } else if (!strcmp(n, "menu_hotspots_call") && s->length == 5) {
+        out[0] = 0xE8;
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_menu_hotspots);
     } else if (!strcmp(n, "display_choice") && s->length == 5) {
         out[0] = 0xE8;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_display_choice);

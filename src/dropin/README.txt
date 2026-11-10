@@ -17,6 +17,10 @@ Linux/Steam Deck through Proton, and makes it run smoothly:
   and the camera's lean flicked with every step. The race is now drawn with
   finer angles and a steady lean (BRRFIX.INI, [camera]: fine_angles, roll_fix;
   set them to 0 for the original look).
+- One key press, one choice in the menus: on a fast PC, pressing Return could
+  also choose on the next screen, and Escape could go back two screens (or
+  even quit), because the next screen appeared before the game had noticed
+  the key let go (BRRFIX.INI, [fixes] menu_keys).
 - The physics is left exactly as it was: the same game, bit for bit.
 
 It contains no part of the game. TIMER.DLL changes the game's code only in
