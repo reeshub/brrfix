@@ -2,13 +2,25 @@
 
 1. Checks work/game/WINRACE.EXE is the v2.25 file from the game manifest.
 2. Checks every patch site and protected range in data/dropin-patches.json against it
-   by SHA-256 (recording the values the first time), and writes sites.h from them.
+   by SHA-256 (recording the values the first time), and writes sites.h from them, with
+   the checksums of WINRACE.EXE as installed and with its section headers corrected
+   (the launcher's on-disk fix for modern Windows; win_headers.py): the DLL accepts both.
 3. Compiles src/dropin/ with Open Watcom v2 (the pinned snapshot in tools/open-watcom/,
-   see docs/KNOWLEDGE.md, Tools) for Windows 95 and later: 486 instructions, its own C
+   see docs/KNOWLEDGE.md, Tools; Linux programs in binl64/, or macOS ones built from
+   source in armo64/ or bino64/) for Windows 95 and later: 486 instructions, its own C
    runtime linked in, so the DLL needs only Windows system DLLs (not msvcrt.dll).
-4. Checks the result: the same exports and ordinals as the original TIMER.DLL, imports
-   from Windows system DLLs only, and PE headers marked for Windows 4.0. Copies the
-   default BRRFIX.INI beside it.
+4. Builds the launcher from src/launcher/ with the same compiler: the header corrector
+   (winfix.c), and the "Patch the DOS version" button, which compiles in the DOS patcher
+   (src/brrpatch/brrpatch.c) with the DOS patch's steps from brrpatch-build's brrdata.h,
+   made here from data/dos-patches.json and work/game/RACING.EXE (so run dos-build first
+   if it changed that file). brrpatch.c and winfix.c use standard C file functions (for
+   DOS and for tests on any machine); here they get Windows' own instead
+   (src/launcher/winfile.h, forced in), because Open Watcom's fread brings console
+   functions Windows 95 doesn't have.
+5. Checks both programs: imports from Windows system DLLs only, every function in
+   data/win95-api.json (Windows 95's; dropin-compat --dlls checks against real ones),
+   and PE headers marked for Windows 4.0; and the DLL has exactly the original
+   TIMER.DLL's exports and ordinals. Copies BRRFIX.INI and ddraw.ini beside them.
 Example:
     python3 brr.py dropin-build
 """
@@ -31,11 +43,12 @@ HELP = "build Big Red Launcher (a replacement TIMER.DLL and the launcher) into w
 SOURCE = ROOT / "src" / "dropin"
 OUT = WORK / "build" / "dropin"
 PATCHES = DATA / "dropin-patches.json"
+WIN95_API = DATA / "win95-api.json"
 MANIFEST = DATA / "game-manifest.json"
 GAME = WORK / "game"
 SYSTEM_DLLS = {"kernel32.dll", "user32.dll", "gdi32.dll", "winmm.dll", "advapi32.dll"}
 C_FILES = ["main.c", "clock.c", "patch.c", "interp.c", "camera.c", "debug.c", "angles.c", "display.c",
-           "music.c", "decoders.c", "sha256.c", "tracks.c", "controller.c"]
+           "music.c", "decoders.c", "sha256.c", "tracks.c", "controller.c", "keys.c"]
 # Third-party code compiled in: pinned, downloaded at build time, checked by SHA-256, never committed
 THIRD_PARTY = ROOT / "tools" / "third-party"
 DECODERS = [
@@ -271,8 +284,10 @@ def compile_dll(dll):
 LAUNCHER_SOURCE = ROOT / "src" / "launcher"
 LAUNCHER = "Big Red Racing.exe"
 BRRPATCH_SOURCE = ROOT / "src" / "brrpatch"
-LAUNCHER_FILES = [LAUNCHER_SOURCE / "launcher.c", LAUNCHER_SOURCE / "winfix.c", SOURCE / "sha256.c",
-                  SOURCE / "tracks.c", BRRPATCH_SOURCE / "brrpatch.c"]
+LAUNCHER_FILES = [LAUNCHER_SOURCE / "launcher.c", LAUNCHER_SOURCE / "winfix.c", LAUNCHER_SOURCE / "winfile.c",
+                  SOURCE / "sha256.c", SOURCE / "tracks.c", BRRPATCH_SOURCE / "brrpatch.c"]
+# headers forced into a source file: the file patchers get Windows' file functions (winfile.h)
+LAUNCHER_FORCED = {"brrpatch.c": LAUNCHER_SOURCE / "winfile.h", "winfix.c": LAUNCHER_SOURCE / "winfile.h"}
 LAUNCHER_DLLS = SYSTEM_DLLS | {"shell32.dll", "comctl32.dll"}
 HELP_SOURCE = LAUNCHER_SOURCE / "HELP.md"
 HELP_FILE = "Big Red Launcher Help.txt"
@@ -407,7 +422,8 @@ def build_launcher(manifest):
     files = []
     for source in LAUNCHER_FILES:
         obj = objects / (source.stem + ".obj")
-        run_tool([str(watcom_bin() / "wcc386"), *[f for f in CFLAGS if f != "-bd"],
+        forced = [f"-fi={LAUNCHER_FORCED[source.name]}"] if source.name in LAUNCHER_FORCED else []
+        run_tool([str(watcom_bin() / "wcc386"), *[f for f in CFLAGS if f != "-bd"], *forced,
                   f"-i={OUT}", f"-i={SOURCE}", f"-i={LAUNCHER_SOURCE}", f"-i={BRRPATCH_SOURCE}",
                   f"-i={brrpatch_build.OUT}", f"-fo={obj}", str(source)],
                  env, f"compiling {source.name}")
@@ -439,8 +455,23 @@ def build_launcher(manifest):
     machine, os_version, subsystem, sub_version = pe.header()
     if machine != 0x14C or os_version != (4, 0) or sub_version != (4, 0) or subsystem != 2:
         raise BuildError(f"the launcher's PE header isn't marked for Windows 4.0: {os_version} {sub_version}")
-    print(f"  built {rel(exe)} ({exe.stat().st_size:,} bytes): imports {', '.join(pe.imports())}; "
-          "PE headers 4.0")
+    count = check_windows95(LAUNCHER, pe)
+    print(f"  built {rel(exe)} ({exe.stat().st_size:,} bytes): imports {', '.join(pe.imports())} "
+          f"({count} functions, all in Windows 95); PE headers 4.0")
+
+
+def check_windows95(name, pe):
+    """Every function a program imports statically must be in Windows 95: data/win95-api.json,
+    the list dropin-compat checks against. Returns how many there are."""
+    reference = {dll: set(names) for dll, names in json.loads(WIN95_API.read_text())["windows95"].items()}
+    imported = pe.imported_functions()
+    missing = [f"{dll}: {function}" for dll, functions in imported.items() for function in functions
+               if function not in reference.get(dll.upper(), set())]
+    if missing:
+        raise BuildError(f"{name} imports functions Windows 95 doesn't have ({', '.join(missing)}). Look "
+                         f"newer ones up at run time with GetProcAddress; if it's a Windows 95 function, add "
+                         f"it to {rel(WIN95_API)}")
+    return sum(len(functions) for functions in imported.values())
 
 
 def build():
@@ -512,12 +543,13 @@ def check_dll(dll):
     extra = [name for name in ours.imports() if name.lower() not in SYSTEM_DLLS]
     if extra:
         raise BuildError(f"the DLL imports non-system DLLs: {', '.join(extra)}")
+    count = check_windows95("TIMER.DLL", ours)
     machine, os_version, subsystem, sub_version = ours.header()
     if machine != 0x14C or os_version != (4, 0) or sub_version != (4, 0) or subsystem != 2:
         raise BuildError(f"PE header not marked for Windows 4.0: machine 0x{machine:X}, OS version "
                          f"{os_version}, subsystem {subsystem} version {sub_version}")
     print(f"  exports match the original: {', '.join(f'{o}:{n}' for o, n in ours.exports())}")
-    print(f"  imports only system DLLs: {', '.join(ours.imports())}")
+    print(f"  imports only system DLLs: {', '.join(ours.imports())} ({count} functions, all in Windows 95)")
     print("  PE headers: i386, OS version 4.0, Windows GUI subsystem 4.0")
 
 

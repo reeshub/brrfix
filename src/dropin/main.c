@@ -76,7 +76,7 @@ static void load_config(void)
     cfg.fix_cap = ini_int(path, "fixes", "cap", 1);
     cfg.fix_interpolation = ini_int(path, "fixes", "interpolation", 1);
     cfg.fix_camera = ini_int(path, "fixes", "camera", 1);
-    cfg.fix_keys = ini_int(path, "fixes", "keys", 1);
+    cfg.fix_menu_keys = ini_int(path, "fixes", "menu_keys", 1);
     cfg.fix_mode_switch = ini_int(path, "fixes", "mode_switch", 1);
     GetPrivateProfileStringA("display", "resolution", "high", text, sizeof text, path);
     cfg.resolution_high = !lstrcmpiA(text, "high");
@@ -161,6 +161,7 @@ static void load_config(void)
     cfg.debug_hold_pitch = ini_int(path, "debug", "hold_pitch", 0);
     cfg.debug_hold_roll = ini_int(path, "debug", "hold_roll", 0);
     cfg.debug_prove_fine_angles = ini_int(path, "debug", "prove_fine_angles", 0);
+    cfg.debug_log_keys = ini_int(path, "debug", "log_keys", 0);
     if (cfg.clock_original)
         cfg.fix_clock = 0;
     if (!cfg.fix_clock && cfg.fix_interpolation) {
@@ -213,9 +214,9 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
         load_config();
         open_log();
         brr_log("Big Red Launcher %s (TIMER.DLL replacement)", BRRFIX_VERSION);
-        brr_log("config: vga=%d clock=%d cap=%d interpolation=%d camera=%d source=%s "
+        brr_log("config: vga=%d clock=%d cap=%d interpolation=%d camera=%d menu_keys=%d source=%s "
                 "tick_rate=%u.%03u catch_up_cap=%d frame_limit=%d vsync=%d pacing=%s delay=%d.%03u camera_smoothing=%d fine_angles=%d roll_fix=%d",
-                cfg.fix_vga, cfg.fix_clock, cfg.fix_cap, cfg.fix_interpolation, cfg.fix_camera,
+                cfg.fix_vga, cfg.fix_clock, cfg.fix_cap, cfg.fix_interpolation, cfg.fix_camera, cfg.fix_menu_keys,
                 cfg.clock_original ? "original" : "qpc", cfg.rate_milli / 1000,
                 cfg.rate_milli % 1000, cfg.cap, cfg.frame_limit, cfg.vsync, cfg.pacing_dropin ? "dropin" : "cnc-ddraw",
                 cfg.interp_delay_milli / 1000, cfg.interp_delay_milli % 1000, cfg.camera_smoothing, cfg.fine_angles, cfg.camera_roll_fix);

@@ -22,7 +22,8 @@
 #define GAME_RACE_DRAW     0x414DBCu
 
 struct brr_config {
-    int fix_vga, fix_clock, fix_cap, fix_interpolation, fix_camera, fix_keys, fix_mode_switch;
+    int fix_vga, fix_clock, fix_cap, fix_interpolation, fix_camera, fix_mode_switch;
+    int fix_menu_keys;       /* one menu action per key press (keys.c) */
     int resolution_high;     /* [display] resolution=high: the game's 640x480 mode (keypad +) */
     int language;            /* [display] language: 1-7 (ENG, USA, FRE, GER, ITA, SPA, JAP) */
     int clock_original;      /* emulate the original 14 ms callback timer instead */
@@ -54,6 +55,7 @@ struct brr_config {
     int debug_hold_roll;            /* diagnostic: draw the follow camera with no roll */
     int fine_angles;                /* [camera] fine_angles: draw with angles finer than 64 units */
     int debug_prove_fine_angles;    /* run the proof against the original routine at the first race draw */
+    int debug_log_keys;             /* log keyboard events, the key table and menu key hotspots */
 };
 
 extern struct brr_config cfg;
@@ -103,6 +105,12 @@ void brr_controller_start(void);
 void __cdecl brr_before_joystick(void);
 void brr_hook_joystick(void);
 
+/* keys.c */
+extern uint32_t brr_orig_menu_hotspots;
+void __cdecl brr_before_menu_hotspots(void);
+void __cdecl brr_after_menu_hotspots(void);
+void brr_hook_menu_hotspots(void);
+
 /* music.c */
 int brr_music_check(void);
 void brr_music_start(void);
@@ -111,7 +119,6 @@ void brr_music_start(void);
 extern uint32_t brr_display_windowed, brr_display_fullscreen, brr_display_prompt;
 int __cdecl brr_display_choice(uint32_t depth);
 int __cdecl brr_present_gdi(void);
-void brr_install_key_filter(void);
 BOOL WINAPI brr_set_menu(HWND window, HMENU menu);
 void brr_hook_present(void);
 extern int brr_gdi_present;

@@ -137,6 +137,7 @@
    "SetDlgItemTextA",
    "SetMenu",
    "SetWindowLongA",
+   "SetWindowsHookExA",
    "SetWindowTextA",
    "SetWindowsHookExA",
    "ShowWindow",

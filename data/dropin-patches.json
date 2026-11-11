@@ -143,6 +143,14 @@
    "sha256": "8cea81a406ce33b390a4b8b00d09f563eb41de5f5ce32dc3aeb3ce9c94b6465f"
   },
   {
+   "name": "menu_hotspots_call",
+   "fix": "keys",
+   "address": "0x428D31",
+   "length": 5,
+   "patch": "run_screen_frame's per-tick CALL menu_hotspots_tick (0x427E28) -> CALL brr_hook_menu_hotspots, which runs it unchanged between brr_before_menu_hotspots and brr_after_menu_hotspots (src/dropin/keys.c). With [fixes] menu_keys, a key that has fired a menu action is hidden from that call (and only that call) until it is released or pressed afresh, so one press fires one action; [debug] log_keys logs the keyboard",
+   "sha256": "ad257f70d412e5eb38930189b508c0e3acc2562e3a3a32f59332b511558a679e"
+  },
+  {
    "name": "version_date",
    "fix": "version",
    "address": "0x406365",

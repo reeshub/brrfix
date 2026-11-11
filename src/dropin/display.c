@@ -100,30 +100,6 @@ static LRESULT CALLBACK mouse_filter(int code, WPARAM removed, LPARAM lparam)
     return CallNextHookEx(mouse_hook, code, removed, lparam);
 }
 
-/* KEY.DLL's keyboard hook (_KEY_Handler@12) records a key press whenever Windows calls it,
- * also with HC_NOREMOVE, when something only peeks at the message queue. Our hook, installed
- * after KEY.DLL's and so called first, keeps those peeks from reaching it. (This did not
- * cure the doubled keys in full screen, playtest 2026-11-10 PM2; still under investigation.) */
-static HHOOK key_hook;
-
-static LRESULT CALLBACK key_filter(int code, WPARAM wparam, LPARAM lparam)
-{
-    if (code == HC_NOREMOVE)
-        return 0;
-    return CallNextHookEx(key_hook, code, wparam, lparam);
-}
-
-void brr_install_key_filter(void)
-{
-    static int tried;
-    if (tried || !cfg.fix_keys || !GAME_HWND)
-        return;
-    tried = 1;
-    key_hook = SetWindowsHookExA(WH_KEYBOARD, key_filter, NULL, GetWindowThreadProcessId(GAME_HWND, NULL));
-    brr_log("keys: %s", key_hook ? "key presses counted once (peeks at the queue no longer reach KEY.DLL)"
-                                  : "couldn't install the keyboard filter");
-}
-
 /* Site set_menu_call: WndProc's SetMenu, after it loads the menu for the language. Without
  * the switches between window and full screen, which break the window (director, 2026-11-10). */
 BOOL WINAPI brr_set_menu(HWND window, HMENU menu)

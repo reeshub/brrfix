@@ -260,7 +260,6 @@ void brr_clock_report(int final)
 uint32_t __cdecl brr_clock_read(void)
 {
     static int started;
-    brr_install_key_filter();
     if (!started) {
         started = 1;
         choose_pacing();
