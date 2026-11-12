@@ -255,6 +255,14 @@
    "sha256": "6593b31258dfe8a6ef3baf878fbabe7ca8be2890003433988e4f9c97d9ce19de"
   },
   {
+   "name": "render_view_entry",
+   "fix": "draw_distance",
+   "address": "0x4176C4",
+   "length": 6,
+   "patch": "Experimental, [display] max_draw_distance=1 only. render_view's first 6 instructions (PUSH EBX, ECX, EDX, ESI, EDI, EBP) -> JMP brr_hook_render_view + NOP: the view is drawn with vision distance (detail_level, 0x44B044) 25 and texture distance (0x44B048) 25 instead of the game's limits of 22 and 14, and the player's values are put back afterwards; a trampoline repeats the PUSHes and continues at 0x4176CA",
+   "sha256": "21f784e92e3fbe130cfc5c00c283283d3177b7e09bff21d535b1c31bda8ea6ec"
+  },
+  {
    "name": "music_check_call",
    "fix": "music",
    "address": "0x4011D3",

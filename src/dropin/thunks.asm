@@ -45,6 +45,9 @@
         extrn   _brr_render_mode:near
         extrn   _brr_dd_setup_continue:dword
         extrn   _brr_orig_music_check:dword
+        extrn   _brr_render_view_continue:dword
+        extrn   _brr_draw_vision:dword
+        extrn   _brr_draw_texture:dword
 
         public  _brr_TIMER_Init, _brr_TIMER_Shutdown, _brr_TIMER_Handler
         public  _brr_hook_clock_read, _brr_hook_retrace, _brr_hook_race_tick
@@ -54,7 +57,7 @@
         public  _brr_call_game_atan, _brr_hook_cam4, _brr_hook_present_window
         public  _brr_hook_display_choice, _brr_hook_present, _brr_hook_joystick
         public  _brr_hook_menu_hotspots, _brr_hook_menu_mouse, _brr_hook_music_check
-        public  _brr_hook_dd_setup
+        public  _brr_hook_dd_setup, _brr_hook_render_view
 
         .code
 
@@ -355,5 +358,33 @@ _brr_hook_cam4:
         mov     word ptr [esi + 46h], ax
 cam4_done:
         ret
+
+; Experimental "max out draw distance" (site render_view_entry, 0x4176C4). render_view draws
+; one view; its only argument is EAX (no stack arguments; it ends with a plain RET). Every
+; reader of the vision distance (detail_level, 44B044h) and texture distance (44B048h) in a
+; drawn frame runs inside it, so it runs with ours and the player's are put back afterwards:
+; the options, the config file and auto detail never see ours (the game's own trick for its
+; special screens, 0x423B5C). EAX, render_view's result, is kept.
+_brr_hook_render_view:
+        push    dword ptr ds:[44B048h]
+        push    dword ptr ds:[44B044h]
+        push    eax
+        mov     eax, [_brr_draw_vision]
+        mov     dword ptr ds:[44B044h], eax
+        mov     eax, [_brr_draw_texture]
+        mov     dword ptr ds:[44B048h], eax
+        pop     eax
+        call    render_view_original
+        pop     dword ptr ds:[44B044h]
+        pop     dword ptr ds:[44B048h]
+        ret
+render_view_original:
+        push    ebx
+        push    ecx
+        push    edx
+        push    esi
+        push    edi
+        push    ebp
+        jmp     dword ptr [_brr_render_view_continue]
 
         end

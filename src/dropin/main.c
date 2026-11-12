@@ -114,6 +114,7 @@ static void load_config(void)
         cfg.window_scale = 0;
     GetPrivateProfileStringA("display", "aspect", "4:3", text, sizeof text, path);
     cfg.window_aspect43 = !lstrcmpiA(text, "4:3");
+    cfg.max_draw_distance = ini_int(path, "display", "max_draw_distance", 0);
     cfg.debug_log_mouse = ini_int(path, "debug", "log_mouse", 0);
     cfg.show_version = ini_int(path, "display", "show_version", 1);
     cfg.controller = ini_int(path, "controller", "enabled", 1);
@@ -218,13 +219,13 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
         brr_log("Big Red Launcher %s (TIMER.DLL replacement)", BRRFIX_VERSION);
         brr_log("config: vga=%d clock=%d cap=%d interpolation=%d camera=%d menu_keys=%d source=%s "
                 "tick_rate=%u.%03u catch_up_cap=%d frame_limit=%d vsync=%d pacing=%s delay=%d.%03u camera_smoothing=%d fine_angles=%d roll_fix=%d "
-                "resolution=%s renderer=%s aspect=%s",
+                "resolution=%s renderer=%s aspect=%s max_draw_distance=%d",
                 cfg.fix_vga, cfg.fix_clock, cfg.fix_cap, cfg.fix_interpolation, cfg.fix_camera, cfg.fix_menu_keys,
                 cfg.clock_original ? "original" : "qpc", cfg.rate_milli / 1000,
                 cfg.rate_milli % 1000, cfg.cap, cfg.frame_limit, cfg.vsync, cfg.pacing_dropin ? "dropin" : "cnc-ddraw",
                 cfg.interp_delay_milli / 1000, cfg.interp_delay_milli % 1000, cfg.camera_smoothing, cfg.fine_angles, cfg.camera_roll_fix,
                 cfg.resolution_high ? "high" : "low", cfg.renderer_new ? "new" : "original",
-                cfg.window_aspect43 ? "4:3" : "square");
+                cfg.window_aspect43 ? "4:3" : "square", cfg.max_draw_distance);
         brr_patch_all();
         brr_interp_setup();
         brr_debug_setup();

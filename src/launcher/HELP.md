@@ -202,6 +202,17 @@ Writes BRRFIX.LOG next to the game: what was fixed and how the clock ran. It's
 off by default; turn it on if you're reporting a problem, and send the file
 with your report.
 
+**Max out draw distance (experimental)**
+
+Off by default. Races and replays are drawn as far as the game's 1996 engine
+allows: a vision distance of 25 landscape squares instead of the in-game
+slider's 22, and textures all the way out instead of stopping at 14. The
+in-game vision and texture sliders are ignored while it's on, and your own
+settings are kept for when you turn it off. Further than 25 would need the
+engine's visible-area grid made bigger, a much larger change. If something
+looks wrong (missing patches of ground, flicker in the distance), turn it off
+and tell us.
+
 ## The buttons
 
 - **Skip this window next time:** starts the game straight away from now on.

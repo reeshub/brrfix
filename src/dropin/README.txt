@@ -133,6 +133,11 @@ ddraw.ini has presets:
 integer (sharp, square pixels; the default), 4:3 sharp, 4:3 nearest, stretch
 and smooth.
 
+Experimental: "Max out draw distance" in the launcher ([display]
+max_draw_distance=1) draws races and replays as far as the 1996 engine allows:
+vision distance 25 instead of 22, with textures all the way out. The in-game
+sliders are ignored while it's on.
+
 Controllers
 -----------
 An Xbox-style pad (XInput, including the Steam Deck's controls) works as the

@@ -175,6 +175,8 @@ static const struct { int id; const char *text; } tips[] = {
     {IDC_RATE, "Game ticks a second: 70.0 as the DOS version (real time), or 71.43 as the 1996 Windows version ran (2% fast)."},
     {IDC_CAP, "After a pause, how much missed game time is caught up at once: 8 ticks, or 35 as the original (see Help)."},
     {IDC_LOG, "Writes BRRFIX.LOG next to the game: what was fixed, for bug reports."},
+    {IDC_MAXDRAW, "Experimental: races are drawn as far as the game's engine allows (vision distance 25 instead of "
+                  "22) and textured all the way (instead of 14). The in-game sliders are ignored while it's on."},
     {IDC_DEFAULTS, "Puts every setting back to its default (press Save or Play to keep them)."},
     {IDC_SKIP, "Start the game straight away next time. Hold Shift while starting to see this window again."},
     {IDC_DOSPATCH, "Fixes the DOS version's RACING.EXE for DOS PCs and DOSBox, keeping the original as RACING.ORI."},
@@ -291,6 +293,7 @@ static void load(HWND dialog, int defaults)
     fill(dialog, IDC_RATE, rates, GET(f, "clock", "tick_rate", "70.0"));
     fill(dialog, IDC_CAP, caps, GET(f, "clock", "catch_up_cap", "8"));
     check(dialog, IDC_LOG, defaults ? 0 : ini_flag("log", "log", 0));
+    check(dialog, IDC_MAXDRAW, defaults ? 0 : ini_flag("display", "max_draw_distance", 0));
     if (!defaults)
         check(dialog, IDC_SKIP, ini_flag("launcher", "skip", 0));
 #undef GET
@@ -328,6 +331,7 @@ static void save(HWND dialog)
     ini_set(brrfix_ini, "controller", "sensitivity", chosen(dialog, IDC_SENSITIVITY, sensitivities));
     ini_set(brrfix_ini, "controller", "layout", chosen(dialog, IDC_LAYOUT, layouts));
     ini_set(brrfix_ini, "log", "log", checked(dialog, IDC_LOG) ? "1" : "0");
+    ini_set(brrfix_ini, "display", "max_draw_distance", checked(dialog, IDC_MAXDRAW) ? "1" : "0");
     ini_set(brrfix_ini, "launcher", "skip", checked(dialog, IDC_SKIP) ? "1" : "0");
     if (windows_9x)
         ini_set(brrfix_ini, "clock", "vsync", checked(dialog, IDC_VSYNC) ? "1" : "0");

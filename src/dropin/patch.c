@@ -16,6 +16,8 @@ uint32_t brr_orig_camera_update = 0x404908;
 uint32_t brr_rotation_continue = 0x446675, brr_game_atan = 0x412A20;
 uint32_t brr_orig_present_window = 0x42CD2C;
 uint32_t brr_orig_music_check = 0x409F00;
+uint32_t brr_render_view_continue = 0x4176CA;  /* render_view after its six PUSHes */
+uint32_t brr_draw_vision = DRAW_DISTANCE_MAX_VISION, brr_draw_texture = DRAW_DISTANCE_MAX_TEXTURE;
 /* shown on the main menu instead of the build date: "V2.25WR FIX0.1.0" (it fits where
  * "V2.24WR (09-05-96)" was) */
 static const char version_text[] = "FIX" BRRFIX_VERSION;
@@ -131,6 +133,7 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "mode_switch")) return cfg.fix_mode_switch;
     if (!strcmp(fix, "language")) return cfg.language >= 1 && cfg.language <= 7;
     if (!strcmp(fix, "resolution")) return cfg.resolution_high;
+    if (!strcmp(fix, "draw_distance")) return cfg.max_draw_distance;  /* experimental, off by default */
     return 0;
 }
 
@@ -213,6 +216,9 @@ static int replacement(const struct site_info *s, uint8_t *out)
     } else if (!strcmp(n, "dd_setup_entry") && s->length == 9) {
         out[0] = 0xE9;  /* JMP brr_hook_dd_setup, which runs the 4 instructions replaced here */
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_dd_setup);
+    } else if (!strcmp(n, "render_view_entry") && s->length == 6) {
+        out[0] = 0xE9;  /* JMP brr_hook_render_view, which runs the 6 PUSHes replaced here */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_render_view);
     } else if (!strcmp(n, "dd_mode_check") && s->length == 20) {
         out[0] = 0xEB;  /* JMP to the full-screen cooperative level (0x11), whatever the mode's size */
         out[1] = 0x35;

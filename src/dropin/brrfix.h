@@ -33,6 +33,7 @@ struct brr_config {
     int frame_limit;         /* frames per second; FRAME_LIMIT_AUTO = display refresh, 0 = unlocked */
     int window_scale;        /* 0 = auto (largest whole number that fits), else 1..8 */
     int window_aspect43;     /* [display] aspect=4:3: 320x200 pictures at the 4:3 shape (window; new renderer) */
+    int max_draw_distance;   /* [display] max_draw_distance: experimental, 0 = off; races drawn at vision 25, texture 25 */
     int debug_log_mouse;     /* log mouse positions in a window (tests) */
     int music, music_volume, music_follow_game;  /* [music] */
     int controller, pad_deadzone, pad_sensitivity, pad_curve, pad_triggers, pad_analogue;  /* [controller] */
@@ -107,6 +108,12 @@ int brr_renderer_decide(int cnc_ddraw);
 const uint8_t *brr_render_compose(int out_w, int out_h, int out_pitch);
 uint32_t __cdecl brr_render_mode(uint32_t windowed);
 void brr_hook_dd_setup(void);
+/* Experimental: site render_view_entry (thunks.asm) draws the view with the distances
+ * below, then puts the player's own back */
+extern uint32_t brr_render_view_continue;
+#define DRAW_DISTANCE_MAX_VISION 25   /* the most the 64x64 visible-area grid holds (game: 22) */
+#define DRAW_DISTANCE_MAX_TEXTURE 25  /* textures as far as the view reaches (game: 14) */
+void brr_hook_render_view(void);
 void __cdecl brr_render_before_present(void);
 void __cdecl brr_render_after_present(void);
 uint32_t __cdecl brr_menu_mouse(void);
