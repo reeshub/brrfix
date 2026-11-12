@@ -20,10 +20,10 @@ int __cdecl brr_display_choice(uint32_t depth)
         return 1;
     }
     if (cfg.display_mode == DISPLAY_WINDOWED) {
-        brr_gdi_present = depth != 8;
+        brr_gdi_present = depth != 8 || brr_renderer_active;  /* the new renderer always draws it */
         brr_log("display: the game's own window ([display] mode=windowed; %s)",
-                depth == 8 ? "256-colour desktop: the game draws it itself"
-                           : "drawn by the drop-in with GDI, converting the colours");
+                !brr_gdi_present ? "256-colour desktop: the game draws it itself"
+                                 : "drawn by the drop-in with GDI, converting the colours");
         return 0;
     }
     return depth == 8 ? 0 : 2;
@@ -56,7 +56,7 @@ static struct {
 /* The game answers WM_GETMINMAXINFO by capping its window at its own size, so the
  * window is subclassed: every message goes to the game's WndProc as before, and after
  * WM_GETMINMAXINFO the maximum is raised to fit the scaled window. */
-static WNDPROC game_proc;
+static WNDPROC game_proc, class_proc;
 
 /* cnc-ddraw intercepts the window functions in every module's import table, to manage
  * full-screen games' windows: with it loaded, GetWindowRect reports the client size and
@@ -86,8 +86,9 @@ static HHOOK mouse_hook;
 static LRESULT CALLBACK mouse_filter(int code, WPARAM removed, LPARAM lparam)
 {
     MSG *msg = (MSG *)lparam;
+    /* the new renderer maps the menu's mouse from the window's own pixels itself (render.c) */
     if (code == HC_ACTION && removed == PM_REMOVE && msg->hwnd == GAME_HWND && brr_gdi_present
-        && *GAME_WINDOWED && msg->message >= WM_MOUSEFIRST && msg->message <= 0x209 && shown_w > 0
+        && !brr_renderer_active && *GAME_WINDOWED && msg->message >= WM_MOUSEFIRST && msg->message <= 0x209 && shown_w > 0
         && shown_h > 0) {
         static int logged;
         long x = (short)LOWORD(msg->lParam), y = (short)HIWORD(msg->lParam);
@@ -113,13 +114,18 @@ BOOL WINAPI brr_set_menu(HWND window, HMENU menu)
 
 static LRESULT CALLBACK window_proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
 {
-    LRESULT result = CallWindowProcA(game_proc, window, message, wparam, lparam);
-    if (cfg.debug_log_mouse && message >= WM_MOUSEFIRST && message <= 0x209) {
+    int mouse = message >= WM_MOUSEFIRST && message <= 0x209;
+    /* cnc-ddraw sits in front of the game's procedure and clamps mouse positions to the
+     * display size it started with (640x480): too small for the new renderer's window,
+     * whose positions are in the final picture. So the game's own procedure gets them. */
+    WNDPROC next = mouse && brr_renderer_active && *GAME_WINDOWED && class_proc ? class_proc : game_proc;
+    LRESULT result = CallWindowProcA(next, window, message, wparam, lparam);
+    if (cfg.debug_log_mouse && mouse) {
         static int logged;
         if (logged++ < 40)
-            brr_log("mouse: message 0x%03X at %d,%d in the picture; the game's position (0x44BBE4) %d,%d",
+            brr_log("mouse: message 0x%03X at %d,%d in the picture; the game's position (0x44BBE4) %d,%d%s",
                     message, (short)LOWORD(lparam), (short)HIWORD(lparam), *(volatile short *)0x44BBE4,
-                    *(volatile short *)0x44BBE6);
+                    *(volatile short *)0x44BBE6, next != game_proc ? " (sent straight to the game)" : "");
     }
     if (message == WM_GETMINMAXINFO && max_w > 0) {
         MINMAXINFO *info = (MINMAXINFO *)lparam;
@@ -159,8 +165,10 @@ static void keep_window_size(HWND window, int w, int h)
     }
     if (!real_set_window_pos)
         find_real_functions();
-    if (!game_proc)
+    if (!game_proc) {
         game_proc = (WNDPROC)SetWindowLongA(window, GWL_WNDPROC, (LONG)window_proc);
+        class_proc = (WNDPROC)GetClassLongA(window, GCL_WNDPROC);
+    }
     if (!mouse_hook)
         mouse_hook = SetWindowsHookExA(WH_GETMESSAGE, mouse_filter, NULL, GetWindowThreadProcessId(window, NULL));
     real_client_rect(window, &client);
@@ -283,6 +291,21 @@ int __cdecl brr_present_gdi(void)
         GAME_CLEAR_FLAG = 0;
         ReleaseDC(window, dc);
         return 1;
+    }
+    if (brr_renderer_active) {  /* the new renderer: the final picture at the window's size, shown 1:1 */
+        int pitch = (client.right + 3) & ~3;
+        const uint8_t *out = brr_render_compose(client.right, client.bottom, pitch);
+        if (out) {
+            picture.header.biWidth = client.right;
+            picture.header.biHeight = -client.bottom;
+            SetDIBitsToDevice(dc, 0, 0, client.right, client.bottom, 0, 0, 0, client.bottom, out,
+                              (BITMAPINFO *)&picture, DIB_RGB_COLORS);
+            ReleaseDC(window, dc);
+            if (gdi_frames++ == 0)
+                brr_log("display: drawing the game's window with GDI (the new renderer's %ldx%ld picture, 1:1)",
+                        (long)client.right, (long)client.bottom);
+            return 1;
+        }
     }
     if (scale_to(frame, w, h, client.right, client.bottom)) {
         picture.header.biWidth = client.right;

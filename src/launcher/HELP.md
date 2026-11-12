@@ -12,6 +12,21 @@ or start it with **-setup**.
 
 ## Display
 
+**Renderer** (not on Windows 95, 98 or ME, which always use the original)
+
+- **New (sharp)** (the default): the picture is made once, at your screen's
+  own resolution (full screen) or your window's size (windowed), as a whole-
+  number enlargement of the game's picture centred on black, and shown with no
+  scaling after that. Nothing is scaled twice, so it stays sharp on any
+  screen. The 320x200 menus are enlarged by the whole numbers across and
+  down that come nearest to the 4:3 shape of a 1996 monitor (see "4:3"
+  below); 640x480 races are enlarged by the same whole number both ways. In
+  full screen it needs cnc-ddraw (the ddraw.dll beside the game), as the game
+  does on modern Windows; without it, the original is used.
+- **Original:** the game's own drawing. In full screen cnc-ddraw enlarges it
+  (see "Full screen" below); the menus are 320x200 pictures doubled into the
+  middle of a 640x480 picture, with black bands above and below.
+
 **Mode**
 
 - **Full screen** (the default): the game fills the screen, without asking.
@@ -24,8 +39,8 @@ or start it with **-setup**.
 
 - **High (640x480)** (the default): the game's own sharper mode, which it
   only offered through its window's Modes menu or keypad +. It applies from
-  the first screen. Races are drawn at 640x480; the menus are the same
-  320x200 pictures, doubled.
+  the first screen. Races are drawn at 640x480; the menus are always 320x200
+  pictures.
 - **Low (320x200):** as the game starts.
 
 In the game, keypad + and - still switch between them.
@@ -35,16 +50,21 @@ In the game, keypad + and - still switch between them.
 How big the window is, in whole multiples of the game's picture (320x200 or
 640x480). "Largest that fits" picks the biggest that fits on your screen.
 
-**4:3 (non-square pixels)** (in a window at low resolution only; on by default)
+**4:3 (non-square pixels)** (on by default; with the original renderer, in a window at low resolution only)
 
-The game's low-resolution picture is 320x200, but 1996 monitors showed it at
-4:3, so everything looked a little taller. Ticked, the picture's height is
-stretched by 1.2 to match, as the game was meant to be seen. Unticked, pixels
-are square. At 640x480 the picture already has the 4:3 shape.
+The game's 320x200 pictures (the menus, and everything at low resolution) were
+made for 1996 monitors, which showed them at 4:3, so everything looked a
+little taller. Ticked, they are shown at about that shape: with the new
+renderer by the whole numbers across and down that come nearest (on a
+1920x1080 screen, 4 across by 5 down, which is 1280x1000), with the original
+by stretching the height by 1.2. Unticked, pixels are square. At 640x480 the
+picture already has the 4:3 shape.
 
-**Full screen** (in full screen only; not on Windows 95, 98 or ME)
+**Full screen** (original renderer, in full screen only; not on Windows 95, 98 or ME)
 
-How the picture fills the screen:
+How cnc-ddraw fills the screen with the original renderer. With the new
+renderer this is greyed out: the picture is already the screen's own size,
+and cnc-ddraw adds nothing.
 
 - **Integer (sharp):** the largest whole-number size that fits, with square
   pixels and black borders. 4x on the Steam Deck, which fills its screen.

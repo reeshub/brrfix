@@ -38,6 +38,7 @@ struct choice { const char *label, *value; };
 static const struct choice modes[] = {
     {"Full screen", "fullscreen"}, {"Windowed", "windowed"}, {0, 0}};
 static const struct choice resolutions[] = {{"High (640x480)", "high"}, {"Low (320x200)", "low"}, {0, 0}};
+static const struct choice renderers[] = {{"New (sharp)", "new"}, {"Original", "original"}, {0, 0}};
 static const struct choice languages[] = {
     {"English", "ENG"}, {"USA", "USA"}, {"French", "FRE"},
     {"German", "GER"}, {"Italian", "ITA"}, {"Spanish", "SPA"}, {"Japanese", "JAP"}, {0, 0}};
@@ -115,6 +116,12 @@ static void check(HWND dialog, int id, int on) { CheckDlgButton(dialog, id, on ?
 static int checked(HWND dialog, int id) { return IsDlgButtonChecked(dialog, id) == BST_CHECKED; }
 static void enable(HWND dialog, int id, int on) { EnableWindow(GetDlgItem(dialog, id), on); }
 
+/* Whether the new renderer is chosen (Windows 95, 98 and ME have only the original) */
+static int new_renderer(HWND dialog)
+{
+    return !windows_9x && !lstrcmpiA(chosen(dialog, IDC_RENDERER, renderers), "new");
+}
+
 /* Grey out what the other choices make irrelevant */
 static void update_enabled(HWND dialog)
 {
@@ -123,12 +130,17 @@ static void update_enabled(HWND dialog)
     const char *mode = chosen(dialog, IDC_MODE, modes);
     int window = lstrcmpiA(mode, "fullscreen") != 0, full = lstrcmpiA(mode, "windowed") != 0;
     int low = !lstrcmpiA(chosen(dialog, IDC_RESOLUTION, resolutions), "low");
+    int fresh = new_renderer(dialog);
     size_t i;
     enable(dialog, IDC_SCALE_LABEL, window);
     enable(dialog, IDC_SCALE, window);
-    enable(dialog, IDC_ASPECT, window && low);  /* 640x480 already is 4:3 */
-    enable(dialog, IDC_PRESET_LABEL, full);
-    enable(dialog, IDC_PRESET, full);
+    /* the new renderer shapes the 320x200 menus in a window and full screen; the original
+     * stretches only a window at 320x200 (640x480 already is 4:3) */
+    enable(dialog, IDC_ASPECT, fresh || (window && low));
+    /* cnc-ddraw's scaling presets apply to the original renderer only: the new one's picture
+     * is already the screen's size */
+    enable(dialog, IDC_PRESET_LABEL, full && !fresh);
+    enable(dialog, IDC_PRESET, full && !fresh);
     for (i = 0; i < sizeof music_controls / sizeof music_controls[0]; i++)
         enable(dialog, music_controls[i], checked(dialog, IDC_MUSIC));
     for (i = 0; i < sizeof pad_controls / sizeof pad_controls[0]; i++)
@@ -137,11 +149,15 @@ static void update_enabled(HWND dialog)
 
 /* One line on each setting, shown when the mouse rests on it */
 static const struct { int id; const char *text; } tips[] = {
+    {IDC_RENDERER, "New: the picture is made once at your screen's or window's own size, in whole-number "
+                   "multiples, so it's sharp. Original: the game's own drawing, scaled by cnc-ddraw."},
     {IDC_MODE, "Full screen, or the game's own window with its 1996 menu bar."},
     {IDC_RESOLUTION, "High: the game's sharper 640x480 mode (keypad + in the game). Low: 320x200, as it starts."},
     {IDC_SCALE, "How big the window is, in whole multiples of the game's picture (320x200 or 640x480)."},
-    {IDC_ASPECT, "At 320x200: stretch the picture's height by 1.2, as a 1996 monitor did. Off: square, sharp pixels."},
-    {IDC_PRESET, "How the picture fills the screen in full screen: sharp with borders, 4:3, stretched or smooth."},
+    {IDC_ASPECT, "For 320x200 pictures (the menus, and low resolution): pixels a fifth taller than wide, as a "
+                 "1996 monitor showed them. Off: square, sharp pixels."},
+    {IDC_PRESET, "Original renderer, full screen: how cnc-ddraw fills the screen: sharp with borders, 4:3, "
+                 "stretched or smooth."},
     {IDC_INTERP, "Draws the vehicles and the camera between the game's 35 physics steps a second, for smooth motion."},
     {IDC_SMOOTHING, "Experimental: softens the camera's movement further. Not needed for the stutter fix."},
     {IDC_FRAMES, "The most pictures drawn a second. The game itself runs at the same speed whatever you choose."},
@@ -229,6 +245,7 @@ static void load(HWND dialog, int defaults)
     const char *f = defaults ? NULL : brrfix_ini, *d = defaults ? NULL : ddraw_ini;
 #define GET(file, section, key, fallback) (ini_get(file, section, key, fallback, v, sizeof v), v)
     fill(dialog, IDC_MODE, modes, GET(f, "display", "mode", "fullscreen"));
+    fill(dialog, IDC_RENDERER, renderers, GET(f, "display", "renderer", "new"));
     fill(dialog, IDC_RESOLUTION, resolutions, GET(f, "display", "resolution", "high"));
     fill(dialog, IDC_LANGUAGE, languages, GET(f, "display", "language", "ENG"));
     fill(dialog, IDC_SCALE, scales, GET(f, "display", "window_scale", "auto"));
@@ -288,6 +305,8 @@ static void save(HWND dialog)
     int preset = (int)SendDlgItemMessageA(dialog, IDC_PRESET, CB_GETCURSEL, 0, 0), i;
     static const char *const preset_names[5] = {"boxing", "maintas", "aspect_ratio", "shader", "d3d9_filter"};
     ini_set(brrfix_ini, "display", "mode", mode);
+    if (!windows_9x)  /* there the DLL keeps the original renderer whatever the file says */
+        ini_set(brrfix_ini, "display", "renderer", chosen(dialog, IDC_RENDERER, renderers));
     ini_set(brrfix_ini, "display", "resolution", chosen(dialog, IDC_RESOLUTION, resolutions));
     ini_set(brrfix_ini, "display", "language", chosen(dialog, IDC_LANGUAGE, languages));
     if (preset < 0 || preset > 4)
@@ -328,8 +347,10 @@ static void save(HWND dialog)
         }
         ini_set(ddraw_ini, "ddraw", "vsync", checked(dialog, IDC_VSYNC) ? "true" : "false");
         /* In a window, no letterbox: under Wine cnc-ddraw otherwise moves the mouse by the
-         * borders it would have drawn (playtest 2026-11-10: 60 pixels at 960x720) */
-        if (lstrcmpiA(mode, "fullscreen"))
+         * borders it would have drawn (playtest 2026-11-10: 60 pixels at 960x720). Likewise
+         * with the new renderer in full screen: its picture is the screen's own size, so
+         * cnc-ddraw must add nothing (the stretch preset, nearest-neighbour). */
+        if (lstrcmpiA(mode, "fullscreen") || new_renderer(dialog))
             preset = 3;
         for (i = 0; i < 5; i++)
             ini_set(ddraw_ini, "ddraw", preset_names[i], preset_keys[preset][i]);
@@ -411,7 +432,9 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
         SendMessageA(dialog, WM_SETICON, ICON_BIG, (LPARAM)LoadIconA(GetModuleHandleA(NULL), MAKEINTRESOURCEA(IDI_APP)));
         load(dialog, 0);
         add_tips(dialog);
-        if (windows_9x) {  /* no cnc-ddraw (DirectDraw does full screen itself) and no XInput */
+        if (windows_9x) {  /* no cnc-ddraw (DirectDraw does full screen itself), no XInput, no new renderer */
+            ShowWindow(GetDlgItem(dialog, IDC_RENDERER), SW_HIDE);
+            ShowWindow(GetDlgItem(dialog, IDC_RENDERER_LABEL), SW_HIDE);
             ShowWindow(GetDlgItem(dialog, IDC_PRESET), SW_HIDE);
             ShowWindow(GetDlgItem(dialog, IDC_PRESET_LABEL), SW_HIDE);
             for (i = 0; i < sizeof pad_controls / sizeof pad_controls[0]; i++)
@@ -429,6 +452,7 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
     if (message == WM_COMMAND) {
         switch (LOWORD(wparam)) {
         case IDC_MODE:
+        case IDC_RENDERER:
         case IDC_RESOLUTION:
             if (HIWORD(wparam) == CBN_SELCHANGE)
                 update_enabled(dialog);

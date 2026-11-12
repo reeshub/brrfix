@@ -80,8 +80,8 @@ static void load_config(void)
     cfg.fix_mode_switch = ini_int(path, "fixes", "mode_switch", 1);
     GetPrivateProfileStringA("display", "resolution", "high", text, sizeof text, path);
     cfg.resolution_high = !lstrcmpiA(text, "high");
-    GetPrivateProfileStringA("display", "menu_scaling", "fill", text, sizeof text, path);
-    cfg.menu_fill = lstrcmpiA(text, "original") != 0;
+    GetPrivateProfileStringA("display", "renderer", "new", text, sizeof text, path);
+    cfg.renderer_new = lstrcmpiA(text, "original") != 0;
     GetPrivateProfileStringA("display", "language", "ENG", text, sizeof text, path);
     {
         static const char *const codes[] = {"ENG", "USA", "FRE", "GER", "ITA", "SPA", "JAP"};
@@ -218,12 +218,13 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
         brr_log("Big Red Launcher %s (TIMER.DLL replacement)", BRRFIX_VERSION);
         brr_log("config: vga=%d clock=%d cap=%d interpolation=%d camera=%d menu_keys=%d source=%s "
                 "tick_rate=%u.%03u catch_up_cap=%d frame_limit=%d vsync=%d pacing=%s delay=%d.%03u camera_smoothing=%d fine_angles=%d roll_fix=%d "
-                "resolution=%s menu_scaling=%s",
+                "resolution=%s renderer=%s aspect=%s",
                 cfg.fix_vga, cfg.fix_clock, cfg.fix_cap, cfg.fix_interpolation, cfg.fix_camera, cfg.fix_menu_keys,
                 cfg.clock_original ? "original" : "qpc", cfg.rate_milli / 1000,
                 cfg.rate_milli % 1000, cfg.cap, cfg.frame_limit, cfg.vsync, cfg.pacing_dropin ? "dropin" : "cnc-ddraw",
                 cfg.interp_delay_milli / 1000, cfg.interp_delay_milli % 1000, cfg.camera_smoothing, cfg.fine_angles, cfg.camera_roll_fix,
-                cfg.resolution_high ? "high" : "low", cfg.menu_fill ? "fill" : "original");
+                cfg.resolution_high ? "high" : "low", cfg.renderer_new ? "new" : "original",
+                cfg.window_aspect43 ? "4:3" : "square");
         brr_patch_all();
         brr_interp_setup();
         brr_debug_setup();

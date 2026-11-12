@@ -9,10 +9,12 @@
 #define IDC_SCALE_LABEL  1006
 #define IDC_RESOLUTION   1007
 #define IDC_LANGUAGE     1008
+#define IDC_RENDERER     1009
 #define IDC_INTERP       1010
 #define IDC_SMOOTHING    1011
 #define IDC_FRAMES       1012
 #define IDC_VSYNC        1013
+#define IDC_RENDERER_LABEL 1014
 #define IDC_MUSIC        1020
 #define IDC_VOLUME       1021
 #define IDC_FOLDER       1022

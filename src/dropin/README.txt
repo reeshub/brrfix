@@ -119,10 +119,17 @@ With no tracks there, the game plays a real CD if there is one.
 Display and scaling
 -------------------
 By default the game fills the screen, at your desktop's own resolution, with
-sharp whole-number scaling. Windowed: pick it in the launcher (or [display]
+sharp whole-number scaling. The new renderer ([display] renderer=new, the
+default; "Renderer" in the launcher) makes the picture once, at the screen's
+own resolution (full screen) or the window's size (windowed), enlarging the
+game's picture by whole numbers on black, so nothing is scaled twice. Windows
+95, 98 and ME, and full screen without cnc-ddraw, keep the game's own
+drawing (renderer=original), which cnc-ddraw scales with its presets.
+Windowed: pick it in the launcher (or [display]
 mode=windowed in BRRFIX.INI, and windowed=true in ddraw.ini): the game's own
 window with its 1996 menu bar (About, Modes, Language), as big as fits on your
-screen, with exact colours. For full screen, ddraw.ini has presets:
+screen, with exact colours. For full screen with the original renderer,
+ddraw.ini has presets:
 integer (sharp, square pixels; the default), 4:3 sharp, 4:3 nearest, stretch
 and smooth.
 

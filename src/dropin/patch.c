@@ -118,10 +118,10 @@ static int enabled(const char *fix)
         return cfg.fix_menu_keys || cfg.debug_log_keys;
     if (!strcmp(fix, "display"))
         return cfg.display_mode != DISPLAY_ASK;
-    if (!strcmp(fix, "present"))  /* our window drawing, and the menus' scaling */
-        return cfg.display_mode != DISPLAY_ASK || cfg.menu_fill;
-    if (!strcmp(fix, "menu_fill"))
-        return cfg.menu_fill;
+    if (!strcmp(fix, "present"))  /* our window drawing, and the new renderer */
+        return cfg.display_mode != DISPLAY_ASK || brr_renderer_active;
+    if (!strcmp(fix, "renderer"))
+        return brr_renderer_active;
     if (!strcmp(fix, "vsync"))
         return cfg.vsync;
     if (!strcmp(fix, "fine_angles"))
@@ -210,6 +210,12 @@ static int replacement(const struct site_info *s, uint8_t *out)
     } else if (!strcmp(n, "present_window_call") && s->length == 5) {
         out[0] = 0xE8;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_present_window);
+    } else if (!strcmp(n, "dd_setup_entry") && s->length == 9) {
+        out[0] = 0xE9;  /* JMP brr_hook_dd_setup, which runs the 4 instructions replaced here */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_dd_setup);
+    } else if (!strcmp(n, "dd_mode_check") && s->length == 20) {
+        out[0] = 0xEB;  /* JMP to the full-screen cooperative level (0x11), whatever the mode's size */
+        out[1] = 0x35;
     } else if (!strcmp(n, "menu_double_call") && s->length == 5) {
         /* NOPs: the menus' doubling isn't called; the present scales them (render.c) */
     } else if (!strcmp(n, "menu_mouse") && s->length == 56) {
@@ -320,6 +326,10 @@ void brr_patch_all(void)
         brr_log("result: %d check(s) failed; no patches applied; running as a plain TIMER.DLL", bad);
         return;
     }
+    {   /* the loaded ddraw.dll is cnc-ddraw: it exports GameHandlesClose, which no real DirectDraw does */
+        HMODULE ddraw = GetModuleHandleA("ddraw.dll");
+        brr_renderer_active = brr_renderer_decide(ddraw && GetProcAddress(ddraw, "GameHandlesClose") != NULL);
+    }
     int applied = 0;
     for (size_t i = 0; i < count; i++) {
         const struct site_info *s = &SITES[i];
@@ -328,8 +338,6 @@ void brr_patch_all(void)
         replacement(s, bytes);
         write_code(s->address, bytes, s->length);
         applied++;
-        if (!strcmp(s->name, "menu_double_call"))
-            brr_menu_fill_active = 1;
         brr_log("patched %s at 0x%06lX (%s, %lu bytes)", s->name, (unsigned long)s->address,
                 s->fix, (unsigned long)s->length);
     }

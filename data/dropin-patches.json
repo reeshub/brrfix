@@ -224,19 +224,35 @@
   },
   {
    "name": "menu_double_call",
-   "fix": "menu_fill",
+   "fix": "renderer",
    "address": "0x426358",
    "length": 5,
-   "patch": "0x426358: CALL 0x4262B4 (the menus' doubling into the middle of a 640x480 frame) -> 5 NOP; the present scales the 320x200 menu to fill the frame instead (render.c)",
+   "patch": "0x426358: CALL 0x4262B4 (the menus' doubling into the middle of a 640x480 frame) -> 5 NOP; the new renderer enlarges the 320x200 menu by whole numbers into the final picture instead (render.c)",
    "sha256": "d2c47c763eb2609e74a97fee938d30f3cf1a0eeec7263de7d3dcdb88d1d0e9da"
   },
   {
    "name": "menu_mouse",
-   "fix": "menu_fill",
+   "fix": "renderer",
    "address": "0x42754E",
    "length": 56,
-   "patch": "0x4274FC's mapping of the mouse into the menu (only at exactly 640x480: x / 2, (y - 40) / 2) -> CALL brr_hook_menu_mouse (x * 320 / width, y * 200 / height, any size) + JMP to its stores + NOPs",
+   "patch": "0x4274FC's mapping of the mouse into the menu (only at exactly 640x480: x / 2, (y - 40) / 2) -> CALL brr_hook_menu_mouse (the inverse of the new renderer's layout: (x - left) / across, (y - top) / down) + JMP to its stores + NOPs",
    "sha256": "cfc32948bb8eae0d3493b246eaeed977daa1bba9cefbefd4743d1da47c6173bb"
+  },
+  {
+   "name": "dd_setup_entry",
+   "fix": "renderer",
+   "address": "0x42C590",
+   "length": 9,
+   "patch": "The DirectDraw set-up's first 4 instructions (PUSH ESI; PUSH EDI; PUSH EBP; SUB ESP,0x84) -> JMP brr_hook_dd_setup + 4 NOP: in full screen the mode becomes the screen's own size (the new renderer), then those instructions, and on at 0x42C599",
+   "sha256": "a0c422f50aea3bfb4cc00a0ee47f0ec3ab788de2a230b32a8e4c01606c81c505"
+  },
+  {
+   "name": "dd_mode_check",
+   "fix": "renderer",
+   "address": "0x42C74B",
+   "length": 20,
+   "patch": "The set-up's full-screen size check (320x200 -> cooperative level 0x51, 640x480 -> 0x11, else 'Invalid full screen size') from its 640x480 test -> JMP 0x42C782 (level 0x11, DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN) + NOPs, so the screen's own size is accepted",
+   "sha256": "6593b31258dfe8a6ef3baf878fbabe7ca8be2890003433988e4f9c97d9ce19de"
   },
   {
    "name": "music_check_call",

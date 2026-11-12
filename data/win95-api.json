@@ -121,6 +121,7 @@
    "EnableWindow",
    "EndDialog",
    "GetAsyncKeyState",
+   "GetClassLongA",
    "GetDC",
    "GetDlgItem",
    "GetDlgItemTextA",

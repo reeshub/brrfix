@@ -14,15 +14,17 @@ CAPTION "Big Red Launcher"
 FONT 8, "MS Sans Serif"
 BEGIN
     GROUPBOX        "Display", -1, 6, 4, 154, 96
-    LTEXT           "&Mode:", -1, 12, 18, 40, 8
-    COMBOBOX        IDC_MODE, 56, 16, 98, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    LTEXT           "Resolutio&n:", -1, 12, 34, 44, 8
-    COMBOBOX        IDC_RESOLUTION, 56, 32, 98, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    LTEXT           "&Window size:", IDC_SCALE_LABEL, 12, 50, 44, 8
-    COMBOBOX        IDC_SCALE, 56, 48, 98, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    AUTOCHECKBOX    "4:3 (non-&square pixels)", IDC_ASPECT, 12, 65, 140, 10, WS_TABSTOP
-    LTEXT           "&Full screen:", IDC_PRESET_LABEL, 12, 82, 44, 8
-    COMBOBOX        IDC_PRESET, 56, 80, 98, 70, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "&Renderer:", IDC_RENDERER_LABEL, 12, 18, 40, 8
+    COMBOBOX        IDC_RENDERER, 56, 16, 98, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "&Mode:", -1, 12, 32, 40, 8
+    COMBOBOX        IDC_MODE, 56, 30, 98, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Resolutio&n:", -1, 12, 46, 44, 8
+    COMBOBOX        IDC_RESOLUTION, 56, 44, 98, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "&Window size:", IDC_SCALE_LABEL, 12, 60, 44, 8
+    COMBOBOX        IDC_SCALE, 56, 58, 98, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    AUTOCHECKBOX    "4:3 (non-&square pixels)", IDC_ASPECT, 12, 72, 140, 10, WS_TABSTOP
+    LTEXT           "&Full screen:", IDC_PRESET_LABEL, 12, 85, 44, 8
+    COMBOBOX        IDC_PRESET, 56, 83, 98, 70, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
 
     GROUPBOX        "Smoothness", -1, 166, 4, 152, 70
     AUTOCHECKBOX    "&Interpolation (smooth motion)", IDC_INTERP, 172, 16, 140, 10, WS_TABSTOP

@@ -25,14 +25,14 @@ struct brr_config {
     int fix_vga, fix_clock, fix_cap, fix_interpolation, fix_camera, fix_mode_switch;
     int fix_menu_keys;       /* one menu action per key press (keys.c) */
     int resolution_high;     /* [display] resolution=high: the game's 640x480 mode (keypad +) */
-    int menu_fill;           /* [display] menu_scaling=fill: menus scaled to fill the picture (render.c) */
+    int renderer_new;        /* [display] renderer=new: Phase 3c's renderer (render.c); original = the game's */
     int language;            /* [display] language: 1-7 (ENG, USA, FRE, GER, ITA, SPA, JAP) */
     int clock_original;      /* emulate the original 14 ms callback timer instead */
     uint32_t rate_milli;     /* ticks per 1000 s: 70000 = 70.0 Hz */
     int cap;                 /* catch-up cap in ticks (original 35) */
     int frame_limit;         /* frames per second; FRAME_LIMIT_AUTO = display refresh, 0 = unlocked */
     int window_scale;        /* 0 = auto (largest whole number that fits), else 1..8 */
-    int window_aspect43;     /* stretch the height by 1.2, as a 4:3 monitor showed 320x200 */
+    int window_aspect43;     /* [display] aspect=4:3: 320x200 pictures at the 4:3 shape (window; new renderer) */
     int debug_log_mouse;     /* log mouse positions in a window (tests) */
     int music, music_volume, music_follow_game;  /* [music] */
     int controller, pad_deadzone, pad_sensitivity, pad_curve, pad_triggers, pad_analogue;  /* [controller] */
@@ -101,7 +101,12 @@ void __cdecl brr_after_draw(void);
 #define DISPLAY_ASK 2
 
 /* render.c (Phase 3c) */
-extern int brr_menu_fill_active;
+extern int brr_renderer_active;
+extern uint32_t brr_dd_setup_continue;
+int brr_renderer_decide(int cnc_ddraw);
+const uint8_t *brr_render_compose(int out_w, int out_h, int out_pitch);
+uint32_t __cdecl brr_render_mode(uint32_t windowed);
+void brr_hook_dd_setup(void);
 void __cdecl brr_render_before_present(void);
 void __cdecl brr_render_after_present(void);
 uint32_t __cdecl brr_menu_mouse(void);

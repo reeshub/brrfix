@@ -42,6 +42,8 @@
         extrn   _brr_render_after_present:near
         extrn   _brr_menu_mouse:near
         extrn   _brr_music_reassert:near
+        extrn   _brr_render_mode:near
+        extrn   _brr_dd_setup_continue:dword
         extrn   _brr_orig_music_check:dword
 
         public  _brr_TIMER_Init, _brr_TIMER_Shutdown, _brr_TIMER_Handler
@@ -52,6 +54,7 @@
         public  _brr_call_game_atan, _brr_hook_cam4, _brr_hook_present_window
         public  _brr_hook_display_choice, _brr_hook_present, _brr_hook_joystick
         public  _brr_hook_menu_hotspots, _brr_hook_menu_mouse, _brr_hook_music_check
+        public  _brr_hook_dd_setup
 
         .code
 
@@ -314,6 +317,34 @@ _brr_hook_music_check:
         call    _brr_music_reassert
         popad
         jmp     dword ptr [_brr_orig_music_check]
+
+; The DirectDraw set-up (0x42C590) is entered by a JMP to here (site dd_setup_entry). Its
+; arguments: EAX the window, EDX and EBX the display mode's width and height, ECX the frame's
+; width, then on the stack the frame's height, the frame buffer and the windowed flag. With the
+; new renderer in full screen (render.c), the mode becomes the screen's own size; the frame
+; stays the game's. Then the set-up's first instructions (replaced by the JMP), and on.
+_brr_hook_dd_setup:
+        push    eax
+        push    ecx
+        push    edx
+        movzx   eax, byte ptr [esp + 18h]
+        push    eax
+        call    _brr_render_mode
+        add     esp, 4
+        test    eax, eax
+        pop     edx
+        pop     ecx
+        jz      dd_setup_keep
+        movzx   edx, ax
+        shr     eax, 16
+        mov     ebx, eax
+dd_setup_keep:
+        pop     eax
+        push    esi
+        push    edi
+        push    ebp
+        sub     esp, 84h
+        jmp     dword ptr [_brr_dd_setup_continue]
 
 ; camera_mode4: AX = [ESI+10h] as before, but "previous" ([ESI+46h]) is only
 ; updated when this frame ran at least one tick (frame_ticks, 44BF80h).
