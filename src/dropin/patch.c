@@ -15,6 +15,7 @@ uint32_t brr_orig_playback_tick = 0x413400, brr_orig_playback_draw = 0x4131DC;
 uint32_t brr_orig_camera_update = 0x404908;
 uint32_t brr_rotation_continue = 0x446675, brr_game_atan = 0x412A20;
 uint32_t brr_orig_present_window = 0x42CD2C;
+uint32_t brr_orig_music_check = 0x409F00;
 /* shown on the main menu instead of the build date: "V2.25WR FIX0.1.0" (it fits where
  * "V2.24WR (09-05-96)" was) */
 static const char version_text[] = "FIX" BRRFIX_VERSION;
@@ -125,6 +126,7 @@ static int enabled(const char *fix)
         return cfg.vsync;
     if (!strcmp(fix, "fine_angles"))
         return cfg.fine_angles;
+    if (!strcmp(fix, "music")) return cfg.music;
     if (!strcmp(fix, "camera")) return cfg.fix_camera;
     if (!strcmp(fix, "mode_switch")) return cfg.fix_mode_switch;
     if (!strcmp(fix, "language")) return cfg.language >= 1 && cfg.language <= 7;
@@ -202,6 +204,9 @@ static int replacement(const struct site_info *s, uint8_t *out)
     } else if (!strcmp(n, "display_choice") && s->length == 5) {
         out[0] = 0xE8;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_display_choice);
+    } else if (!strcmp(n, "music_check_call") && s->length == 5) {
+        out[0] = 0xE8;
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_music_check);
     } else if (!strcmp(n, "present_window_call") && s->length == 5) {
         out[0] = 0xE8;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_present_window);

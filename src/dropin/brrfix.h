@@ -122,6 +122,8 @@ void brr_hook_menu_hotspots(void);
 /* music.c */
 int brr_music_check(void);
 void brr_music_start(void);
+void __cdecl brr_music_reassert(void);
+void brr_hook_music_check(void);
 
 /* display.c */
 extern uint32_t brr_display_windowed, brr_display_fullscreen, brr_display_prompt;
@@ -138,6 +140,7 @@ extern int brr_cnc_ddraw, brr_vsync_active;
 void __cdecl brr_before_present_window(void);
 void brr_hook_present_window(void);
 extern uint32_t brr_orig_present_window;
+extern uint32_t brr_orig_music_check;
 
 /* angles.c */
 extern int brr_fine_angles_active;

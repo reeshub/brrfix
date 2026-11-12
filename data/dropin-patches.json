@@ -237,6 +237,14 @@
    "length": 56,
    "patch": "0x4274FC's mapping of the mouse into the menu (only at exactly 640x480: x / 2, (y - 40) / 2) -> CALL brr_hook_menu_mouse (x * 320 / width, y * 200 / height, any size) + JMP to its stores + NOPs",
    "sha256": "cfc32948bb8eae0d3493b246eaeed977daa1bba9cefbefd4743d1da47c6173bb"
+  },
+  {
+   "name": "music_check_call",
+   "fix": "music",
+   "address": "0x4011D3",
+   "length": 5,
+   "patch": "WinMain: CALL 0x409F00 (the start-up music check, just after the DirectDraw set-up) -> CALL brr_hook_music_check, which puts our mciSendCommandA back in the import slot 0x56C160 (cnc-ddraw's hooks replace it during the set-up), then runs the check",
+   "sha256": "ee617de270097cad1ebc33aadf85d88d65e1cc9b52db789610b265c73883836f"
   }
  ],
  "protected_about": "Game functions reachable from the race tick (direct calls, Phase 3 call graph) except approach_clamped and FUN_004274fc (the menus' mouse position, skipped in a race), which are patched on purpose. The DLL hashes them before and after patching.",

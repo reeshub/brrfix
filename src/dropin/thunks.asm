@@ -41,6 +41,8 @@
         extrn   _brr_render_before_present:near
         extrn   _brr_render_after_present:near
         extrn   _brr_menu_mouse:near
+        extrn   _brr_music_reassert:near
+        extrn   _brr_orig_music_check:dword
 
         public  _brr_TIMER_Init, _brr_TIMER_Shutdown, _brr_TIMER_Handler
         public  _brr_hook_clock_read, _brr_hook_retrace, _brr_hook_race_tick
@@ -49,7 +51,7 @@
         public  _brr_rotation_original, _brr_call_rotation_original
         public  _brr_call_game_atan, _brr_hook_cam4, _brr_hook_present_window
         public  _brr_hook_display_choice, _brr_hook_present, _brr_hook_joystick
-        public  _brr_hook_menu_hotspots, _brr_hook_menu_mouse
+        public  _brr_hook_menu_hotspots, _brr_hook_menu_mouse, _brr_hook_music_check
 
         .code
 
@@ -304,6 +306,14 @@ _brr_hook_menu_hotspots:
         call    _brr_after_menu_hotspots
         popad
         ret
+
+; WinMain's call to its music check (0x409F00), just after the DirectDraw set-up: put our
+; mciSendCommandA back in the import slot (cnc-ddraw's hooks replace it), then run the check.
+_brr_hook_music_check:
+        pushad
+        call    _brr_music_reassert
+        popad
+        jmp     dword ptr [_brr_orig_music_check]
 
 ; camera_mode4: AX = [ESI+10h] as before, but "previous" ([ESI+46h]) is only
 ; updated when this frame ran at least one tick (frame_ticks, 44BF80h).

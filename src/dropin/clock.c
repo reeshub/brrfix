@@ -260,6 +260,8 @@ void brr_clock_report(int final)
 uint32_t __cdecl brr_clock_read(void)
 {
     static int started;
+    if (cfg.music)
+        brr_music_reassert();
     if (!started) {
         started = 1;
         choose_pacing();

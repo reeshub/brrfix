@@ -372,6 +372,29 @@ int brr_music_check(void)
     return 1;
 }
 
+/* cnc-ddraw (in full screen, hook=3 or 4) rewrites every local module's imports when the
+ * game sets up DirectDraw, mciSendCommandA among them, and its replacement calls Windows'
+ * own: the CD music never reached us (under Wine: no music). So ours goes back in front
+ * after the set-up (site music_check_call, just before WinMain's music check at 0x409F00)
+ * and on every frame; whatever had replaced it becomes the next in line. */
+static int hooked;
+
+void __cdecl brr_music_reassert(void)
+{
+    static int logged;
+    uint32_t current = *MCI_SLOT;
+    DWORD old;
+    if (!hooked || current == (uint32_t)brr_mci)
+        return;
+    real_mci = (mci_fn)current;
+    VirtualProtect(MCI_SLOT, 4, PAGE_READWRITE, &old);
+    *MCI_SLOT = (uint32_t)brr_mci;
+    VirtualProtect(MCI_SLOT, 4, old, &old);
+    if (logged++ < 3)
+        brr_log("music: the game's mciSendCommandA import had been replaced (by cnc-ddraw's hooks, at 0x%08lX); "
+                "ours is back in front of it", (unsigned long)current);
+}
+
 void brr_music_start(void)
 {
     char base[MAX_PATH], *slash;
@@ -398,6 +421,7 @@ void brr_music_start(void)
     VirtualProtect(MCI_SLOT, 4, PAGE_READWRITE, &old);
     *MCI_SLOT = (uint32_t)brr_mci;
     VirtualProtect(MCI_SLOT, 4, old, &old);
+    hooked = 1;
     if (tracks_found)
         brr_log("music: %d tracks in %s; the game's CD audio plays them (volume %d%%%s)", tracks_found, folder,
                 cfg.music_volume, cfg.music_follow_game ? " x the game's CD volume" : "");
