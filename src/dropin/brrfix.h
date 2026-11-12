@@ -33,7 +33,8 @@ struct brr_config {
     int frame_limit;         /* frames per second; FRAME_LIMIT_AUTO = display refresh, 0 = unlocked */
     int window_scale;        /* 0 = auto (largest whole number that fits), else 1..8 */
     int window_aspect43;     /* [display] aspect=4:3: 320x200 pictures at the 4:3 shape (window; new renderer) */
-    int max_draw_distance;   /* [display] max_draw_distance: experimental, 0 = off; races drawn at vision 25, texture 25 */
+    int max_draw_distance;   /* [display] max_draw_distance: experimental; 0 = the game's own, 25 = the
+                              * furthest its grid holds, 26-60 = further, with extra passes (distance.c) */
     int debug_log_mouse;     /* log mouse positions in a window (tests) */
     int music, music_volume, music_follow_game;  /* [music] */
     int controller, pad_deadzone, pad_sensitivity, pad_curve, pad_triggers, pad_analogue;  /* [controller] */
@@ -108,12 +109,23 @@ int brr_renderer_decide(int cnc_ddraw);
 const uint8_t *brr_render_compose(int out_w, int out_h, int out_pitch);
 uint32_t __cdecl brr_render_mode(uint32_t windowed);
 void brr_hook_dd_setup(void);
-/* Experimental: site render_view_entry (thunks.asm) draws the view with the distances
- * below, then puts the player's own back */
+/* Experimental draw distance: site render_view_entry (thunks.asm) draws each view with the
+ * vision distance at 25 (the most the game's 64x64 visible-area grid holds; the game's own
+ * limit is 22) and the texture distance at brr_draw_texture, then puts the player's own back */
 extern uint32_t brr_render_view_continue;
-#define DRAW_DISTANCE_MAX_VISION 25   /* the most the 64x64 visible-area grid holds (game: 22) */
-#define DRAW_DISTANCE_MAX_TEXTURE 25  /* textures as far as the view reaches (game: 14) */
+extern uint32_t brr_draw_vision, brr_draw_texture;
+#define DRAW_DISTANCE_GRID_MAX 25
+#define DRAW_DISTANCE_FAR_MAX 60   /* keeps depths under 32,767 and the tables' sums in 32 bits */
 void brr_hook_render_view(void);
+
+/* distance.c: the far passes beyond the grid (site landscape_walk_call) */
+extern int brr_far_distance;
+extern uint32_t brr_landscape_walk_fn, brr_landscape_walk_loop, brr_landscape_tables_fn;
+uint32_t __cdecl brr_landscape_walk(void);
+void brr_hook_landscape_walk(void);
+uint32_t brr_call_landscape_walk(void);     /* thunks.asm: the game's walk, 0x41D5E4 */
+void brr_call_landscape_tables(void);       /* the game's camera-space tables, 0x41D24C */
+void brr_call_landscape_far_walk(void);     /* the walk's loop (0x41D618) on our grid */
 void __cdecl brr_render_before_present(void);
 void __cdecl brr_render_after_present(void);
 uint32_t __cdecl brr_menu_mouse(void);

@@ -62,7 +62,8 @@ BEGIN
     LTEXT           "&Catch-up:", -1, 156, 188, 34, 8
     COMBOBOX        IDC_CAP, 192, 186, 64, 50, CBS_DROPDOWNLIST | WS_TABSTOP
     AUTOCHECKBOX    "Lo&g", IDC_LOG, 266, 187, 40, 10, WS_TABSTOP
-    AUTOCHECKBOX    "Ma&x out draw distance (experimental)", IDC_MAXDRAW, 12, 204, 200, 10, WS_TABSTOP
+    LTEXT           "Draw distance:", -1, 12, 206, 50, 8
+    COMBOBOX        IDC_DRAWDIST, 64, 204, 136, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
 
     AUTOCHECKBOX    "S&kip this window next time (to see it again, hold Shift while starting, or use -setup)", IDC_SKIP, 8, 228, 310, 10, WS_TABSTOP
     PUSHBUTTON      "Patch the DOS ve&rsion...", IDC_DOSPATCH, 8, 246, 96, 14, WS_TABSTOP

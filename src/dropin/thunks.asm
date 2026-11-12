@@ -48,6 +48,10 @@
         extrn   _brr_render_view_continue:dword
         extrn   _brr_draw_vision:dword
         extrn   _brr_draw_texture:dword
+        extrn   _brr_landscape_walk:near
+        extrn   _brr_landscape_walk_fn:dword
+        extrn   _brr_landscape_walk_loop:dword
+        extrn   _brr_landscape_tables_fn:dword
 
         public  _brr_TIMER_Init, _brr_TIMER_Shutdown, _brr_TIMER_Handler
         public  _brr_hook_clock_read, _brr_hook_retrace, _brr_hook_race_tick
@@ -57,7 +61,8 @@
         public  _brr_call_game_atan, _brr_hook_cam4, _brr_hook_present_window
         public  _brr_hook_display_choice, _brr_hook_present, _brr_hook_joystick
         public  _brr_hook_menu_hotspots, _brr_hook_menu_mouse, _brr_hook_music_check
-        public  _brr_hook_dd_setup, _brr_hook_render_view
+        public  _brr_hook_dd_setup, _brr_hook_render_view, _brr_hook_landscape_walk
+        public  _brr_call_landscape_walk, _brr_call_landscape_tables, _brr_call_landscape_far_walk
 
         .code
 
@@ -386,5 +391,52 @@ render_view_original:
         push    edi
         push    ebp
         jmp     dword ptr [_brr_render_view_continue]
+
+; Site landscape_walk_call: render_view's CALL 0x41D5E4 (the landscape walk) comes here:
+; distance.c runs the walk, then the far passes. EAX is the walk's result.
+_brr_hook_landscape_walk:
+        pushad
+        call    _brr_landscape_walk
+        mov     [esp + 28], eax
+        popad
+        ret
+
+; For distance.c: the game's landscape walk (0x41D5E4) and camera-space tables (0x41D24C),
+; with every register kept.
+_brr_call_landscape_walk:
+        pushad
+        call    dword ptr [_brr_landscape_walk_fn]
+        mov     [esp + 28], eax
+        popad
+        ret
+_brr_call_landscape_tables:
+        pushad
+        call    dword ptr [_brr_landscape_tables_fn]
+        popad
+        ret
+
+; One far pass: the walk on the grid as distance.c filled it. Its first instructions as
+; at 0x41D5E4 (the six PUSHes its end POPs, then the grid and the first column), but not
+; its CALL 0x42B854, which would start the landscape's polygon records again; then its
+; loop at 0x41D618, which returns here.
+_brr_call_landscape_far_walk:
+        pushad
+        call    far_walk_entry
+        popad
+        ret
+far_walk_entry:
+        push    ebx
+        push    ecx
+        push    edx
+        push    esi
+        push    edi
+        push    ebp
+        mov     eax, dword ptr ds:[44BA14h]
+        mov     dword ptr ds:[46BBACh], eax
+        mov     ax, word ptr ds:[46BBC0h]
+        mov     word ptr ds:[46BBDAh], ax
+        mov     ax, word ptr ds:[46BBDCh]
+        mov     word ptr ds:[46BBD0h], ax
+        jmp     dword ptr [_brr_landscape_walk_loop]
 
         end

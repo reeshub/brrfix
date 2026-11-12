@@ -259,8 +259,16 @@
    "fix": "draw_distance",
    "address": "0x4176C4",
    "length": 6,
-   "patch": "Experimental, [display] max_draw_distance=1 only. render_view's first 6 instructions (PUSH EBX, ECX, EDX, ESI, EDI, EBP) -> JMP brr_hook_render_view + NOP: the view is drawn with vision distance (detail_level, 0x44B044) 25 and texture distance (0x44B048) 25 instead of the game's limits of 22 and 14, and the player's values are put back afterwards; a trampoline repeats the PUSHes and continues at 0x4176CA",
+   "patch": "Experimental, [display] max_draw_distance above 0 only. render_view's first 6 instructions (PUSH EBX, ECX, EDX, ESI, EDI, EBP) -> JMP brr_hook_render_view + NOP: the view is drawn with vision distance (detail_level, 0x44B044) 25, the most the 64x64 visible-area grid holds (the game's limit is 22), and texture distance (0x44B048) max_draw_distance (the game's limit is 14); the player's values are put back afterwards; a trampoline repeats the PUSHes and continues at 0x4176CA",
    "sha256": "21f784e92e3fbe130cfc5c00c283283d3177b7e09bff21d535b1c31bda8ea6ec"
+  },
+  {
+   "name": "landscape_walk_call",
+   "fix": "draw_distance_far",
+   "address": "0x4177E7",
+   "length": 5,
+   "patch": "Experimental, [display] max_draw_distance 26-60 only. render_view: CALL 0x41D5E4 (the landscape walk) -> CALL brr_hook_landscape_walk: the walk with the vision distance at max_draw_distance (the flat squares' and the display list's fades), then distance.c's far passes: the squares beyond the near pass, in 61x61 windows of the 64x64 grid, each with the tables rebuilt by 0x41D24C (camera square shifted) and the walk's loop from 0x41D618",
+   "sha256": "8cee3a7e3d13d8fa410307122323f984664c15068f8654340efc3afd523bbc0c"
   },
   {
    "name": "music_check_call",

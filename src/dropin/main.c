@@ -115,6 +115,12 @@ static void load_config(void)
     GetPrivateProfileStringA("display", "aspect", "4:3", text, sizeof text, path);
     cfg.window_aspect43 = !lstrcmpiA(text, "4:3");
     cfg.max_draw_distance = ini_int(path, "display", "max_draw_distance", 0);
+    if (cfg.max_draw_distance < 0)
+        cfg.max_draw_distance = 0;
+    else if (cfg.max_draw_distance > 0 && cfg.max_draw_distance < DRAW_DISTANCE_GRID_MAX)
+        cfg.max_draw_distance = DRAW_DISTANCE_GRID_MAX;  /* 1 (the first experiment) means the most */
+    else if (cfg.max_draw_distance > DRAW_DISTANCE_FAR_MAX)
+        cfg.max_draw_distance = DRAW_DISTANCE_FAR_MAX;
     cfg.debug_log_mouse = ini_int(path, "debug", "log_mouse", 0);
     cfg.show_version = ini_int(path, "display", "show_version", 1);
     cfg.controller = ini_int(path, "controller", "enabled", 1);
