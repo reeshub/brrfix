@@ -25,6 +25,7 @@ struct brr_config {
     int fix_vga, fix_clock, fix_cap, fix_interpolation, fix_camera, fix_mode_switch;
     int fix_menu_keys;       /* one menu action per key press (keys.c) */
     int resolution_high;     /* [display] resolution=high: the game's 640x480 mode (keypad +) */
+    int menu_fill;           /* [display] menu_scaling=fill: menus scaled to fill the picture (render.c) */
     int language;            /* [display] language: 1-7 (ENG, USA, FRE, GER, ITA, SPA, JAP) */
     int clock_original;      /* emulate the original 14 ms callback timer instead */
     uint32_t rate_milli;     /* ticks per 1000 s: 70000 = 70.0 Hz */
@@ -98,6 +99,13 @@ void __cdecl brr_after_draw(void);
 #define DISPLAY_WINDOWED 0
 #define DISPLAY_FULLSCREEN 1
 #define DISPLAY_ASK 2
+
+/* render.c (Phase 3c) */
+extern int brr_menu_fill_active;
+void __cdecl brr_render_before_present(void);
+void __cdecl brr_render_after_present(void);
+uint32_t __cdecl brr_menu_mouse(void);
+void brr_hook_menu_mouse(void);
 
 /* controller.c */
 extern uint32_t brr_orig_joystick_to_keys;

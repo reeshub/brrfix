@@ -117,6 +117,10 @@ static int enabled(const char *fix)
         return cfg.fix_menu_keys || cfg.debug_log_keys;
     if (!strcmp(fix, "display"))
         return cfg.display_mode != DISPLAY_ASK;
+    if (!strcmp(fix, "present"))  /* our window drawing, and the menus' scaling */
+        return cfg.display_mode != DISPLAY_ASK || cfg.menu_fill;
+    if (!strcmp(fix, "menu_fill"))
+        return cfg.menu_fill;
     if (!strcmp(fix, "vsync"))
         return cfg.vsync;
     if (!strcmp(fix, "fine_angles"))
@@ -201,6 +205,13 @@ static int replacement(const struct site_info *s, uint8_t *out)
     } else if (!strcmp(n, "present_window_call") && s->length == 5) {
         out[0] = 0xE8;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_present_window);
+    } else if (!strcmp(n, "menu_double_call") && s->length == 5) {
+        /* NOPs: the menus' doubling isn't called; the present scales them (render.c) */
+    } else if (!strcmp(n, "menu_mouse") && s->length == 56) {
+        out[0] = 0xE8;  /* CALL brr_hook_menu_mouse: CX, BX = the menu's position */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_menu_mouse);
+        out[5] = 0xEB;  /* JMP to the stores after the original mapping */
+        out[6] = (uint8_t)(s->length - 7);
     } else if (!strcmp(n, "rotation_builder") && s->length == 5) {
         out[0] = 0xE9;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_rotation);
@@ -270,7 +281,7 @@ static LONG CALLBACK io_handler(EXCEPTION_POINTERS *info)
 void brr_patch_all(void)
 {
     char hex[65];
-    uint8_t bytes[32];
+    uint8_t bytes[64];
     int bad = 0;
     size_t count = sizeof SITES / sizeof SITES[0];
     if (!exe_matches()) {
@@ -312,6 +323,8 @@ void brr_patch_all(void)
         replacement(s, bytes);
         write_code(s->address, bytes, s->length);
         applied++;
+        if (!strcmp(s->name, "menu_double_call"))
+            brr_menu_fill_active = 1;
         brr_log("patched %s at 0x%06lX (%s, %lu bytes)", s->name, (unsigned long)s->address,
                 s->fix, (unsigned long)s->length);
     }

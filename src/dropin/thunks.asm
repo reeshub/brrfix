@@ -38,6 +38,9 @@
         extrn   _brr_display_fullscreen:dword
         extrn   _brr_display_prompt:dword
         extrn   _brr_orig_present_window:dword
+        extrn   _brr_render_before_present:near
+        extrn   _brr_render_after_present:near
+        extrn   _brr_menu_mouse:near
 
         public  _brr_TIMER_Init, _brr_TIMER_Shutdown, _brr_TIMER_Handler
         public  _brr_hook_clock_read, _brr_hook_retrace, _brr_hook_race_tick
@@ -46,7 +49,7 @@
         public  _brr_rotation_original, _brr_call_rotation_original
         public  _brr_call_game_atan, _brr_hook_cam4, _brr_hook_present_window
         public  _brr_hook_display_choice, _brr_hook_present, _brr_hook_joystick
-        public  _brr_hook_menu_hotspots
+        public  _brr_hook_menu_hotspots, _brr_hook_menu_mouse
 
         .code
 
@@ -237,19 +240,31 @@ display_windowed:
 display_fullscreen:
         jmp     dword ptr [_brr_display_fullscreen]
 
-; The present (0x42CE78) is entered by a JMP to here. In a window on a desktop that
-; isn't 256 colours, brr_present_gdi draws the frame and the present returns 1;
-; otherwise the replaced instructions run and the original continues at 0x42CE82.
+; The present (0x42CE78) is entered by a JMP to here. First the menus' scaling may put our
+; picture in its place (render.c); then, in a window on a desktop that isn't 256 colours,
+; brr_present_gdi draws the frame (the present returns 1); otherwise the original runs,
+; called as a subroutine (it takes no stack arguments and ends with a plain RET); finally
+; the game's buffer is put back. EAX is the present's result throughout.
 _brr_hook_present:
+        pushad
+        call    _brr_render_before_present
+        popad
         cmp     dword ptr [_brr_gdi_present], 0
-        je      present_original
+        je      present_game
         pushad
         call    _brr_present_gdi
         mov     [esp + 28], eax
         popad
         test    eax, eax
-        jz      present_original
+        jz      present_game
         mov     eax, 1
+        jmp     present_done
+present_game:
+        call    present_original
+present_done:
+        pushad
+        call    _brr_render_after_present
+        popad
         ret
 present_original:
         push    ebx
@@ -257,6 +272,17 @@ present_original:
         push    edx
         cmp     byte ptr ds:[52D720h], 0
         jmp     dword ptr [_brr_present_continue]
+
+; Site menu_mouse (0x4274FC's mapping of the mouse into the menu): CX = the menu's x and
+; BX = its y for the stores that follow; EAX is free there, EDX must survive.
+_brr_hook_menu_mouse:
+        push    edx
+        call    _brr_menu_mouse
+        pop     edx
+        mov     ecx, eax
+        shr     eax, 16
+        mov     ebx, eax
+        ret
 
 ; run_screen_frame's call to joystick_to_keys (0x428D1D): the pad's state goes into
 ; the game's joystick variables first, then the original runs.

@@ -112,7 +112,7 @@
   },
   {
    "name": "present_entry",
-   "fix": "display",
+   "fix": "present",
    "address": "0x42CE78",
    "length": 10,
    "patch": "The DirectDraw present's first instructions (PUSH EBX; PUSH ECX; PUSH EDX; CMP byte [0x52D720],0) -> JMP brr_hook_present + 5 NOPs. In a window on a desktop that isn't 256 colours, brr_present_gdi draws the 8-bit frame buffer with StretchDIBits and returns 1; otherwise a trampoline repeats the four instructions and continues at 0x42CE82",
@@ -221,9 +221,25 @@
    "length": 12,
    "patch": "Data: the frame's width, height and size, 320, 200, 64000 -> 640, 480, 307200 (command 0x65 sets the same)",
    "sha256": "8662c16b435cad5152a47376dc7e14c8c74e62138bb606013db7a786c98b89c0"
+  },
+  {
+   "name": "menu_double_call",
+   "fix": "menu_fill",
+   "address": "0x426358",
+   "length": 5,
+   "patch": "0x426358: CALL 0x4262B4 (the menus' doubling into the middle of a 640x480 frame) -> 5 NOP; the present scales the 320x200 menu to fill the frame instead (render.c)",
+   "sha256": "d2c47c763eb2609e74a97fee938d30f3cf1a0eeec7263de7d3dcdb88d1d0e9da"
+  },
+  {
+   "name": "menu_mouse",
+   "fix": "menu_fill",
+   "address": "0x42754E",
+   "length": 56,
+   "patch": "0x4274FC's mapping of the mouse into the menu (only at exactly 640x480: x / 2, (y - 40) / 2) -> CALL brr_hook_menu_mouse (x * 320 / width, y * 200 / height, any size) + JMP to its stores + NOPs",
+   "sha256": "cfc32948bb8eae0d3493b246eaeed977daa1bba9cefbefd4743d1da47c6173bb"
   }
  ],
- "protected_about": "Game functions reachable from the race tick (direct calls, Phase 3 call graph) except approach_clamped, which is patched on purpose. The DLL hashes them before and after patching.",
+ "protected_about": "Game functions reachable from the race tick (direct calls, Phase 3 call graph) except approach_clamped and FUN_004274fc (the menus' mouse position, skipped in a race), which are patched on purpose. The DLL hashes them before and after patching.",
  "protected": [
   {
    "name": "FUN_0040103b",
@@ -1328,12 +1344,6 @@
    "address": "0x426834",
    "size": 676,
    "sha256": "f4a7bc90880e1e26d981207187ad5b994b2ebb3ec2b862a84201bf02b585ee4f"
-  },
-  {
-   "name": "FUN_004274fc",
-   "address": "0x4274FC",
-   "size": 155,
-   "sha256": "ce722fc5a88785dfab6844e40e44f44813c76b62db746b692662bb5bd0cd8bca"
   },
   {
    "name": "FUN_00427650",
