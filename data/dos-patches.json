@@ -2628,7 +2628,7 @@
    "sha256": "f2b2148e4121451a5dad97e89c3e97957fba2495ffbd6efdec6c29c4b3cddbc5"
   },
   {
-   "name": "FUN_00025d5c",
+   "name": "text_lookup",
    "address": "0x25d5c",
    "length": 74,
    "sha256": "8458a0b1abe53f270f6505fc62b5d1015f7cd8576a96b4cbc76786e10358d124"
