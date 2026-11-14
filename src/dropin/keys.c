@@ -23,6 +23,11 @@
  * from menu_hotspots_tick only, for that call; nothing else sees a change. Keys our
  * hook never sees (joystick buttons, 0x73-0x7E, set each tick by joystick_to_keys) are
  * released when the key table shows them up, which also covers a missing hook.
+ * A key still held when the screen changes counts as having fired too: it was pressed
+ * for the previous screen, which may have acted on it without a key hotspot. The name
+ * screen (0x0F) finishes on Return through _KEY_down (name_entry_keys, 0x4098DC), and
+ * with an existing player or no name the main menu comes straight after, whose own
+ * Return hotspot would otherwise fire on its first tick (two screens for one press).
  *
  * [debug] log_keys=1 logs, to BRRFIX.LOG, every keyboard event the game's thread sees,
  * and on each tick the key table's changes, _KEY_down, any hotspot action and each
@@ -46,6 +51,7 @@ static uint8_t held[256];    /* down, as our hook last saw it (in the game's mes
 static uint8_t hidden[256];  /* hidden from this call of menu_hotspots_tick */
 static uint8_t noted[256];   /* this press's stopped repeat is in the log */
 static uint32_t stopped;     /* repeat firings stopped (for the log) */
+static int fix_screen = -1;  /* the screen at the previous tick */
 
 /* debug logging */
 static uint8_t last_keys[256];
@@ -174,6 +180,13 @@ void __cdecl brr_before_menu_hotspots(void)
         log_tick(keys);
     if (!cfg.fix_menu_keys)
         return;
+    if (*SCREEN != fix_screen) {
+        if (fix_screen != -1)
+            for (k = 0; k < 256; k++)
+                if (held[k])
+                    fired[k] = 1;
+        fix_screen = *SCREEN;
+    }
     latch = (uint16_t)*HOTSPOT_LATCH;
     for (k = 0; k < 256; k++) {
         if (!keys[k] && !held[k])  /* up: joystick buttons, or no hook */
