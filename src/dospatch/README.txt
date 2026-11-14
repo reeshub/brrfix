@@ -51,6 +51,7 @@ Patching on a DOS PC (or a Windows 95/98/ME MS-DOS Prompt)
    bottom right, for example "V2.25R F0.1 CIARV": patch 0.1 with the Camera,
    Interpolation, fine Angles, Roll and retrace (V) fixes on. (The game itself
    said V2.24 even after the official v2.25 update; the patch shows V2.25.)
+   Its credits line at the top includes "Camera fix by ctrl-alt-rees".
 It needs about 650 KB of free disk space while it works.
 
 To put the original back:

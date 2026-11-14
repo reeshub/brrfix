@@ -16,6 +16,14 @@
  * square pixels ([display] aspect); 640x480 pictures (races in high resolution) with
  * square pixels, as the game drew them. The menu's mouse is mapped back the same way
  * (site menu_mouse). Races at the screen's resolution are milestone 4.
+ * Experimental, [display] render_resolution=max ("Max" in the launcher): single-view races
+ * and the attract-mode demo drawn bigger than 640x480, up to RENDER_MAX_W x RENDER_MAX_H
+ * (1008x756), the most the 3D engine's 1,024-entry reciprocal table allows without a bigger
+ * one of ours: site view_max raises the view record's maximum before the engine allocates
+ * its picture, depth buffer and row table from it, and site set_view_entry turns the game's
+ * 640x480 race view into ours (race_view_size). The game's display stays 640x480 (menus,
+ * the window, DirectDraw, split screen and the menu mouse are unchanged); the HUD is still
+ * the game's own, scaled by its own code to the view's width.
  * Windows NT family only (Wine, Proton, Windows 2000 onwards): on Windows 95/98/ME the
  * original renderer stays. Docs: KNOWLEDGE "The renderer (Phase 3c)". */
 #include "brrfix.h"
@@ -31,6 +39,7 @@
 #define PRESENT_SOURCE (*(uint8_t *volatile *)0x52D738)
 #define MOUSE_X        (*(volatile int16_t *)0x44BBEC)  /* in the final picture's pixels */
 #define MOUSE_Y        (*(volatile int16_t *)0x44BBEE)
+#define SPLIT_SCREEN   (*(volatile int32_t *)0x44BE74)  /* -1: two views, one above the other */
 
 #define MENU_W 320
 #define MENU_H 200
@@ -40,6 +49,10 @@ uint32_t brr_dd_setup_continue = 0x42C599;
 static int screen_w, screen_h;         /* the screen's own resolution */
 static int mode_w, mode_h;             /* full screen: the mode we gave DirectDraw (0 in a window) */
 static int final_w, final_h;           /* the last final picture's size, for the mouse */
+uint32_t brr_set_view_continue = 0x425F7D;  /* set_view after the 5 bytes site set_view_entry replaces */
+static int race_w, race_h;             /* Max: the race view we last gave the game (0: none) */
+static int view_held, screenshot_held; /* Max: a screenshot is being taken at 640x480 */
+uint32_t brr_orig_screenshot_race = 0x423B5C, brr_orig_screenshot_tape = 0x423C40;
 
 /* ---- deciding (at patch time) ---- */
 
@@ -133,11 +146,14 @@ static int game_picture(const uint8_t **pixels, int *w, int *h, int *pitch)
     if (source == VIEW_BUFFER && VIEW_W == MENU_W && VIEW_H == MENU_H) {
         *w = MENU_W;
         *h = MENU_H;
+    } else if (race_w && source == VIEW_BUFFER && VIEW_W == race_w && VIEW_H == race_h) {
+        *w = race_w;  /* Max: our race view (a multiple of 16 wide, so the rows are packed) */
+        *h = race_h;
     } else {
         *w = DISPLAY_W;
         *h = DISPLAY_H;
     }
-    if (*w <= 0 || *h <= 0 || *w > 640 || *h > 480)
+    if (*w <= 0 || *h <= 0 || *w > RENDER_MAX_W || *h > RENDER_MAX_H)
         return 0;
     *pixels = source;
     *pitch = *w;
@@ -241,6 +257,87 @@ const uint8_t *brr_render_compose(int out_w, int out_h, int out_pitch)
     final_h = out_h;
     log_layout(w, h, out_w, out_h, &l);
     return out;
+}
+
+/* ---- Max: races drawn bigger (experimental) ---- */
+
+/* The race view for a final picture of out_w x out_h: 4:3 (the game's own field of view, and
+ * the shape its landscape grid is drawn for), a multiple of 16 wide, at most 1008x756 and never
+ * smaller than the game's 640x480, enlarged d times; the d that fills the most rows of the final
+ * picture, the smaller (the more detailed) on a tie. For example 1008x756 at 1x on 1280x800 or
+ * 1600x900, 720x540 at 2x on 1920x1080, 960x720 at 2x on 2560x1440 and at 3x on 3840x2160. */
+static void race_view_size(int out_w, int out_h, int *w, int *h)
+{
+    int d, best = 0;
+    *w = 640;
+    *h = 480;
+    for (d = 1; d <= 8; d++) {
+        int hh = out_h / d, ww = out_w / d;
+        if (hh > RENDER_MAX_H)
+            hh = RENDER_MAX_H;
+        if (ww > RENDER_MAX_W)
+            ww = RENDER_MAX_W;
+        if (ww > hh * 4 / 3)
+            ww = hh * 4 / 3;
+        ww &= ~15;
+        hh = ww * 3 / 4;
+        if (ww < 640 || hh < 480)
+            continue;
+        if (d * hh > best) {
+            best = d * hh;
+            *w = ww;
+            *h = hh;
+        }
+    }
+}
+
+/* Site set_view_entry: every call of the game's set_view (0x425F78; width in EAX, height in
+ * EDX). The single-view 640x480 race view becomes ours; anything else is left alone. Only the
+ * race screens ask for 640x480 (menus are 320x200, split screen 640x240 or 640x238); not only
+ * with the high-resolution flag set, as the race's set-up clears it for its first frame
+ * (0x426014). Returns height << 16 | width. */
+uint32_t __cdecl brr_view_size(uint32_t width, uint32_t height)
+{
+    static int logged_w, logged_h;
+    int out_w = mode_w ? mode_w : final_w, out_h = mode_w ? mode_h : final_h, w, h;
+    if ((width & 0xFFFF) != 640 || (height & 0xFFFF) != 480 || SPLIT_SCREEN || out_w <= 0 || view_held)
+        return (height & 0xFFFF) << 16 | (width & 0xFFFF);
+    race_view_size(out_w, out_h, &w, &h);
+    race_w = w;
+    race_h = h;
+    if (w != logged_w || h != logged_h) {
+        logged_w = w;
+        logged_h = h;
+        brr_log("render: Max: races drawn at %dx%d instead of 640x480, for the %dx%d final picture", w, h,
+                out_w, out_h);
+    }
+    return (uint32_t)h << 16 | (uint32_t)w;
+}
+
+/* Sites screenshot_race_call and screenshot_tape_call (run_screen_frame 0x428D9E, the race's
+ * PrtSc, and 0x428D62, the numbered TAPEDECK pictures): the game redraws the race and saves
+ * it as a PCX (0x4239BC), packing each row into a 1,280-byte buffer on the stack, which is
+ * just enough for 640 pixels (PCX packing can double a row). So with Max, the view goes back
+ * to 640x480 for the screenshot, and to ours after it. */
+void __cdecl brr_screenshot_begin(void)
+{
+    static int logged;
+    screenshot_held = race_w > 640 && VIEW_W == race_w && VIEW_H == race_h;
+    if (screenshot_held) {
+        if (logged++ < 4)
+            brr_log("render: Max: the game's screenshot drawn at 640x480 (its PCX writer's row buffer)");
+        view_held = 1;
+        brr_call_set_view(640, 480);
+    }
+}
+
+void __cdecl brr_screenshot_end(void)
+{
+    if (screenshot_held) {
+        view_held = 0;
+        brr_call_set_view(640, 480);  /* ours again, through site set_view_entry */
+        screenshot_held = 0;
+    }
 }
 
 /* ---- full screen: DirectDraw at the screen's resolution ---- */

@@ -27,7 +27,8 @@ Linux/Steam Deck through Proton, and makes it run smoothly:
   window's menu or keypad +), and its language chosen in the launcher.
 - The window's Full screen switch (and Tab), which broke the window, removed.
 - The main menu says V2.25, the official update you installed (the game
-  itself still said V2.24), with Big Red Launcher's version.
+  itself still said V2.24), with Big Red Launcher's version, and its credits
+  line at the top includes "Camera / Modern Windows fix by ctrl-alt-rees".
 
 It contains no part of the game. TIMER.DLL changes the game's code only in
 memory while it runs, and only after checking that WINRACE.EXE is the exact
@@ -138,6 +139,13 @@ draws races and replays further: 25 squares (the most the 1996 engine holds
 on its own; its slider stops at 22) with textures all the way out, or 44
 (double) with extra passes for the ground beyond. The in-game sliders are
 ignored unless it's set to the game's own.
+
+Experimental: "In-game render resolution" in the launcher ([display]
+render_resolution=max; new renderer only) draws races and the attract-mode
+demo with more pixels: up to 1008x756, the most the game's 3D engine can draw,
+at the 4:3 size that fills the most of the screen when enlarged by a whole
+number (1008x756 on 1280x800 or 1600x900, 720x540 doubled on 1920x1080). The
+dashboard is the game's own, enlarged by the game to match.
 
 Controllers
 -----------

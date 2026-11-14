@@ -6,9 +6,9 @@
 
 IDI_APP ICON "launcher.ico"
 
-/* 324x254 dialog units: about 486x413 pixels with its 8-point font at 96 dpi, plus the
- * title bar, so it fits a 640x480 screen above the taskbar (director, 2026-11-10) */
-IDD_SETTINGS DIALOG 0, 0, 324, 266
+/* 324x276 dialog units: about 486x449 pixels with its 8-point font at 96 dpi, about 473
+ * with Windows 95's title bar and frame, so it fits a 640x480 screen (director, 2026-11-10) */
+IDD_SETTINGS DIALOG 0, 0, 324, 276
 STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX
 CAPTION "Big Red Launcher"
 FONT 8, "MS Sans Serif"
@@ -56,22 +56,24 @@ BEGIN
     LTEXT           "Layo&ut:", IDC_PAD_L3, 262, 132, 30, 8
     COMBOBOX        IDC_LAYOUT, 262, 146, 50, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
 
-    GROUPBOX        "Advanced", -1, 6, 174, 312, 48
+    GROUPBOX        "Advanced", -1, 6, 174, 312, 58
     LTEXT           "&Tick rate:", -1, 12, 188, 34, 8
     COMBOBOX        IDC_RATE, 48, 186, 100, 50, CBS_DROPDOWNLIST | WS_TABSTOP
     LTEXT           "&Catch-up:", -1, 156, 188, 34, 8
     COMBOBOX        IDC_CAP, 192, 186, 64, 50, CBS_DROPDOWNLIST | WS_TABSTOP
     AUTOCHECKBOX    "Lo&g", IDC_LOG, 266, 187, 40, 10, WS_TABSTOP
-    LTEXT           "Draw distance:", -1, 12, 206, 50, 8
-    COMBOBOX        IDC_DRAWDIST, 64, 204, 136, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Draw distance:", -1, 12, 202, 96, 8
+    COMBOBOX        IDC_DRAWDIST, 110, 200, 136, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "In-game render resolution:", IDC_RENDERRES_LABEL, 12, 216, 96, 8
+    COMBOBOX        IDC_RENDERRES, 110, 214, 100, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
 
-    AUTOCHECKBOX    "S&kip this window next time (to see it again, hold Shift while starting, or use -setup)", IDC_SKIP, 8, 228, 310, 10, WS_TABSTOP
-    PUSHBUTTON      "Patch the DOS ve&rsion...", IDC_DOSPATCH, 8, 246, 96, 14, WS_TABSTOP
-    PUSHBUTTON      "Help", IDC_HELPFILE, 108, 246, 40, 14, WS_TABSTOP
-    PUSHBUTTON      "D&efaults", IDC_DEFAULTS, 152, 246, 40, 14, WS_TABSTOP
-    DEFPUSHBUTTON   "&Play", IDOK, 214, 244, 34, 16, WS_TABSTOP
-    PUSHBUTTON      "&Save", IDC_SAVE, 250, 244, 34, 16, WS_TABSTOP
-    PUSHBUTTON      "&Quit", IDCANCEL, 286, 244, 32, 16, WS_TABSTOP
+    AUTOCHECKBOX    "S&kip this window next time (to see it again, hold Shift while starting, or use -setup)", IDC_SKIP, 8, 238, 310, 10, WS_TABSTOP
+    PUSHBUTTON      "Patch the DOS ve&rsion...", IDC_DOSPATCH, 8, 256, 96, 14, WS_TABSTOP
+    PUSHBUTTON      "Help", IDC_HELPFILE, 108, 256, 40, 14, WS_TABSTOP
+    PUSHBUTTON      "D&efaults", IDC_DEFAULTS, 152, 256, 40, 14, WS_TABSTOP
+    DEFPUSHBUTTON   "&Play", IDOK, 214, 254, 34, 16, WS_TABSTOP
+    PUSHBUTTON      "&Save", IDC_SAVE, 250, 254, 34, 16, WS_TABSTOP
+    PUSHBUTTON      "&Quit", IDCANCEL, 286, 254, 32, 16, WS_TABSTOP
 END
 
 1 VERSIONINFO

@@ -82,6 +82,8 @@ static void load_config(void)
     cfg.resolution_high = !lstrcmpiA(text, "high");
     GetPrivateProfileStringA("display", "renderer", "new", text, sizeof text, path);
     cfg.renderer_new = lstrcmpiA(text, "original") != 0;
+    GetPrivateProfileStringA("display", "render_resolution", "original", text, sizeof text, path);
+    cfg.render_max = !lstrcmpiA(text, "max");
     GetPrivateProfileStringA("display", "language", "ENG", text, sizeof text, path);
     {
         static const char *const codes[] = {"ENG", "USA", "FRE", "GER", "ITA", "SPA", "JAP"};
@@ -225,13 +227,13 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
         brr_log("Big Red Launcher %s (TIMER.DLL replacement)", BRRFIX_VERSION);
         brr_log("config: vga=%d clock=%d cap=%d interpolation=%d camera=%d menu_keys=%d source=%s "
                 "tick_rate=%u.%03u catch_up_cap=%d frame_limit=%d vsync=%d pacing=%s delay=%d.%03u camera_smoothing=%d fine_angles=%d roll_fix=%d "
-                "resolution=%s renderer=%s aspect=%s max_draw_distance=%d",
+                "resolution=%s renderer=%s render_resolution=%s aspect=%s max_draw_distance=%d",
                 cfg.fix_vga, cfg.fix_clock, cfg.fix_cap, cfg.fix_interpolation, cfg.fix_camera, cfg.fix_menu_keys,
                 cfg.clock_original ? "original" : "qpc", cfg.rate_milli / 1000,
                 cfg.rate_milli % 1000, cfg.cap, cfg.frame_limit, cfg.vsync, cfg.pacing_dropin ? "dropin" : "cnc-ddraw",
                 cfg.interp_delay_milli / 1000, cfg.interp_delay_milli % 1000, cfg.camera_smoothing, cfg.fine_angles, cfg.camera_roll_fix,
                 cfg.resolution_high ? "high" : "low", cfg.renderer_new ? "new" : "original",
-                cfg.window_aspect43 ? "4:3" : "square", cfg.max_draw_distance);
+                cfg.render_max ? "max" : "original", cfg.window_aspect43 ? "4:3" : "square", cfg.max_draw_distance);
         brr_patch_all();
         brr_interp_setup();
         brr_debug_setup();

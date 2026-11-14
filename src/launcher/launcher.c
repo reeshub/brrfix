@@ -39,6 +39,7 @@ static const struct choice modes[] = {
     {"Full screen", "fullscreen"}, {"Windowed", "windowed"}, {0, 0}};
 static const struct choice resolutions[] = {{"High (640x480)", "high"}, {"Low (320x200)", "low"}, {0, 0}};
 static const struct choice renderers[] = {{"New (sharp)", "new"}, {"Original", "original"}, {0, 0}};
+static const struct choice render_resolutions[] = {{"Original", "original"}, {"Max (experimental)", "max"}, {0, 0}};
 static const struct choice distances[] = {{"The game's own (its sliders)", "0"}, {"Furthest in one pass (25)", "25"},
                                           {"Double (44, experimental)", "44"}, {0, 0}};
 static const struct choice languages[] = {
@@ -143,6 +144,9 @@ static void update_enabled(HWND dialog)
      * is already the screen's size */
     enable(dialog, IDC_PRESET_LABEL, full && !fresh);
     enable(dialog, IDC_PRESET, full && !fresh);
+    /* races drawn with more pixels: the new renderer composes them */
+    enable(dialog, IDC_RENDERRES_LABEL, fresh);
+    enable(dialog, IDC_RENDERRES, fresh);
     for (i = 0; i < sizeof music_controls / sizeof music_controls[0]; i++)
         enable(dialog, music_controls[i], checked(dialog, IDC_MUSIC));
     for (i = 0; i < sizeof pad_controls / sizeof pad_controls[0]; i++)
@@ -180,6 +184,8 @@ static const struct { int id; const char *text; } tips[] = {
     {IDC_DRAWDIST, "Experimental: how far races are drawn. Furthest in one pass: as far as the game's engine "
                    "allows (25 squares; its slider stops at 22), textured all the way. Double: 44 squares, with "
                    "extra passes. The in-game sliders are ignored unless it's the game's own."},
+    {IDC_RENDERRES, "Experimental, new renderer only: races drawn with more pixels, up to 1008x756 (the most the "
+                    "game's 3D engine can draw), enlarged by whole numbers to fill the screen. The HUD stays the game's own."},
     {IDC_DEFAULTS, "Puts every setting back to its default (press Save or Play to keep them)."},
     {IDC_SKIP, "Start the game straight away next time. Hold Shift while starting to see this window again."},
     {IDC_DOSPATCH, "Fixes the DOS version's RACING.EXE for DOS PCs and DOSBox, keeping the original as RACING.ORI."},
@@ -298,6 +304,7 @@ static void load(HWND dialog, int defaults)
     check(dialog, IDC_LOG, defaults ? 0 : ini_flag("log", "log", 0));
     GET(f, "display", "max_draw_distance", "0");
     fill(dialog, IDC_DRAWDIST, distances, !lstrcmpiA(v, "1") ? "25" : v);  /* 1: the first experiment's on */
+    fill(dialog, IDC_RENDERRES, render_resolutions, GET(f, "display", "render_resolution", "original"));
     if (!defaults)
         check(dialog, IDC_SKIP, ini_flag("launcher", "skip", 0));
 #undef GET
@@ -336,6 +343,8 @@ static void save(HWND dialog)
     ini_set(brrfix_ini, "controller", "layout", chosen(dialog, IDC_LAYOUT, layouts));
     ini_set(brrfix_ini, "log", "log", checked(dialog, IDC_LOG) ? "1" : "0");
     ini_set(brrfix_ini, "display", "max_draw_distance", chosen(dialog, IDC_DRAWDIST, distances));
+    if (!windows_9x)
+        ini_set(brrfix_ini, "display", "render_resolution", chosen(dialog, IDC_RENDERRES, render_resolutions));
     ini_set(brrfix_ini, "launcher", "skip", checked(dialog, IDC_SKIP) ? "1" : "0");
     if (windows_9x)
         ini_set(brrfix_ini, "clock", "vsync", checked(dialog, IDC_VSYNC) ? "1" : "0");
@@ -443,6 +452,8 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
         if (windows_9x) {  /* no cnc-ddraw (DirectDraw does full screen itself), no XInput, no new renderer */
             ShowWindow(GetDlgItem(dialog, IDC_RENDERER), SW_HIDE);
             ShowWindow(GetDlgItem(dialog, IDC_RENDERER_LABEL), SW_HIDE);
+            ShowWindow(GetDlgItem(dialog, IDC_RENDERRES), SW_HIDE);
+            ShowWindow(GetDlgItem(dialog, IDC_RENDERRES_LABEL), SW_HIDE);
             ShowWindow(GetDlgItem(dialog, IDC_PRESET), SW_HIDE);
             ShowWindow(GetDlgItem(dialog, IDC_PRESET_LABEL), SW_HIDE);
             for (i = 0; i < sizeof pad_controls / sizeof pad_controls[0]; i++)

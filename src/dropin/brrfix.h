@@ -26,6 +26,8 @@ struct brr_config {
     int fix_menu_keys;       /* one menu action per key press (keys.c) */
     int resolution_high;     /* [display] resolution=high: the game's 640x480 mode (keypad +) */
     int renderer_new;        /* [display] renderer=new: Phase 3c's renderer (render.c); original = the game's */
+    int render_max;          /* [display] render_resolution=max: experimental, races drawn at up to
+                              * 1008x756 (render.c; the new renderer only) */
     int language;            /* [display] language: 1-7 (ENG, USA, FRE, GER, ITA, SPA, JAP) */
     int clock_original;      /* emulate the original 14 ms callback timer instead */
     uint32_t rate_milli;     /* ticks per 1000 s: 70000 = 70.0 Hz */
@@ -88,6 +90,9 @@ void brr_clock_report(int final);
 /* patch.c */
 void brr_patch_all(void);
 void brr_sha256(const void *data, size_t size, uint8_t out[32]);
+extern uint32_t brr_orig_credit_lookup;
+const char *__cdecl brr_credit_text(char *name);
+void brr_hook_credit_lookup(void);
 
 /* interp.c */
 void brr_interp_setup(void);
@@ -126,6 +131,19 @@ void brr_hook_landscape_walk(void);
 uint32_t brr_call_landscape_walk(void);     /* thunks.asm: the game's walk, 0x41D5E4 */
 void brr_call_landscape_tables(void);       /* the game's camera-space tables, 0x41D24C */
 void brr_call_landscape_far_walk(void);     /* the walk's loop (0x41D618) on our grid */
+/* Experimental "Max" render resolution (render.c): site set_view_entry sends the game's
+ * set_view (0x425F78) through brr_view_size, which enlarges the single-view 640x480 race view */
+extern uint32_t brr_set_view_continue;
+uint32_t __cdecl brr_view_size(uint32_t width, uint32_t height);
+void brr_hook_set_view(void);
+void __cdecl brr_call_set_view(uint32_t width, uint32_t height);  /* thunks.asm: the game's set_view */
+extern uint32_t brr_orig_screenshot_race, brr_orig_screenshot_tape;
+void __cdecl brr_screenshot_begin(void);
+void __cdecl brr_screenshot_end(void);
+void brr_hook_screenshot_race(void);
+void brr_hook_screenshot_tape(void);
+#define RENDER_MAX_W 1008   /* the engine's reciprocal table covers spans up to 1,022 pixels; rows */
+#define RENDER_MAX_H 756    /* must be a multiple of 16 wide (its row stride and the 2D code's agree) */
 void __cdecl brr_render_before_present(void);
 void __cdecl brr_render_after_present(void);
 uint32_t __cdecl brr_menu_mouse(void);

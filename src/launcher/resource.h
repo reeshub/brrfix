@@ -15,6 +15,8 @@
 #define IDC_FRAMES       1012
 #define IDC_VSYNC        1013
 #define IDC_RENDERER_LABEL 1014
+#define IDC_RENDERRES    1015
+#define IDC_RENDERRES_LABEL 1016
 #define IDC_MUSIC        1020
 #define IDC_VOLUME       1021
 #define IDC_FOLDER       1022

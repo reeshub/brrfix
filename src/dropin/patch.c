@@ -22,6 +22,16 @@ uint32_t brr_draw_vision = DRAW_DISTANCE_GRID_MAX, brr_draw_texture = DRAW_DISTA
  * "V2.24WR (09-05-96)" was) */
 static const char version_text[] = "FIX" BRRFIX_VERSION;
 static const char version_number[] = "V2.25";  /* the installed patch; the game still said V2.24 */
+/* The main menu's credits ticker (0x4234D8): every 128 ticks it shows CRED_<n> from the
+ * language's text file (TOURN.<language> in TOURN.WAP), n counting 0 to 27 at 0x44BCE0. Ours
+ * is step 2, after the publisher's and the developer's lines: the count goes to 29 (site
+ * credit_count) and the lookup (site credit_lookup_call) gives our line there and CRED_<n-1>
+ * after it. Written like the file's own entries (position and colour, the line, a blank
+ * line); the game's font draws it in capitals, as it does theirs. */
+#define CREDIT_INDEX ((volatile int32_t *)0x44BCE0)
+#define CREDIT_STEP 2
+uint32_t brr_orig_credit_lookup = 0x42818C;
+static const char credit_text[] = "@X50,28 @C5\r\nCamera / Modern Windows fix by ctrl-alt-rees\r\n\r\n";
 static char language_code[4];       /* the game's start-up language, from [display] language */
 static char language_scratch[256];  /* where the config files' lang lines go instead */
 
@@ -30,6 +40,18 @@ static void hash_hex(const void *data, size_t size, char out[65])
     uint8_t digest[32];
     brr_sha256(data, size, digest);
     brr_sha256_hex(digest, out);
+}
+
+/* The credits lookup (site credit_lookup_call): our line, or NULL for the game's own lookup of
+ * the name, "CRED_<n>" in the game's 20-byte buffer, renumbered after our step. */
+const char *__cdecl brr_credit_text(char *name)
+{
+    int32_t n = *CREDIT_INDEX;
+    if (n == CREDIT_STEP)
+        return credit_text;
+    if (n > CREDIT_STEP)
+        wsprintfA(name, "CRED_%ld", (long)(n - 1));
+    return NULL;
 }
 
 /* ---- checks ---- */
@@ -133,6 +155,8 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "mode_switch")) return cfg.fix_mode_switch;
     if (!strcmp(fix, "language")) return cfg.language >= 1 && cfg.language <= 7;
     if (!strcmp(fix, "resolution")) return cfg.resolution_high;
+    if (!strcmp(fix, "credits")) return 1;
+    if (!strcmp(fix, "render_max")) return cfg.render_max && brr_renderer_active;  /* experimental */
     if (!strcmp(fix, "draw_distance")) return cfg.max_draw_distance > 0;  /* experimental, off by default */
     if (!strcmp(fix, "draw_distance_far")) return cfg.max_draw_distance > DRAW_DISTANCE_GRID_MAX;
     return 0;
@@ -202,6 +226,23 @@ static int replacement(const struct site_info *s, uint8_t *out)
     } else if (!strcmp(n, "joystick_call") && s->length == 5) {
         out[0] = 0xE8;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_joystick);
+    } else if (!strcmp(n, "set_view_entry") && s->length == 5) {
+        out[0] = 0xE9;  /* JMP brr_hook_set_view, which runs the 4 instructions replaced here */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_set_view);
+    } else if (!strcmp(n, "screenshot_race_call") && s->length == 5) {
+        out[0] = 0xE8;
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_screenshot_race);
+    } else if (!strcmp(n, "screenshot_tape_call") && s->length == 5) {
+        out[0] = 0xE8;
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_screenshot_tape);
+    } else if (!strcmp(n, "view_max") && s->length == 4) {
+        static const uint16_t size[2] = {RENDER_MAX_W, RENDER_MAX_H};
+        memcpy(out, size, 4);
+    } else if (!strcmp(n, "credit_lookup_call") && s->length == 5) {
+        out[0] = 0xE8;
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_credit_lookup);
+    } else if (!strcmp(n, "credit_count") && s->length == 1) {
+        out[0] = 29;  /* MOV EBX,28 -> MOV EBX,29: the game's 28 lines and ours */
     } else if (!strcmp(n, "menu_hotspots_call") && s->length == 5) {
         out[0] = 0xE8;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_menu_hotspots);

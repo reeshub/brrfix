@@ -25,6 +25,7 @@ extern void game_race_leave(void);
 extern void game_camera_update(u8 *record);  /* record in EAX */
 extern void game_copy_frame(void);           /* the game's buffer to video memory */
 extern void game_copy_frame_split(void);     /* the same, split screen, first view */
+extern char *game_text_lookup(char *name);   /* a language file's entry by name (fatal if missing) */
 
 extern volatile u16 game_timer_ticks;        /* +1 every 1/70 s (Miles timer interrupt) */
 extern volatile u8 game_frame_ticks;         /* ticks run this frame (at most the cap) */
@@ -46,6 +47,7 @@ extern u32 game_svga;                        /* non-zero in 640x480 (VESA mode 0
 extern const s16 game_sine_table[];          /* 1,280 entries; cosine = 256 entries on */
 extern volatile s32 game_rot_sin_a;          /* rotation_matrix's globals */
 extern volatile u32 game_rot_a, game_rot_b, game_rot_c;
+extern s32 game_credit_index;                /* the main menu's credits ticker: 0-27 */
 
 #define VEHICLE_SIZE  0x395u
 #define VEHICLE_COUNT 7
@@ -106,6 +108,7 @@ extern int brr_fine_active;
 extern int brr_fast;          /* the machine draws a frame in 3 ticks or fewer, on average */
 extern u32 brr_frames_drawn;
 s32 sar(s32 x, int n);
+char *brr_credit_lookup(char *name);
 
 /* ---- angles.c ---- */
 void brr_rotation_fine(struct rot_args *a);

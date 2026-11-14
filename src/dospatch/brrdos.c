@@ -479,3 +479,32 @@ void brr_present_split(void)
         wait_retrace();
     game_copy_frame_split();
 }
+
+/* The main menu's credits ticker (0x2E8D4, the twin of WINRACE.EXE 0x4234D8): every 128
+ * ticks it shows CRED_<n> from the language's text file (TOURN.<language> in TOURN.WAP),
+ * n counting 0 to 27 at 0x731A8. Ours is step 2, after the publisher's and the developer's
+ * lines: the count goes to 29 (site credit_count) and the lookup (site credit_lookup_call)
+ * gives our line there and CRED_<n-1> after it. Written like the file's own entries
+ * (position and colour, the line, a blank line); the font draws it in capitals. */
+#define CREDIT_STEP 2
+static const char credit_text[] = "@X90,28 @C5\r\nCamera fix by ctrl-alt-rees\r\n\r\n";
+
+char *brr_credit_lookup(char *name)   /* name: "CRED_<n>", in the game's 20-byte buffer */
+{
+    s32 n = game_credit_index;
+    if (n == CREDIT_STEP)
+        return (char *)credit_text;
+    if (n > CREDIT_STEP) {
+        char digits[12];
+        int count = 0, i = 5;
+        n--;
+        do {
+            digits[count++] = (char)('0' + n % 10);
+            n /= 10;
+        } while (n);
+        while (count)
+            name[i++] = digits[--count];
+        name[i] = 0;
+    }
+    return game_text_lookup(name);
+}

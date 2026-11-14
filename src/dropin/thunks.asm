@@ -52,6 +52,14 @@
         extrn   _brr_landscape_walk_fn:dword
         extrn   _brr_landscape_walk_loop:dword
         extrn   _brr_landscape_tables_fn:dword
+        extrn   _brr_credit_text:near
+        extrn   _brr_view_size:near
+        extrn   _brr_set_view_continue:dword
+        extrn   _brr_screenshot_begin:near
+        extrn   _brr_screenshot_end:near
+        extrn   _brr_orig_screenshot_race:dword
+        extrn   _brr_orig_screenshot_tape:dword
+        extrn   _brr_orig_credit_lookup:dword
 
         public  _brr_TIMER_Init, _brr_TIMER_Shutdown, _brr_TIMER_Handler
         public  _brr_hook_clock_read, _brr_hook_retrace, _brr_hook_race_tick
@@ -63,6 +71,8 @@
         public  _brr_hook_menu_hotspots, _brr_hook_menu_mouse, _brr_hook_music_check
         public  _brr_hook_dd_setup, _brr_hook_render_view, _brr_hook_landscape_walk
         public  _brr_call_landscape_walk, _brr_call_landscape_tables, _brr_call_landscape_far_walk
+        public  _brr_hook_credit_lookup, _brr_hook_set_view, _brr_call_set_view
+        public  _brr_hook_screenshot_race, _brr_hook_screenshot_tape
 
         .code
 
@@ -325,6 +335,76 @@ _brr_hook_music_check:
         call    _brr_music_reassert
         popad
         jmp     dword ptr [_brr_orig_music_check]
+
+; set_view (0x425F78; width in EAX, height in EDX) is entered by a JMP to here (site
+; set_view_entry): brr_view_size may give a bigger race view (render.c, Max). Then set_view's
+; first instructions (replaced by the JMP), and on. set_view itself changes EAX and EDX.
+_brr_hook_set_view:
+        push    ecx
+        push    edx
+        push    eax
+        call    _brr_view_size
+        add     esp, 8
+        pop     ecx
+        mov     edx, eax
+        shr     edx, 16
+        and     eax, 0FFFFh
+        push    ebx
+        push    ecx
+        push    esi
+        mov     esi, edx
+        jmp     dword ptr [_brr_set_view_continue]
+
+; cdecl brr_call_set_view(width, height): the game's set_view (0x425F78, through site
+; set_view_entry). It keeps EBX, ECX and ESI; EDI and EBP it doesn't touch.
+_brr_call_set_view:
+        mov     eax, [esp + 4]
+        mov     edx, [esp + 8]
+        push    ebx
+        push    esi
+        push    edi
+        mov     ebx, 425F78h
+        call    ebx
+        pop     edi
+        pop     esi
+        pop     ebx
+        ret
+
+; The race's screenshots (run_screen_frame's CALLs at 0x428D9E and 0x428D62): with Max,
+; render.c puts the view back to 640x480 around them. Every register is kept.
+_brr_hook_screenshot_race:
+        push    dword ptr [_brr_orig_screenshot_race]
+        jmp     screenshot_common
+_brr_hook_screenshot_tape:
+        push    dword ptr [_brr_orig_screenshot_tape]
+screenshot_common:
+        pushad
+        call    _brr_screenshot_begin
+        popad
+        call    dword ptr [esp]
+        pushad
+        call    _brr_screenshot_end
+        popad
+        add     esp, 4
+        ret
+
+; The credits ticker's text lookup (0x423511, site credit_lookup_call): EAX = the entry's
+; name. brr_credit_text gives our line, or 0 for the game's own lookup (0x42818C) of the
+; name, which it may have renumbered. Returns the text in EAX; every other register kept.
+_brr_hook_credit_lookup:
+        push    ecx
+        push    edx
+        push    eax
+        call    _brr_credit_text
+        pop     edx
+        test    eax, eax
+        jnz     credit_done
+        mov     eax, edx
+        call    dword ptr [_brr_orig_credit_lookup]
+credit_done:
+        pop     edx
+        pop     ecx
+        ret
 
 ; The DirectDraw set-up (0x42C590) is entered by a JMP to here (site dd_setup_entry). Its
 ; arguments: EAX the window, EDX and EBX the display mode's width and height, ECX the frame's

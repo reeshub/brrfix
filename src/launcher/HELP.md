@@ -220,6 +220,23 @@ settings are kept for when you go back. If something looks wrong (missing
 patches of ground, cracks, flicker in the distance), go back to the game's own
 and tell us.
 
+**In-game render resolution** (new renderer only; not on Windows 95, 98 or ME)
+
+How many pixels races and the attract-mode demo are drawn with:
+
+- **Original** (the default): the game's own 640x480.
+- **Max (experimental):** up to 1008x756, the most the game's 3D engine can
+  draw. The size is the 4:3 picture that, enlarged by a whole number, fills
+  the most of your screen or window, and never less than 640x480: 1008x756
+  shown as it is on 1280x800 (Steam Deck), 1366x768 or 1600x900; 720x540
+  doubled on 1920x1080; 960x720 doubled on 2560x1440 and tripled on
+  3840x2160. The picture keeps the game's own view, with more detail. The
+  dashboard (position, laps, map) is the game's own, enlarged by the game
+  itself to match, so its edges may look a little uneven. Menus and
+  split-screen races stay as they are.
+
+If something looks wrong in a race, go back to Original and tell us.
+
 ## The buttons
 
 - **Skip this window next time:** starts the game straight away from now on.

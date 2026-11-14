@@ -167,6 +167,22 @@
    "sha256": "461fa5c7aaae4b74c2ebcf9e911445d5e5dcddbce67c37ff348ff3fcada452e0"
   },
   {
+   "name": "credit_lookup_call",
+   "fix": "credits",
+   "address": "0x423511",
+   "length": 5,
+   "patch": "The main menu's credits ticker (0x4234D8, every 128 ticks): CALL 0x42818C (the language text lookup of \"CRED_<n>\", n from the counter 0x44BCE0) -> CALL brr_hook_credit_lookup: at step 2, after the publisher's and the developer's lines, our own line (\"Camera / Modern Windows fix by ctrl-alt-rees\", director 2026-11-14), and after it CRED_<n-1>, so every one of the game's 28 lines still shows, in order",
+   "sha256": "f0b14b6ff1ad572acf05678e74de4842330682f32b37ce280a462bc58dd14282"
+  },
+  {
+   "name": "credit_count",
+   "fix": "credits",
+   "address": "0x423536",
+   "length": 1,
+   "patch": "The credits ticker's MOV EBX,0x1C (the counter wraps at 28 lines) -> 0x1D: 29 steps, the game's 28 lines and ours",
+   "sha256": "bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"
+  },
+  {
    "name": "window_command_66",
    "fix": "mode_switch",
    "address": "0x40213D",
@@ -237,6 +253,38 @@
    "length": 56,
    "patch": "0x4274FC's mapping of the mouse into the menu (only at exactly 640x480: x / 2, (y - 40) / 2) -> CALL brr_hook_menu_mouse (the inverse of the new renderer's layout: (x - left) / across, (y - top) / down) + JMP to its stores + NOPs",
    "sha256": "cfc32948bb8eae0d3493b246eaeed977daa1bba9cefbefd4743d1da47c6173bb"
+  },
+  {
+   "name": "view_max",
+   "fix": "render_max",
+   "address": "0x44BE64",
+   "length": 4,
+   "patch": "Experimental, [display] render_resolution=max with the new renderer. The view record's maximum width and height (words 640, 480), from which the 3D engine (0x440610) allocates its 8-bit picture, 16-bit depth buffer and row table on its first call -> 1008, 756 (RENDER_MAX_W, RENDER_MAX_H), before WinMain",
+   "sha256": "e2bc3113551e4f212c03e36fd7ab43f4e606a99dedcc2c428ae7fa92b33628b1"
+  },
+  {
+   "name": "set_view_entry",
+   "fix": "render_max",
+   "address": "0x425F78",
+   "length": 5,
+   "patch": "Experimental, [display] render_resolution=max with the new renderer. set_view's first instructions (PUSH EBX; PUSH ECX; PUSH ESI; MOV ESI,EDX) -> JMP brr_hook_set_view: brr_view_size (render.c) turns the single-view 640x480 race view (split-screen flag 0x44BE74 clear) into the biggest 4:3 view up to 1008x756 that fills the final picture best by a whole number; every other size passes through; then set_view runs as before from 0x425F7D",
+   "sha256": "7c030aa13f378d6f84082190a9636ef53af80882de32ff9ae933e4296aa6fde9"
+  },
+  {
+   "name": "screenshot_race_call",
+   "fix": "render_max",
+   "address": "0x428D9E",
+   "length": 5,
+   "patch": "Experimental, with set_view_entry. run_screen_frame's race screenshot (PrtSc, key-table index 0x54): CALL 0x423B5C -> CALL brr_hook_screenshot_race: with the race drawn bigger than 640x480, the view goes back to 640x480 for the screenshot (its PCX writer 0x4239BC packs each row into a 1,280-byte stack buffer, enough for 640 pixels only) and to ours afterwards",
+   "sha256": "d9b84b6d5fbf26cbf755f1963750bc9d65a5614ffad2e6ec24aea20569216161"
+  },
+  {
+   "name": "screenshot_tape_call",
+   "fix": "render_max",
+   "address": "0x428D62",
+   "length": 5,
+   "patch": "Experimental, with set_view_entry. run_screen_frame's numbered TAPEDECK screenshot: CALL 0x423C40 -> CALL brr_hook_screenshot_tape, as screenshot_race_call",
+   "sha256": "0ecfe6d255ff3a61303303e24f92472e748f4b7894de67f68ce5513d6c685938"
   },
   {
    "name": "dd_setup_entry",
