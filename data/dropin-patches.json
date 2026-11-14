@@ -330,37 +330,37 @@
  "protected_about": "Game functions reachable from the race tick (direct calls, Phase 3 call graph) except approach_clamped and FUN_004274fc (the menus' mouse position, skipped in a race), which are patched on purpose. The DLL hashes them before and after patching.",
  "protected": [
   {
-   "name": "FUN_0040103b",
+   "name": "fixed_mul15",
    "address": "0x40103B",
    "size": 10,
    "sha256": "745e5ab0a340cea46a04cbef1050d4afe31d9b5cb2913c54063fa05b70d25b69"
   },
   {
-   "name": "FUN_00401045",
+   "name": "mul_div",
    "address": "0x401045",
    "size": 5,
    "sha256": "d9acd0f02c49d4f4ec37c088106b4cb625335b3f2b09902340dcb50057490594"
   },
   {
-   "name": "camera_look_keys",
+   "name": "camera_mouse_look",
    "address": "0x402C4C",
    "size": 140,
    "sha256": "01afe1ae9e3cd41e2b7a04d9193d6e64893bb3f7061ab87f3bee36f660715a35"
   },
   {
-   "name": "FUN_00402cd8",
+   "name": "camera_incar_defaults",
    "address": "0x402CD8",
    "size": 48,
    "sha256": "b0d3a9ab7139fef5c9d56baae784d734ae55de3ee1f1d5b218e1e531e07f4920"
   },
   {
-   "name": "caseD_1",
+   "name": "camera_switch_mode1",
    "address": "0x402D1C",
    "size": 209,
    "sha256": "3cae84136ad3cd2cd570e0680d656a0bfe76b3eba5036a062d00ba64689327d1"
   },
   {
-   "name": "FUN_00402df0",
+   "name": "camera_mode1_reset",
    "address": "0x402DF0",
    "size": 29,
    "sha256": "d76322b5721ede69e47dbe76a5c7f9dede1b78ec3f3b54a963866dafa406c74f"
@@ -372,187 +372,187 @@
    "sha256": "4915558809479f54e881b4ff2402542bbecf6d2dca0fbde8802aa8b731609e79"
   },
   {
-   "name": "FUN_004031bc",
+   "name": "camera_orbit_set_preset",
    "address": "0x4031BC",
    "size": 231,
    "sha256": "151a89c2033ce190906da703c036997eec2414fc1228a92b8fb9cff0200b368e"
   },
   {
-   "name": "caseD_0",
+   "name": "camera_switch_mode0",
    "address": "0x4032B8",
    "size": 263,
    "sha256": "89fe03d26326c266044035b8815cf61b50ad1d0dcd266ef1452e74e54aa9cb79"
   },
   {
-   "name": "thunk_FUN_004048b0",
+   "name": "camera_mode0_reset",
    "address": "0x4033C0",
    "size": 5,
    "sha256": "0f7b989e916c2f6a23a332f4f0afe44922b93053705edb560a5adb283f71b409"
   },
   {
-   "name": "FUN_004034c8",
+   "name": "camera_orbit_to_mode0",
    "address": "0x4034C8",
    "size": 46,
    "sha256": "d6fd8447cd534a90d3d1b55194d885d207f8bd532f9096fb0b97d99e05442d4e"
   },
   {
-   "name": "FUN_004034f8",
+   "name": "camera_orbit_to_mode2",
    "address": "0x4034F8",
    "size": 46,
    "sha256": "2b87d35baa74a1390fa4d117abe1bdec2a9e1680dc28d5765f33422d9fcafd4b"
   },
   {
-   "name": "caseD_2",
+   "name": "camera_switch_mode2",
    "address": "0x40353C",
    "size": 304,
    "sha256": "32f921c7b049c8256df7a0ced33ff01b0e8b92d3de6c6f9910cf0b105623eab4"
   },
   {
-   "name": "thunk_FUN_004048b0",
+   "name": "camera_mode2_reset",
    "address": "0x40366C",
    "size": 5,
    "sha256": "9f60ef29e39bf2d309ff347a7a81e6288e11c85c1da1515feee31b12329a71c3"
   },
   {
-   "name": "FUN_004036c0",
+   "name": "camera_transition_start",
    "address": "0x4036C0",
    "size": 508,
    "sha256": "a85788b82bfae84c8b0aba62efad86bb2bf633c581ba17b7b099f5b638f02682"
   },
   {
-   "name": "FUN_00403a00",
+   "name": "camera_mode5_tick",
    "address": "0x403A00",
    "size": 183,
    "sha256": "b9f1b8356930f741c89b21e8175770aaa8070b2d623f59b2dbaf7c13ba5fc22b"
   },
   {
-   "name": "FUN_00403ac8",
+   "name": "camera_mode5_reset",
    "address": "0x403AC8",
    "size": 6,
    "sha256": "9317c554f7a647b7b4ab22ef118b26dc9a316d7a305e30100048808912fb15d8"
   },
   {
-   "name": "FUN_00403c70",
+   "name": "camera_vector_to_vehicle",
    "address": "0x403C70",
    "size": 98,
    "sha256": "c401f38444aada507ad299329e198bcf4815643afd70fedb93ad0fdb9a878077"
   },
   {
-   "name": "FUN_00403cd4",
+   "name": "camera_wrap_to_vehicle",
    "address": "0x403CD4",
    "size": 142,
    "sha256": "f4d18be62b48f276a4ace180293c00770014a5f00bd5edad10c68db1fad496ad"
   },
   {
-   "name": "FUN_00403d94",
+   "name": "camera_follow_orbit_yaw",
    "address": "0x403D94",
    "size": 143,
    "sha256": "b357e7f44ec9a63b1a538cb24377419732cdd7819a37af21545b1e03127b22fd"
   },
   {
-   "name": "FUN_00403e24",
+   "name": "camera_follow_orbit_pitch",
    "address": "0x403E24",
    "size": 134,
    "sha256": "40f91e335bbd809e06b4010773b86200ec66f3874d7dbfd85d8b2f5acf823136"
   },
   {
-   "name": "FUN_00403eac",
+   "name": "camera_follow_mouse",
    "address": "0x403EAC",
    "size": 317,
    "sha256": "59ff35e97e89d904f96d2b93ba12c19e83e890ebbc1d87392fd011b860964e70"
   },
   {
-   "name": "FUN_00403fec",
+   "name": "camera_follow_swing",
    "address": "0x403FEC",
    "size": 154,
    "sha256": "fb15880fb8e09c153790029546c9d69168855834232279e2705f872183a267cc"
   },
   {
-   "name": "FUN_00404088",
+   "name": "camera_mode4_tick",
    "address": "0x404088",
    "size": 557,
    "sha256": "6c2ea056f7b7cc31727452ab4bccaa35a60110ac8ee174679f544c940649fdb4"
   },
   {
-   "name": "FUN_004042b8",
+   "name": "camera_follow_set_preset",
    "address": "0x4042B8",
    "size": 119,
    "sha256": "c23ed447fea2e1c57d1fe861e3ca129a20b5904b55335af16f02a1e1937d5713"
   },
   {
-   "name": "FUN_00404340",
+   "name": "camera_orbit_from_follow",
    "address": "0x404340",
    "size": 142,
    "sha256": "c8687e034a7b06196f0f2cea31db55ba3fa6870633d62ce555332861f2da5996"
   },
   {
-   "name": "caseD_4",
+   "name": "camera_switch_mode4",
    "address": "0x4043D0",
    "size": 174,
    "sha256": "a29bf85fdb8d317b7e4b4ca0ab702a6241df4b78c0834de6a9f31b53264192e1"
   },
   {
-   "name": "FUN_00404484",
+   "name": "camera_mode4_reset",
    "address": "0x404484",
    "size": 181,
    "sha256": "6a1fc9b0439d68c1d70985157991aa5a543eec0a79e85615f2e302adccb78d4c"
   },
   {
-   "name": "FUN_00404654",
+   "name": "camera_mode3_tick",
    "address": "0x404654",
    "size": 1,
    "sha256": "ae3f4619b0413d70d3004b9131c3752153074e45725be13b9a148978895e359e"
   },
   {
-   "name": "caseD_3",
+   "name": "camera_switch_mode3",
    "address": "0x404658",
    "size": 8,
    "sha256": "228afbcdbfdaafe87eb96187543ecd546537f4505720ad8eaa77117f7e38d4e2"
   },
   {
-   "name": "thunk_FUN_004048b0",
+   "name": "camera_mode3_reset",
    "address": "0x404660",
    "size": 5,
    "sha256": "1951fc18d3fe983178d36790a74831ff061716f635d3680d77ff443823621128"
   },
   {
-   "name": "FUN_00404670",
+   "name": "camera_mouse_adjust",
    "address": "0x404670",
    "size": 33,
    "sha256": "0ddb56580e9285b04fec6583a48ad881564180c3f3cfc7712214f05c34e1b6ad"
   },
   {
-   "name": "FUN_00404694",
+   "name": "camera_mouse_adjust_clamped",
    "address": "0x404694",
    "size": 102,
    "sha256": "2dc3b8957759352d982baef7c6a55206c9560614581d8f1e324f7f7176f0bea6"
   },
   {
-   "name": "FUN_00404778",
+   "name": "camera_aim",
    "address": "0x404778",
    "size": 116,
    "sha256": "d526c2c0b31d057ba661b727eae745debf88eb0b66f0155230635ed601ffb172"
   },
   {
-   "name": "FUN_00404820",
+   "name": "camera_keep_above_ground",
    "address": "0x404820",
    "size": 44,
    "sha256": "5cc09f37ad1e2045b13f9d9bfcd33e75294410f71548aa8eb692a7b3421ebeb7"
   },
   {
-   "name": "FUN_0040484c",
+   "name": "camera_min_distance",
    "address": "0x40484C",
    "size": 40,
    "sha256": "6da90bb881d1958c7e2f054f7f69d79786a87c9b5d8b6440de39bda17e10903e"
   },
   {
-   "name": "FUN_00404874",
+   "name": "camera_clamp_distance",
    "address": "0x404874",
    "size": 58,
    "sha256": "530e68f99bed3d24f9e4a78f3c89d26fd5a8632e9bed4bf38205860c2138ef2d"
   },
   {
-   "name": "FUN_004048b0",
+   "name": "camera_orbit_snap",
    "address": "0x4048B0",
    "size": 64,
    "sha256": "f770b1c8868256936f87421a943f5e80354a381ce9813bfbd88991e08a531e95"
@@ -564,49 +564,49 @@
    "sha256": "3dff6820792d6d47ce7a5e8aad5201b2a3a6ec7992bf6f96b17624ca27d5b4ee"
   },
   {
-   "name": "FUN_00404a34",
+   "name": "camera_set_vehicle",
    "address": "0x404A34",
    "size": 90,
    "sha256": "3e1fde5d9247418894fc230edb7fc2bd9e436476d621c3062c944a280764af4d"
   },
   {
-   "name": "FUN_00404aa4",
+   "name": "camera_set_mode",
    "address": "0x404AA4",
    "size": 20,
    "sha256": "47a433e1bdb21aeadba8502cc2fbf88d98aeb9e558b0a68fca2d045c7f15f362"
   },
   {
-   "name": "FUN_00404af4",
+   "name": "camera_set_mode_and_vehicle",
    "address": "0x404AF4",
    "size": 135,
    "sha256": "29c1ab3874f3ee5ec9e3d87b3808ee5cc118066c06b23d4caa187f747ba42005"
   },
   {
-   "name": "FUN_00404be8",
+   "name": "camera_next_vehicle",
    "address": "0x404BE8",
    "size": 221,
    "sha256": "d6ad8ecb24f40fb9a97b05ec9d312de5f888ffbde047fa633762be9b4e493495"
   },
   {
-   "name": "cd_audio_1",
+   "name": "cd_audio_play_track",
    "address": "0x404F50",
    "size": 242,
    "sha256": "6702346121aefe8105cb6390351d88f216f5c99e8fe23a7beb33cf77f23643fd"
   },
   {
-   "name": "cd_audio_2",
+   "name": "cd_audio_stop",
    "address": "0x405044",
    "size": 112,
    "sha256": "d04a971f018e60bf91eb79eea192655428872290a538ff26c3b1b2612032a393"
   },
   {
-   "name": "FUN_00406874",
+   "name": "sound_stop",
    "address": "0x406874",
    "size": 25,
    "sha256": "83dd2ab6a833403e3a7d01de2d166d4ffe3049666812d74e2251f69d485dd023"
   },
   {
-   "name": "FUN_00409f48",
+   "name": "music_stop",
    "address": "0x409F48",
    "size": 14,
    "sha256": "4740153c607823a84b1079b6160c24ebba8eddba83d583ace0310593ab848a70"
@@ -624,169 +624,169 @@
    "sha256": "6da4141b7dbe0e360e1e37335dc2dc04297d1fc86ee1bd18bb0f4b5d58f16e4a"
   },
   {
-   "name": "FUN_0040bc40",
+   "name": "vehicle_damage_add",
    "address": "0x40BC40",
    "size": 49,
    "sha256": "4661c2ab5c67217135cb87ebb8e26b2c73773aaeb6e3e9addb0b613c523e912e"
   },
   {
-   "name": "FUN_0040bc74",
+   "name": "vehicle_damage_check_wreck",
    "address": "0x40BC74",
    "size": 54,
    "sha256": "01f75a0bfd6cf5bfada3fec596d4f38c92bcebf57cd1b6b1be0ffc508ade6c97"
   },
   {
-   "name": "FUN_0040bcac",
+   "name": "vehicle_damage_update",
    "address": "0x40BCAC",
    "size": 147,
    "sha256": "fbdb3a0eac58a264684612c311e405e5de3ceba15d8862f16fe252a093d36b31"
   },
   {
-   "name": "FUN_0040be18",
+   "name": "collision_push_out",
    "address": "0x40BE18",
    "size": 209,
    "sha256": "6149833712a616f523bc9e62989941057e9a876581848d5f426a11c96bca7b59"
   },
   {
-   "name": "FUN_0040bfd4",
+   "name": "collision_push_vehicle",
    "address": "0x40BFD4",
    "size": 225,
    "sha256": "afc07e33de1baeda79b24906b4684fc453bdd93040a85cf9d1dd6fc0480c308f"
   },
   {
-   "name": "FUN_0040c0b8",
+   "name": "collision_vehicle_deflect",
    "address": "0x40C0B8",
    "size": 544,
    "sha256": "24209556c543fa54430dd0f89edfb683530b945efecfdf5ec0c2b5813d9e312b"
   },
   {
-   "name": "FUN_0040c2d8",
+   "name": "collision_net_bump",
    "address": "0x40C2D8",
    "size": 294,
    "sha256": "e3871a913669e7c2ebda4da1be5af71ffcc9f8d81411a2ca2245cef2072eedfc"
   },
   {
-   "name": "FUN_0040c5f4",
+   "name": "scenery_wheel_contact",
    "address": "0x40C5F4",
    "size": 1114,
    "sha256": "911e6346b3c2e82e1a3afaf40979789f30fb99497de7a130bbab7739f1d681b2"
   },
   {
-   "name": "FUN_0040d190",
+   "name": "collision_set_point",
    "address": "0x40D190",
    "size": 128,
    "sha256": "5cd8a4b9d892aec0934b2ae43ed2437be6e21ef1e5a998eeef280a7800d37fc7"
   },
   {
-   "name": "FUN_0040d210",
+   "name": "collision_test_radial",
    "address": "0x40D210",
    "size": 768,
    "sha256": "4dc1896f74bfddf0403937a48e26b901fc6ef31e3a128ff6c760c3c41bffc08c"
   },
   {
-   "name": "FUN_0040d65c",
+   "name": "vehicle_sound_if_viewed",
    "address": "0x40D65C",
    "size": 35,
    "sha256": "88be061f1db3342cd6ac8caa2ba9643f953107b8ba9e5a25c2bd5483cf81f5e3"
   },
   {
-   "name": "FUN_0040e9b8",
+   "name": "vehicle_wheel_object_contact",
    "address": "0x40E9B8",
    "size": 434,
    "sha256": "e87687cca8db212290dfb8675baab05861f70cd9d56f025714bd1c09aeaa0ecb"
   },
   {
-   "name": "FUN_0040eb6c",
+   "name": "vehicle_overlap_vehicle",
    "address": "0x40EB6C",
    "size": 92,
    "sha256": "62ebe2e6ebcee938a3d497cdfdccbae7d9ac52a705ca6adc1a0642495f1ceb9b"
   },
   {
-   "name": "FUN_0040ebc8",
+   "name": "vehicle_hit_vehicle",
    "address": "0x40EBC8",
    "size": 585,
    "sha256": "4a373ed049aa6c6285609adec5af120f44b5dba7d6816d1becd6adac7de8bc30"
   },
   {
-   "name": "FUN_0040ee14",
+   "name": "vehicle_save_old_state",
    "address": "0x40EE14",
    "size": 38,
    "sha256": "c57a7229c7c992f5f21e9e868ad78c8be240aff0d18da55dd3e86e61377e35f2"
   },
   {
-   "name": "FUN_0040ee3c",
+   "name": "vehicle_collide",
    "address": "0x40EE3C",
    "size": 224,
    "sha256": "be38172f8ca8a87844bde24138a302fa747c1268374fff6689531c3e35e09318"
   },
   {
-   "name": "FUN_0040ef1c",
+   "name": "vehicle_collide_no_physics",
    "address": "0x40EF1C",
    "size": 94,
    "sha256": "edaa2617baff749863a4daee7768d05949cf663e0df01635606902274886bfaa"
   },
   {
-   "name": "FUN_0040ef7c",
+   "name": "vehicle_spot_blocked",
    "address": "0x40EF7C",
    "size": 127,
    "sha256": "85bb06628bc2f166e037bc0f7e42d3273b71f61f4229014b9776cd2d330a25a0"
   },
   {
-   "name": "FUN_0040f738",
+   "name": "track_section_locate",
    "address": "0x40F738",
    "size": 271,
    "sha256": "013bb01af2e3905abe65decdd4289a1da2e6637dcaa3c53316816387aa592697"
   },
   {
-   "name": "FUN_0040f868",
+   "name": "vehicle_wrong_way_check",
    "address": "0x40F868",
    "size": 172,
    "sha256": "43a5fe004d46a6d63a4238585be742564d90a1b194e1bb0987db7cff98abed41"
   },
   {
-   "name": "FUN_0040f914",
+   "name": "vehicle_track_progress",
    "address": "0x40F914",
    "size": 657,
    "sha256": "945d0304982af46afb8538a710595e2e4a0273ce5c47b280da91fe0cd35ebb39"
   },
   {
-   "name": "FUN_0040ff38",
+   "name": "vehicle_respot",
    "address": "0x40FF38",
    "size": 588,
    "sha256": "721dc5a44ba79a7e6278f0362e8eac3cd85ce35bae7aa898ce0f48e1320cc5be"
   },
   {
-   "name": "FUN_004120b8",
+   "name": "file_load_direct",
    "address": "0x4120B8",
    "size": 108,
    "sha256": "e67658cb0aa7e3e96864e0e15a4ef215ce314ef880d04107145b9a8a1a1dd46a"
   },
   {
-   "name": "FUN_004121d8",
+   "name": "wap_close",
    "address": "0x4121D8",
    "size": 57,
    "sha256": "34f0fa08dccdeaadd491ad06cab2d3525377abeb560f301db7365d8ef5c528e0"
   },
   {
-   "name": "FUN_004122f0",
+   "name": "fonts_free",
    "address": "0x4122F0",
    "size": 37,
    "sha256": "6cb38457f1459738e7d493e804aa7741934185e6a4ae6236d23561b443dd13a3"
   },
   {
-   "name": "FUN_00412a20",
+   "name": "atan2_units",
    "address": "0x412A20",
    "size": 12,
    "sha256": "6b78dfa9d972d3432911ad857b2217c42f56d7dd2b3c589f8a990b76608c3dc5"
   },
   {
-   "name": "FUN_00412a2c",
+   "name": "vec_length_2d",
    "address": "0x412A2C",
    "size": 109,
    "sha256": "c16be4a64cdc0f56358cba53da127db02d87108c0cbf6142e9b62fbf7d451706"
   },
   {
-   "name": "FUN_00412a9c",
+   "name": "vec_length_3d",
    "address": "0x412A9C",
    "size": 141,
    "sha256": "1f5800c9a2946b3fd3d9704bdef7fe8d7ad4a18c1a2f98eb50387fd3db2db938"
@@ -798,85 +798,85 @@
    "sha256": "abf8502fc0eaef24fca5b5bff2fb880c720810ad2c61ad4dca96b41e2ed280ad"
   },
   {
-   "name": "FUN_004130b8",
+   "name": "shade_table_free",
    "address": "0x4130B8",
    "size": 10,
    "sha256": "721c76c6e90389445633a0959a23e552e68b6c2d6a0bad01bd31cef821afdaad"
   },
   {
-   "name": "FUN_00413650",
+   "name": "sound_channels_shutdown",
    "address": "0x413650",
    "size": 25,
    "sha256": "3722389f579735c5c697e77b65efa8859231f70b87e05198d549eed94e827fa5"
   },
   {
-   "name": "FUN_00413674",
+   "name": "sound_channel_stop",
    "address": "0x413674",
    "size": 72,
    "sha256": "44f13e0a911efb299f7370e0ebbffc2fa12c811bd47051ae7c3d6e06b329e67d"
   },
   {
-   "name": "FUN_004136bc",
+   "name": "sound_channel_play",
    "address": "0x4136BC",
    "size": 278,
    "sha256": "d36238367760fa223ec5cda3b26297d460123275ba517207c9b185b8abefe2eb"
   },
   {
-   "name": "FUN_004137d4",
+   "name": "sound_channel_idle",
    "address": "0x4137D4",
    "size": 17,
    "sha256": "092472b1896b46b0971174c5f78e15098d7a2520864f25c529d5dad9b88eceac"
   },
   {
-   "name": "FUN_004137e8",
+   "name": "sound_channel_set_volume",
    "address": "0x4137E8",
    "size": 56,
    "sha256": "6345eea84906db3d21ec01360d7b6f62440d215c5d5b9a193fa36839af7cfefd"
   },
   {
-   "name": "FUN_00413820",
+   "name": "sound_channel_set_pitch",
    "address": "0x413820",
    "size": 61,
    "sha256": "971c099bf6f4927e14793de76dd5c95de6045783afadb835f4c1f7b71c8597c6"
   },
   {
-   "name": "FUN_00413860",
+   "name": "sound_channel_set_pan",
    "address": "0x413860",
    "size": 9,
    "sha256": "75a353e4b720e29dc43a01d02b54a12187e8165a62c3061f8d7ce9fd1e48a2c5"
   },
   {
-   "name": "FUN_00413d54",
+   "name": "camera_random_place",
    "address": "0x413D54",
    "size": 89,
    "sha256": "8e4d72bbf628dd9d108a54c256fb22ff9652743464398f69aec5610df5f61445"
   },
   {
-   "name": "FUN_00413dc0",
+   "name": "race_camera_keys_split",
    "address": "0x413DC0",
    "size": 92,
    "sha256": "77b4a5781d9c06600ef1be8aad3d56ede2e28b441183b2a0028133088331f114"
   },
   {
-   "name": "FUN_00413e40",
+   "name": "race_camera_keys",
    "address": "0x413E40",
    "size": 329,
    "sha256": "3ea7bfc4c1d968c5ecb31cb7b211541cd1ea20308e3d1ea164832d5b21199bd6"
   },
   {
-   "name": "FUN_00414034",
+   "name": "race_tape_keys",
    "address": "0x414034",
    "size": 327,
    "sha256": "4c16ed49ebf148b660a2d65c78bfc59a90eb2700850a21da4ebf76f42fa89894"
   },
   {
-   "name": "FUN_0041417c",
+   "name": "race_quit",
    "address": "0x41417C",
    "size": 195,
    "sha256": "813385be1c1d70bbff1134badde298b8c86b83a15b6d57dff35f4c7d9e93cb69"
   },
   {
-   "name": "FUN_00414240",
+   "name": "race_keys_tick",
    "address": "0x414240",
    "size": 133,
    "sha256": "87652818b8405c4f75dcef915844cb5a07aec9dbd34f553556d771bf4303f8a7"
@@ -918,175 +918,175 @@
    "sha256": "5be3472f4b7244bd3cd0597446d0d2de9f102b92781fd78395619fcc4335ef0f"
   },
   {
-   "name": "FUN_00415690",
+   "name": "sound_sample_load",
    "address": "0x415690",
    "size": 384,
    "sha256": "5768efc27cbfb8cda26e63ed8f3ddc9751dd78d1dc1088d6c687d8dd032e13f5"
   },
   {
-   "name": "FUN_00415854",
+   "name": "sound_free_queue_flush",
    "address": "0x415854",
    "size": 76,
    "sha256": "2f29fc55ff8a2b985871b1b799be12b493dbc00e4f21c8d373392630f35fc668"
   },
   {
-   "name": "FUN_00415904",
+   "name": "sound_samples_free",
    "address": "0x415904",
    "size": 87,
    "sha256": "0b21d5cf3acb10d4a8f3d6decace25f2e21a090ebff8cc6cf877df9567e7465d"
   },
   {
-   "name": "FUN_0041595c",
+   "name": "sound_channel_mark_oneshot",
    "address": "0x41595C",
    "size": 59,
    "sha256": "0420c5111e62991939dc5ed2efe80b0a20211824b5ace4d3433203effa1dd0ac"
   },
   {
-   "name": "FUN_00415998",
+   "name": "sound_channel_find_free",
    "address": "0x415998",
    "size": 144,
    "sha256": "84877469fec94fc0d0fccc4b37de93cc652103c2751933d51cf4462c3bb4b092"
   },
   {
-   "name": "FUN_00415a28",
+   "name": "sound_play_sample",
    "address": "0x415A28",
    "size": 114,
    "sha256": "d64352460f4ef3d009d76b454cce7f69d47903cfe1a4515d470448cabbecaa11"
   },
   {
-   "name": "FUN_00415af8",
+   "name": "sound_commentary_play_loaded",
    "address": "0x415AF8",
    "size": 85,
    "sha256": "aa77626636215c47ee6ab762ad9a2c33db42acbdcc0eea9bf9dbc967ac4fa26c"
   },
   {
-   "name": "FUN_00415b50",
+   "name": "sound_commentary_play",
    "address": "0x415B50",
    "size": 133,
    "sha256": "99510496a6cab22ea0f18a5fccb5b47501599c9c0ee2110d391f1a10a4581804"
   },
   {
-   "name": "FUN_00415bd8",
+   "name": "sound_commentary_play_numbered",
    "address": "0x415BD8",
    "size": 113,
    "sha256": "2edd8d551f6fbf1026db7ab354b8e5bddc63ea7f44f26e6432d8ca29c216df6b"
   },
   {
-   "name": "FUN_00415d00",
+   "name": "sound_commentary_random",
    "address": "0x415D00",
    "size": 74,
    "sha256": "980e781a4906235ade06db0435edc4494087127a1d3f42fd38f3d20120b7bf98"
   },
   {
-   "name": "FUN_00415d9c",
+   "name": "sound_request_add",
    "address": "0x415D9C",
    "size": 128,
    "sha256": "5c64ddfe12512ac902ad7a09e9ab639d73b920939c28c0f37f3d30d131370bcd"
   },
   {
-   "name": "FUN_00415e58",
+   "name": "sound_channel_find",
    "address": "0x415E58",
    "size": 52,
    "sha256": "3c60fef4c3bf113ec50f32188ac6f9f68dd7a7a1d1261f5a550de5aafe053c73"
   },
   {
-   "name": "FUN_00415ee0",
+   "name": "vehicle_sounds",
    "address": "0x415EE0",
    "size": 810,
    "sha256": "0dcc1d2ef87c675f94d8f9f9bca624e48eccea5caad63c2b99564088b766e2d5"
   },
   {
-   "name": "FUN_0041620c",
+   "name": "sound_update_channels",
    "address": "0x41620C",
    "size": 555,
    "sha256": "abe155f21325005ba9b847d5f2c65d561586ab1c600394b581c8fb2336625baa"
   },
   {
-   "name": "FUN_00416438",
+   "name": "sound_source_from_camera",
    "address": "0x416438",
    "size": 152,
    "sha256": "848b5d6903ac964e843fafb051b87d86f4ff84a8005c20739efc60ecb850574f"
   },
   {
-   "name": "FUN_004164d0",
+   "name": "sound_source_from_views",
    "address": "0x4164D0",
    "size": 80,
    "sha256": "999c4051bdccd46893ae50ccc63aae8bef64f37e6a4f144a01399d23aa0621bc"
   },
   {
-   "name": "FUN_00416520",
+   "name": "sound_update_vehicles",
    "address": "0x416520",
    "size": 489,
    "sha256": "02ba9a9016d269762674794c52c7b80f0b9e2ca920c22e2ba9305fddec2aa8f3"
   },
   {
-   "name": "FUN_0041681c",
+   "name": "vehicle_sound_event",
    "address": "0x41681C",
    "size": 53,
    "sha256": "7cb5a38aa0a3c6e8fa69d9cf29d3c0d7916e0cd3c5c6c18f5ae9159fc8ab0ed0"
   },
   {
-   "name": "FUN_00416854",
+   "name": "vehicle_sound_event_type",
    "address": "0x416854",
    "size": 59,
    "sha256": "1ec2ded9d09ec5a8d38b3edcadd7b87c208f5059c8daa66e745e4e25b71431a7"
   },
   {
-   "name": "FUN_00416a40",
+   "name": "scenery_for_each_near",
    "address": "0x416A40",
    "size": 307,
    "sha256": "5defaafd83b2d144984d8b348f261c8991476d1ce80706de46edd0a2a10c0b4a"
   },
   {
-   "name": "FUN_00417890",
+   "name": "vehicle_normalise_angles",
    "address": "0x417890",
    "size": 141,
    "sha256": "506389a1c6f311e440cf9c2a75952d0c6b07f6a127cbcbf0d76c533b7ca3193f"
   },
   {
-   "name": "FUN_00417928",
+   "name": "vehicle_integrate",
    "address": "0x417928",
    "size": 295,
    "sha256": "0ffe4157ec85146c2de0e1be4d987cd24aaea5612e472bf45b98fe079de85fe1"
   },
   {
-   "name": "FUN_00417ab4",
+   "name": "vehicle_corner_points",
    "address": "0x417AB4",
    "size": 184,
    "sha256": "57c2dab0b671bc8ec84a6280637fa379b85d7fde0d08a6fd410bcca5bcc51931"
   },
   {
-   "name": "FUN_00417b6c",
+   "name": "vehicle_ground_contact",
    "address": "0x417B6C",
    "size": 1073,
    "sha256": "72e2cbef2106227cc6356dc31d44bc089d3219b2f292beb71cb16fa54948fd8d"
   },
   {
-   "name": "FUN_00417fa0",
+   "name": "vehicle_ground_contact_simple",
    "address": "0x417FA0",
    "size": 427,
    "sha256": "06a78cc791c5d259e39c86f15d21e8c3c9bea22b363296fcdd4a3a881023899f"
   },
   {
-   "name": "FUN_0041814c",
+   "name": "vehicle_landing_impact",
    "address": "0x41814C",
    "size": 105,
    "sha256": "ef37312054866d4771fa5eb4ceb40d01ad9980d09b85bf3698a9d28ca93aa299"
   },
   {
-   "name": "FUN_004181b8",
+   "name": "vehicle_ground_bounce",
    "address": "0x4181B8",
    "size": 561,
    "sha256": "a6766b606e12a4e281c5db5b40eb599b436b3ca81b54f88c75738cad79e4827a"
   },
   {
-   "name": "FUN_004183ec",
+   "name": "vehicle_control_axis",
    "address": "0x4183EC",
    "size": 358,
    "sha256": "3c36629c00c730cdf021f9330111055a953f792c62ee9df4afeed5b6a313eb9a"
   },
   {
-   "name": "FUN_00418554",
+   "name": "vehicle_control_pedal",
    "address": "0x418554",
    "size": 145,
    "sha256": "a6ad93343626308692e26f3d9b8f09a8eacd2fe5088bcd1393feaea2f8b7d9c2"
@@ -1104,13 +1104,13 @@
    "sha256": "87640bc59d3b1b694f4d312bad04296fe5db75e563007c2c0e472f37bffe368e"
   },
   {
-   "name": "FUN_004186cc",
+   "name": "vehicle_check_settle",
    "address": "0x4186CC",
    "size": 156,
    "sha256": "9de84211c4f65aefea65c4f87ab9cd3bc1dba3585f881bb07a2f426a9d0a12fa"
   },
   {
-   "name": "FUN_004187b8",
+   "name": "vehicle_tilt_from_contacts",
    "address": "0x4187B8",
    "size": 88,
    "sha256": "0fcb9db38b980293144b8fad1c57b7a7b601225589fe0bd894e2e0596df3711b"
@@ -1146,43 +1146,43 @@
    "sha256": "2bf201ad76329ef5707c33f54398749c625ecae81d72a68ec3434e715070b9cf"
   },
   {
-   "name": "FUN_00418ae8",
+   "name": "bounce_pitch_type2",
    "address": "0x418AE8",
    "size": 500,
    "sha256": "66ec3dc2ea64b914a7c1b5d0e758136ca36d5ea8f0db47dd324565c95e79e127"
   },
   {
-   "name": "FUN_00418cdc",
+   "name": "bounce_roll_type2",
    "address": "0x418CDC",
    "size": 147,
    "sha256": "150a963a50a9c236ed9e099aae22d68b2846dadc98be2d2a232ae3cedf890383"
   },
   {
-   "name": "FUN_00418d70",
+   "name": "vehicle_side_slope_yaw",
    "address": "0x418D70",
    "size": 179,
    "sha256": "a5258b7d3c98f7084fc780cd1bc055f1807eaa2e1dd69f7d9f84981acf790824"
   },
   {
-   "name": "FUN_00418e24",
+   "name": "vehicle_gear_lookup",
    "address": "0x418E24",
    "size": 180,
    "sha256": "a7e1ede5a03a0772255e043b66bd2f83f2d977a836e25a4cadc881414c831534"
   },
   {
-   "name": "FUN_00418fd4",
+   "name": "vehicle_steering_rate",
    "address": "0x418FD4",
    "size": 185,
    "sha256": "08070f377bf3a2be171c68bfa300f24b47fcd36081beb29c68fe95a6ef927545"
   },
   {
-   "name": "FUN_00419140",
+   "name": "vehicle_drive_force",
    "address": "0x419140",
    "size": 811,
    "sha256": "6ce1799e34db071d93b0d9b39b037dec1566bef669944ce28e0846280a393cf7"
   },
   {
-   "name": "FUN_0041946c",
+   "name": "vehicle_nitro",
    "address": "0x41946C",
    "size": 770,
    "sha256": "2288b0eb6c5d1b796b3acb3ff8b81a4c2cab27d6bcbac225636edbbd70680de4"
@@ -1200,7 +1200,7 @@
    "sha256": "dca15977c5729f79b6c9480f98c7da7f3c3c5e137b910bf0c372e3c78d0e9bdd"
   },
   {
-   "name": "FUN_0041aae8",
+   "name": "joystick_axis_amount",
    "address": "0x41AAE8",
    "size": 177,
    "sha256": "0cb6284462669051a96f3d57f0b5eb97928278c7bcec5727ee7984afc263ee56"
@@ -1212,217 +1212,217 @@
    "sha256": "fd387704aa2da7d027c77d1b6de84d70a02b239cd2c2a976f1ffa437cb09d16d"
   },
   {
-   "name": "FUN_0041d754",
+   "name": "landscape_height_at",
    "address": "0x41D754",
    "size": 216,
    "sha256": "e0ab68590e76df3acacfa8d972837085d8766ba192b1d39416a31d40ce676827"
   },
   {
-   "name": "FUN_0041dbac",
+   "name": "landscape_height_at_fine",
    "address": "0x41DBAC",
    "size": 249,
    "sha256": "92bbe67a436b4dd68c7cd15ad0eeb0ce4604b3313685f81a6aaaaf18d1b42dc1"
   },
   {
-   "name": "FUN_0041dca8",
+   "name": "landscape_height_slope_at",
    "address": "0x41DCA8",
    "size": 419,
    "sha256": "c186c4e6e59e41ee20df667303670dbf8df84c9713b8ea6b2b49ac585b2f7ec2"
   },
   {
-   "name": "FUN_0041de4c",
+   "name": "landscape_push_out",
    "address": "0x41DE4C",
    "size": 262,
    "sha256": "b7bec82620cacbe44bc998bdb8380af7f31bb5a144fe1337c31f959fffca1a86"
   },
   {
-   "name": "FUN_0041df54",
+   "name": "orient_matrix_set",
    "address": "0x41DF54",
    "size": 387,
    "sha256": "c6f4bbc208575c4a3b2122350d82f67e88f4a8b6d9a20b3c1e6f1b3c0e4401c2"
   },
   {
-   "name": "FUN_0041e0d8",
+   "name": "orient_matrix_rotate",
    "address": "0x41E0D8",
    "size": 172,
    "sha256": "c3542598688e2a842fe68529c618adc2dfaf4a7db3c38d6c62411c3a8b843081"
   },
   {
-   "name": "FUN_00420fd0",
+   "name": "mem_alloc",
    "address": "0x420FD0",
    "size": 26,
    "sha256": "51876f288e243d2d5dc398f7056db2df70c8efe1631f6fc48b9a44b2a2caad1a"
   },
   {
-   "name": "thunk_FUN_0042fb0d",
+   "name": "mem_free",
    "address": "0x420FEC",
    "size": 5,
    "sha256": "941d3a97b2a02597225dccff032cd74f07bb303a36ffaeb568e16deef1e10626"
   },
   {
-   "name": "FUN_00421724",
+   "name": "net_race_receive",
    "address": "0x421724",
    "size": 442,
    "sha256": "54155e1d1ff8c4b04948da91eaf21049acf4c62ae07fbaaee1fb313dad2725a6"
   },
   {
-   "name": "FUN_00421b74",
+   "name": "net_session_close",
    "address": "0x421B74",
    "size": 25,
    "sha256": "cbcc4e3155d52c15de86ecb40022d66b9107afc90e32673cd05b09f0da634e29"
   },
   {
-   "name": "FUN_00421fb8",
+   "name": "net_sync_race_start",
    "address": "0x421FB8",
    "size": 100,
    "sha256": "234d838507ea3bc402ec1901d1fd341791d4fd04eb37b1bcd2485627655abd10"
   },
   {
-   "name": "FUN_0042244c",
+   "name": "net_race_tick",
    "address": "0x42244C",
    "size": 238,
    "sha256": "cd7d71b69d0a1253bd3719921f861204fd7593c704d64c086da150fb7a2d0059"
   },
   {
-   "name": "FUN_00423dfc",
+   "name": "game_free_buffers",
    "address": "0x423DFC",
    "size": 121,
    "sha256": "a1bf89c815de748772a3cae0a352e7412375d4c658674169b06b8a11d317e5be"
   },
   {
-   "name": "FUN_00424174",
+   "name": "level_cache_invalidate",
    "address": "0x424174",
    "size": 17,
    "sha256": "f1afc409ed0aeca65fd915500d6196fff7428ce03f022fa83379a2e81b598cb2"
   },
   {
-   "name": "FUN_00424320",
+   "name": "fatal_error",
    "address": "0x424320",
    "size": 151,
    "sha256": "fc9c871c6500595f6ed4e9f66705ce77c41c557c20768b44518d2d8621a16780"
   },
   {
-   "name": "FUN_004243b8",
+   "name": "fatal_error_detail",
    "address": "0x4243B8",
    "size": 154,
    "sha256": "e6924c9d266e38295b83ad47768b9714f0fb7b0488e5ab3803c79ad19eddbcb0"
   },
   {
-   "name": "FUN_00424454",
+   "name": "fatal_error_text",
    "address": "0x424454",
    "size": 46,
    "sha256": "a2e5f23fbf774fd800a948164d25dba204a7727bbc4e04f986e0471766fa3006"
   },
   {
-   "name": "FUN_00424490",
+   "name": "tape_record_vehicle",
    "address": "0x424490",
    "size": 342,
    "sha256": "06dfa73ba67036ddae2ed97022e17db3f4df600e197950cfe36f68c4870ae84b"
   },
   {
-   "name": "FUN_004245e8",
+   "name": "tape_read_sample",
    "address": "0x4245E8",
    "size": 160,
    "sha256": "f578327482134c67e97345f0343938c85cc0e5e7e45616cfa2a28526cb0a7462"
   },
   {
-   "name": "FUN_00424688",
+   "name": "tape_advance",
    "address": "0x424688",
    "size": 134,
    "sha256": "bbc591e4d20c50704cf1d051f8c3778844e24a41b653db18ecfdce1bc66c714a"
   },
   {
-   "name": "FUN_00424710",
+   "name": "tape_slot_next_pos",
    "address": "0x424710",
    "size": 138,
    "sha256": "9de9a65303a019f7d6592d66564a34b49cfbb7a8e5f8dcee1d776e23962d4357"
   },
   {
-   "name": "FUN_0042479c",
+   "name": "tape_slot_clamp_pos",
    "address": "0x42479C",
    "size": 68,
    "sha256": "1f477e7d103aa810497d337f40b01a41df58b2b2e48b2eefd68f777094966437"
   },
   {
-   "name": "FUN_004247e0",
+   "name": "tape_drive_vehicle",
    "address": "0x4247E0",
    "size": 843,
    "sha256": "105ed783fa1ec4638ceb4f2babe02528cdfefe4a87dba14773ba58e0a2215565"
   },
   {
-   "name": "FUN_00424b2c",
+   "name": "vehicle_speeds_from_motion",
    "address": "0x424B2C",
    "size": 206,
    "sha256": "a77e31860338155410a18f84a1cff61059ce7d34d6839bdd2dddb3ddb306e95f"
   },
   {
-   "name": "FUN_00424bfc",
+   "name": "vehicle_state_from_motion",
    "address": "0x424BFC",
    "size": 354,
    "sha256": "62e3858f51cefd517a057d7e55e696e3a52baaef5ba91a3310bb27f72cad604e"
   },
   {
-   "name": "FUN_00424e40",
+   "name": "race_clock_advance",
    "address": "0x424E40",
    "size": 68,
    "sha256": "a525ca7d2797c7e993994659c685adf5b0990875dc529d4dbae96c1339a431dc"
   },
   {
-   "name": "FUN_00424ea0",
+   "name": "tape_pause",
    "address": "0x424EA0",
    "size": 31,
    "sha256": "47fae47b6d669665fd6b6b8ed6fc65bbd2e41cd3e7c684ba828b881987fba9f9"
   },
   {
-   "name": "FUN_00424ec0",
+   "name": "tape_play",
    "address": "0x424EC0",
    "size": 37,
    "sha256": "50a0e662d6f460ec3596e15666639b1596f47c8fd1d93fb0df697acb21ce8faa"
   },
   {
-   "name": "FUN_00424ee8",
+   "name": "tape_fast_forward",
    "address": "0x424EE8",
    "size": 73,
    "sha256": "c6d7e87a0bb38e1b3c90c6418dce1f317a8eac54b7f2b3914c66e5ff3a2bb3e9"
   },
   {
-   "name": "FUN_00424f34",
+   "name": "tape_rewind",
    "address": "0x424F34",
    "size": 73,
    "sha256": "6dca5b14d5e139b7878d48db596c93d9c4365a0da9b54ad49c6d914de7bc0ca5"
   },
   {
-   "name": "FUN_00425174",
+   "name": "ai_rubber_band",
    "address": "0x425174",
    "size": 412,
    "sha256": "b82d9ec4f188fd8f7b8b45c40b8da6e0d6672e7b51ec018f7c3098a42455cca0"
   },
   {
-   "name": "FUN_004258c0",
+   "name": "tape_free_buffers",
    "address": "0x4258C0",
    "size": 24,
    "sha256": "3e049144835074415c6c1fa89ed415ebdeba5481097719b752d722d8ce9ce83c"
   },
   {
-   "name": "FUN_00425db0",
+   "name": "video_stop",
    "address": "0x425DB0",
    "size": 1,
    "sha256": "ae3f4619b0413d70d3004b9131c3752153074e45725be13b9a148978895e359e"
   },
   {
-   "name": "FUN_004265e4",
+   "name": "effects_alloc",
    "address": "0x4265E4",
    "size": 67,
    "sha256": "aee00428eb79d82a7c16fdec0da96136398b1a98a0506a12fb51b7edf09c4cfd"
   },
   {
-   "name": "FUN_00426654",
+   "name": "effects_tick",
    "address": "0x426654",
    "size": 144,
    "sha256": "c33ebf2d707e94086f211febccbec612993cafa49bccafc9aa07e3edbbeb4bb2"
   },
   {
-   "name": "FUN_004266e4",
+   "name": "effects_spawn_at_wheel",
    "address": "0x4266E4",
    "size": 194,
    "sha256": "8692413935f6b45490ceeae147ad243fb8f0bc72620cb57a1ba6a5a3be6ba12a"
@@ -1434,13 +1434,13 @@
    "sha256": "f4a7bc90880e1e26d981207187ad5b994b2ebb3ec2b862a84201bf02b585ee4f"
   },
   {
-   "name": "FUN_00427650",
+   "name": "menu_mouse_tick",
    "address": "0x427650",
    "size": 165,
    "sha256": "d33c61b903edde0ea85893787ffc11de75cbfcc0ce77f7373d46b12c659863ec"
   },
   {
-   "name": "FUN_004276f8",
+   "name": "menu_mbox_check",
    "address": "0x4276F8",
    "size": 154,
    "sha256": "6c8ce299f02c4cb876e45b4afe6fa6db831b8d932bb8d49b2de190dbbcc0cc43"
@@ -1452,25 +1452,25 @@
    "sha256": "cc311b37979e83866e80f339da56a3ddfbf47cf3b1057296d58fcc0789cc78b7"
   },
   {
-   "name": "FUN_0042804c",
+   "name": "text_label_equal",
    "address": "0x42804C",
    "size": 78,
    "sha256": "eea7fbcf0ff3555dfa6d89a8ada668cf6b38ea33957f9ab855f248edf60f73db"
   },
   {
-   "name": "FUN_004280e4",
+   "name": "text_find",
    "address": "0x4280E4",
    "size": 167,
    "sha256": "8fba41336f93eed1cb35cdb878c48634dacace412ad42b7cbf25331befc11233"
   },
   {
-   "name": "FUN_0042818c",
+   "name": "text_lookup",
    "address": "0x42818C",
    "size": 74,
    "sha256": "f1f0268caee3b9a1fb86e169b7835e52b42d51a707b7da92f72bd66009049c12"
   },
   {
-   "name": "FUN_00428284",
+   "name": "text_free_all",
    "address": "0x428284",
    "size": 56,
    "sha256": "f13f4b055bfdbf3b40fd537b5d7bd838b96f7ad84a2374c6c267b1165d264cb7"
@@ -1482,109 +1482,109 @@
    "sha256": "cefdbccb7485c978b481145390dbc1a8c34c2b4b0a34adc5ceec242139599491"
   },
   {
-   "name": "FUN_0042b47c",
+   "name": "net_disconnect",
    "address": "0x42B47C",
    "size": 22,
    "sha256": "3e09749917b44580a1a163ee54e15d2bcaa903b1a4e75eaee7947d123c04f67f"
   },
   {
-   "name": "FUN_0042b494",
+   "name": "net_poll",
    "address": "0x42B494",
    "size": 18,
    "sha256": "b10985e7963275657bf89e2abeafe615eb60b030e8c416efd203b2f58244a280"
   },
   {
-   "name": "FUN_0042b59c",
+   "name": "net_receive",
    "address": "0x42B59C",
    "size": 88,
    "sha256": "078921026f3c9247d134ab9cfc69433d3570f7ed6144af5516e1fcb0205ec305"
   },
   {
-   "name": "FUN_0042d120",
+   "name": "dd_release",
    "address": "0x42D120",
    "size": 156,
    "sha256": "3628578579fe5c93d4ca5823dcbe317598b8785c0775f6323c8ce79faaa50efb"
   },
   {
-   "name": "FUN_0042e3b0",
+   "name": "net_dp_receive",
    "address": "0x42E3B0",
    "size": 152,
    "sha256": "49d0048c526d37cfbca943623944981aaebfcca6e6e886d40e64699582f8d2b3"
   },
   {
-   "name": "FUN_0042e488",
+   "name": "net_dp_close",
    "address": "0x42E488",
    "size": 77,
    "sha256": "e4ef410db62a2afe7eecc6fc91258d4891d13f561b2e2407a911c3a3a9cd041e"
   },
   {
-   "name": "FUN_0042e6fc",
+   "name": "net_ten_receive",
    "address": "0x42E6FC",
    "size": 200,
    "sha256": "99b7a483781ee054adacf837899203f478fad0aab16ee95f6ec83d98fd37cd97"
   },
   {
-   "name": "FUN_0042e7c4",
+   "name": "net_ten_poll",
    "address": "0x42E7C4",
    "size": 20,
    "sha256": "48c846dee4f77570788e8b8b25ae50a56aec6f8b388359eb47a41880476d62b8"
   },
   {
-   "name": "FUN_0042e8b4",
+   "name": "ds_shutdown",
    "address": "0x42E8B4",
    "size": 166,
    "sha256": "5f90630f31b8b0bf210fa0211be976a4a6b7b9156756e4f9a10e98722a017619"
   },
   {
-   "name": "FUN_0042e964",
+   "name": "ds_copy_sample",
    "address": "0x42E964",
    "size": 67,
    "sha256": "ff8410effad35a26632ced4149a3e96505a4a8576fb6dbe968338007b64b1c71"
   },
   {
-   "name": "FUN_0042e9a8",
+   "name": "ds_load_sample",
    "address": "0x42E9A8",
    "size": 392,
    "sha256": "9dc02bfafc4780f75b3dd82ceb5ed465a90d7e616118404960d1a7f65d47e454"
   },
   {
-   "name": "FUN_0042eb30",
+   "name": "ds_play",
    "address": "0x42EB30",
    "size": 117,
    "sha256": "77ac78259cbcaddebdae91e42aa3b114c29e0896135cb3aff954efcaab95b388"
   },
   {
-   "name": "FUN_0042eba8",
+   "name": "ds_stop",
    "address": "0x42EBA8",
    "size": 60,
    "sha256": "03a5b16b737de8484e9f0466a87b4ff56cd0021479a57533d952e779bfead18b"
   },
   {
-   "name": "FUN_0042ebe4",
+   "name": "ds_set_volume",
    "address": "0x42EBE4",
    "size": 100,
    "sha256": "396c75d1beaea6476b87957c9676badfd575b58c39090b537c55301b282e04f1"
   },
   {
-   "name": "FUN_0042ec48",
+   "name": "ds_set_frequency",
    "address": "0x42EC48",
    "size": 67,
    "sha256": "c8f6dcc2d58cd76e2117cde5fb4e16b73fe4e0066efd01820c2d4670ddbe8491"
   },
   {
-   "name": "FUN_0042ec8c",
+   "name": "ds_set_pan",
    "address": "0x42EC8C",
    "size": 139,
    "sha256": "7392d4a12954492a8caa29cd1a1be5b2ccb46ad10c029da0244140b5c034628d"
   },
   {
-   "name": "FUN_0042ed18",
+   "name": "ds_is_playing",
    "address": "0x42ED18",
    "size": 98,
    "sha256": "007b094977a28fb25225283b8aeaf2d255df35cdd3c6641217371d4a38a4f6fe"
   },
   {
-   "name": "FUN_0042ed80",
+   "name": "memset",
    "address": "0x42ED80",
    "size": 24,
    "sha256": "8993d8d327eb515e1e4a1f18e7dec695878380c72957b1673469d599990288c4"

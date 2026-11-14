@@ -1,10 +1,11 @@
 /* CD music from the player's own ripped tracks (round 2, item 6).
  *
- * The game plays music with the MCI "cdaudio" device only (cd_audio_1/2/3, 0x404F50,
- * 0x405044, 0x4050B4): open, time format TMSF, play from track N to N+1 with a
- * notification, stop, close; MM_MCINOTIFY (MCI_NOTIFY_SUCCESSFUL) tells it a track has
- * finished, and cd_audio_poll then starts it again. At start-up it tries to play track 2:
- * only if that works does it turn music on and offer the CD volume option.
+ * The game plays music with the MCI "cdaudio" device only (cd_audio_play_track,
+ * cd_audio_stop and cd_audio_on_notify, 0x404F50, 0x405044, 0x4050B4): open, time format
+ * TMSF, play from track N to N+1 with a notification, stop, close; MM_MCINOTIFY
+ * (MCI_NOTIFY_SUCCESSFUL) tells it a track has finished, and cd_audio_poll then starts it
+ * again. At start-up it tries to play track 2: only if that works does it turn music on
+ * and offer the CD volume option.
  *
  * Its mciSendCommandA import (slot 0x56C160, found and checked in the import table in
  * memory) goes to brr_mci. A cdaudio device is emulated when the music folder ([music]
