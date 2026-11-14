@@ -487,7 +487,9 @@ void brr_present_split(void)
  * gives our line there and CRED_<n-1> after it. Written like the file's own entries
  * (position and colour, the line, a blank line); the font draws it in capitals. */
 #define CREDIT_STEP 2
-static const char credit_text[] = "@X90,28 @C5\r\nCamera fix by ctrl-alt-rees\r\n\r\n";
+/* It starts with a line break, which the game's text drawing skips: without it, the zero
+ * padding before the text and its "@" matched 16 bytes of RACING.EXE, which dos-package refuses */
+static const char credit_text[] = "\r\n@X90,28 @C5\r\nCamera fix by ctrl-alt-rees\r\n\r\n";
 
 char *brr_credit_lookup(char *name)   /* name: "CRED_<n>", in the game's 20-byte buffer */
 {
