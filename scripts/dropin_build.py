@@ -1,10 +1,15 @@
-"""dropin-build: build Big Red Launcher (a replacement TIMER.DLL and the launcher) into work/build/dropin/.
+"""dropin-build: build Big Red Launcher (PATCH.DLL and the launcher) into work/build/dropin/.
 
+PATCH.DLL is the fix: it stands in for the game's TIMER.DLL (the same exports) and patches
+the game in memory. The launcher makes WINRACEP.EXE, its own copy of the player's
+WINRACE.EXE, with its section headers corrected (win_headers.py) and its import of
+timer.dll changed to PATCH.DLL (the same length), so the game loads ours and the game's
+own TIMER.DLL stays as it is (winracep() below; src/launcher/winfix.c does the same).
 1. Checks work/game/WINRACE.EXE is the v2.25 file from the game manifest.
 2. Checks every patch site and protected range in data/dropin-patches.json against it
    by SHA-256 (recording the values the first time), and writes sites.h from them, with
-   the checksums of WINRACE.EXE as installed and with its section headers corrected
-   (the launcher's on-disk fix for modern Windows; win_headers.py): the DLL accepts both.
+   the checksums of WINRACEP.EXE, and of WINRACE.EXE as installed and header-corrected
+   in place (as launchers before 2026-11-15 did): the DLL accepts all three.
 3. Compiles src/dropin/ with Open Watcom v2 (the pinned snapshot in tools/open-watcom/,
    see docs/KNOWLEDGE.md, Tools; Linux programs in binl64/, or macOS ones built from
    source in armo64/ or bino64/) for Windows 95 and later: 486 instructions, its own C
@@ -21,6 +26,7 @@
    data/win95-api.json (Windows 95's; dropin-compat --dlls checks against real ones),
    and PE headers marked for Windows 4.0; and the DLL has exactly the original
    TIMER.DLL's exports and ordinals. Copies BRRFIX.INI and ddraw.ini beside them.
+   WINRACEP.EXE itself is game content: only the launcher makes it, from the player's file.
 Example:
     python3 brr.py dropin-build
 """
@@ -38,7 +44,7 @@ import urllib.request
 from common import DATA, ROOT, WORK
 from prepkit import rel
 
-HELP = "build Big Red Launcher (a replacement TIMER.DLL and the launcher) into work/build/dropin/"
+HELP = "build Big Red Launcher (PATCH.DLL and the launcher) into work/build/dropin/"
 
 SOURCE = ROOT / "src" / "dropin"
 OUT = WORK / "build" / "dropin"
@@ -152,6 +158,18 @@ class PE:
             d += 20
         return found
 
+    def import_name_offsets(self):
+        """{dll name: file offset of the name} from the import table."""
+        rva, size = self.dirs[1]
+        found, d = {}, self.offset(rva) if size else None
+        while d is not None:
+            name_rva = struct.unpack_from("<I", self.data, d + 12)[0]
+            if not name_rva:
+                break
+            found[self.cstring(name_rva)] = self.offset(name_rva)
+            d += 20
+        return found
+
     def imports(self):
         rva, size = self.dirs[1]
         found, d = [], self.offset(rva) if size else None
@@ -169,9 +187,39 @@ def sha256(data):
 
 
 def corrected_sha256():
-    """The v2.25 WINRACE.EXE's SHA-256 after the launcher corrects its section headers."""
+    """The v2.25 WINRACE.EXE's SHA-256 with its section headers corrected in place, as
+    launchers before 2026-11-15 left it (still recognised)."""
     import win_headers
     return sha256(win_headers.corrected((GAME / "WINRACE.EXE").read_bytes())[0])
+
+
+PATCH_DLL = b"PATCH.DLL"
+TIMER_IMPORT = "timer.dll"
+
+
+def timer_import_offset(data):
+    """The file offset of the game's import name "timer.dll", which WINRACEP.EXE renames."""
+    offsets = {name.lower(): at for name, at in PE(data).import_name_offsets().items()}
+    if TIMER_IMPORT not in offsets:
+        raise BuildError("WINRACE.EXE doesn't import timer.dll")
+    at = offsets[TIMER_IMPORT]
+    if data[at:at + len(PATCH_DLL) + 1] != TIMER_IMPORT.encode() + b"\0":
+        raise BuildError(f"WINRACE.EXE's import name at 0x{at:X} isn't \"timer.dll\" exactly")
+    return at
+
+
+def winracep(data):
+    """WINRACEP.EXE from a WINRACE.EXE: section headers corrected, and timer.dll imported as
+    PATCH.DLL. The launcher's winfix.c does the same for the v2.25 file."""
+    import win_headers
+    fixed = bytearray(win_headers.corrected(data)[0])
+    at = timer_import_offset(data)
+    fixed[at:at + len(PATCH_DLL)] = PATCH_DLL
+    return bytes(fixed)
+
+
+def winracep_sha256():
+    return sha256(winracep((GAME / "WINRACE.EXE").read_bytes()))
 
 
 def check_sites(exe):
@@ -200,6 +248,7 @@ def write_header(doc, exe_sha, exe_size):
              "struct range_info { const char *name; uint32_t address, size; const char *sha256; };",
              f'#define EXPECTED_EXE_SHA256 "{exe_sha}"',
              f'#define EXPECTED_EXE_CORRECTED_SHA256 "{corrected_sha256()}"',
+             f'#define EXPECTED_WINRACEP_SHA256 "{winracep_sha256()}"',
              f"#define EXPECTED_EXE_SIZE {exe_size}u",
              "static const struct site_info SITES[] = {"]
     for s in doc["sites"]:
@@ -267,11 +316,11 @@ def compile_dll(dll):
         run_tool([str(watcom_bin() / "wasm"), "-q", "-4", f"-fo={obj}", str(SOURCE / name)],
                  env, f"assembling {name}")
         files.append(obj)
-    script = OUT / "timer.lnk"
+    script = OUT / "patch.lnk"
     script.write_text("\n".join([
         "system nt_dll initinstance terminstance",
         f"name '{dll}'",
-        f"option quiet, caseexact, map='{OUT / 'TIMER.map'}'",
+        f"option quiet, caseexact, map='{OUT / 'PATCH.map'}'",
         "option osversion=4.0",
         "runtime windows=4.0",
         "library winmm.lib",
@@ -412,11 +461,15 @@ def build_launcher(manifest):
     objects.mkdir(parents=True, exist_ok=True)
     dos = brrpatch_build.write_data()
     print(f"  the DOS patch for the launcher's button: {dos['ops']} steps, {dos['literals']:,} bytes of ours")
+    data = (GAME / "WINRACE.EXE").read_bytes()
     (OUT / "game.h").write_text(
-        "/* Generated by dropin-build from data/game-manifest.json: the v2.25 WINRACE.EXE, as\n"
-        " * installed and with its section headers corrected (win-headers) */\n"
+        "/* Generated by dropin-build from data/game-manifest.json: the v2.25 WINRACE.EXE as\n"
+        " * installed, with its section headers corrected in place (launchers before 2026-11-15),\n"
+        " * and as WINRACEP.EXE (headers corrected, timer.dll imported as PATCH.DLL) */\n"
         f'#define GAME_EXE_SHA256 "{manifest["sha256"]}"\n#define GAME_EXE_SIZE {manifest["size"]}u\n'
-        f'#define GAME_EXE_CORRECTED_SHA256 "{corrected_sha256()}"\n')
+        f'#define GAME_EXE_CORRECTED_SHA256 "{corrected_sha256()}"\n'
+        f'#define WINRACEP_SHA256 "{winracep_sha256()}"\n'
+        f"#define WINRACEP_IMPORT_OFFSET 0x{timer_import_offset(data):X}u  /* \"timer.dll\" */\n")
     extract_icon((GAME / "WINRACE.EXE").read_bytes(), OUT / "launcher.ico")
     write_help(OUT / HELP_FILE)
     files = []
@@ -487,8 +540,9 @@ def build():
     print(f"  WINRACE.EXE v2.25 checked; {len(doc['sites'])} patch sites and "
           f"{len(doc['protected'])} protected functions match")
     write_header(doc, manifest["sha256"], manifest["size"])
-    dll = OUT / "TIMER.DLL"
+    dll = OUT / "PATCH.DLL"
     dll.unlink(missing_ok=True)
+    (OUT / "TIMER.DLL").unlink(missing_ok=True)  # the DLL's name before 2026-11-15
     compile_dll(dll)
     # Windows line endings, so Notepad on Windows 95/98 shows it properly
     text = (SOURCE / "BRRFIX.INI").read_text().replace("\r\n", "\n")
@@ -543,7 +597,7 @@ def check_dll(dll):
     extra = [name for name in ours.imports() if name.lower() not in SYSTEM_DLLS]
     if extra:
         raise BuildError(f"the DLL imports non-system DLLs: {', '.join(extra)}")
-    count = check_windows95("TIMER.DLL", ours)
+    count = check_windows95("PATCH.DLL", ours)
     machine, os_version, subsystem, sub_version = ours.header()
     if machine != 0x14C or os_version != (4, 0) or sub_version != (4, 0) or subsystem != 2:
         raise BuildError(f"PE header not marked for Windows 4.0: machine 0x{machine:X}, OS version "

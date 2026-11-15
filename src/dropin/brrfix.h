@@ -1,5 +1,6 @@
-/* Big Red Launcher's TIMER.DLL (the drop-in fix): a replacement TIMER.DLL for the player's own v2.25
- * WINRACE.EXE. Our own code only; it patches the game in memory, never on disk.
+/* Big Red Launcher's PATCH.DLL (the drop-in fix): it stands in for the game's TIMER.DLL (the
+ * launcher's WINRACEP.EXE imports it instead) for the player's own v2.25 WINRACE.EXE. Our own
+ * code only; it patches the game in memory, never on disk.
  * See docs/reports/phase-3a-drop-in-fix.md and data/dropin-patches.json. */
 #ifndef BRRFIX_H
 #define BRRFIX_H

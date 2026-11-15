@@ -2,8 +2,8 @@ Big Red Launcher by ctrl-alt-rees
 =================================
 ctrl-alt-rees.com
 
-A launcher and a replacement TIMER.DLL for the Windows 95 version of Big Red
-Racing (1996), patched to v2.25. It makes the original game run on modern
+A launcher and a fix (PATCH.DLL) for the Windows 95 version of Big Red Racing
+(1996), patched to v2.25. It makes the original game run on modern
 Windows and on Linux/Steam Deck through Proton, and makes it run smoothly:
 
 - No more "privileged instruction" crash: the game's direct reads of the 1996
@@ -30,13 +30,13 @@ Windows and on Linux/Steam Deck through Proton, and makes it run smoothly:
   itself still said V2.24), with Big Red Launcher's version, and its credits
   line at the top includes "Camera / Modern Windows fix by ctrl-alt-rees".
 
-It contains no part of the game. TIMER.DLL changes the game's code only in
-memory while it runs, and only after checking that WINRACE.EXE is the exact
-v2.25 file and that every place it changes is as expected. If anything doesn't
-match, it changes nothing, writes why to BRRFIX.LOG, and works like the
-original TIMER.DLL. Your game's own files are left as they are: the launcher
-runs its own copy of WINRACE.EXE, WINRACEP.EXE, with its file headers
-corrected (see Install).
+It contains no part of the game, and your game's own files are left as they
+are: the launcher runs its own copy of WINRACE.EXE, WINRACEP.EXE, which uses
+PATCH.DLL in place of the game's TIMER.DLL (see Install). PATCH.DLL changes
+the game's code only in memory while it runs, and only after checking that the
+game is the exact v2.25 file and that every place it changes is as expected.
+If anything doesn't match, it changes nothing, writes why to BRRFIX.LOG, and
+works like the game's own TIMER.DLL.
 
 You need
 --------
@@ -48,7 +48,8 @@ What's in this zip
 ------------------
 - Big Red Racing.exe  Big Red Launcher: settings, checks, then starts the game
 - Big Red Launcher Help.txt  what every setting in the launcher does
-- TIMER.DLL           the fix itself (the game loads it instead of its own)
+- PATCH.DLL           the fix itself (the game uses it instead of its own
+                      TIMER.DLL)
 - DPLAY.DLL           stands in for DirectX 3's DirectPlay, which Windows 10
                       and 11 lack (the game won't start without it); it passes
                       network play on to a real DirectPlay if there is one
@@ -82,19 +83,20 @@ called Game inside it and the CD music in a folder called Music:
    Music).
 4. Start Big Red Racing.exe (make a shortcut to it if you like).
    It makes WINRACEP.EXE ("P" for patched) beside itself: a copy of the game's
-   WINRACE.EXE with its file headers corrected, because the 1996 linker wrote
-   them carelessly and Windows 10 and 11 refuse to start the original. Only the
-   headers differ, and the copy works on every version of Windows. The launcher
-   starts it in the Game folder, and it picks up our TIMER.DLL (it's beside
-   it) instead of the game's own. Nothing in the Game folder is changed.
+   WINRACE.EXE with two small changes. Its file headers are corrected,
+   because the 1996 linker wrote them carelessly and Windows 10 and 11 refuse
+   to start the original; the copy works on every version of Windows. And it
+   uses our PATCH.DLL where the game used its own TIMER.DLL. The launcher
+   starts it in the Game folder. Nothing in the Game folder is changed.
 To remove it: delete the folder (the Game folder in it is your copy of the
 game, so keep that if you need it).
 
 Coming from an earlier Big Red Launcher, which went into the game's folder?
-Move the game's files into a folder called Game as above, and in it rename
-TIMER.ORI back to TIMER.DLL (and WINRACE.ORI, if it's there, back to
-WINRACE.EXE). Move our files (everything from this zip) to the top folder, and
-rename MUSIC to Music and move it there too.
+Move the game's files into a folder called Game as above. In it, delete our
+old TIMER.DLL and rename TIMER.ORI back to TIMER.DLL (and WINRACE.ORI, if it's
+there, back to WINRACE.EXE), and delete the earlier launcher's other files.
+Put everything from this zip in the top folder, and rename MUSIC to Music and
+move it there too.
 
 Steam Deck and Linux (Proton)
 -----------------------------
@@ -119,7 +121,7 @@ Esc (Quit), so a controller mapped to keys by Steam Input can use it.
 - To see the window again: hold Shift while starting, or start with -setup.
 - Steam launch options: -play skips the window, -setup always shows it.
 Before starting the game it checks the Game folder's WINRACE.EXE is v2.25,
-makes or refreshes WINRACEP.EXE from it, and checks that our TIMER.DLL and
+makes or refreshes WINRACEP.EXE from it, and checks that PATCH.DLL and
 cnc-ddraw are there and that the music folder has tracks. It stays running
 until the game ends, so Steam counts your play time.
 

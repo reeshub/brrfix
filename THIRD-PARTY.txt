@@ -70,7 +70,7 @@ Shaders\interpolation\catmull-rom-bilinear.glsl (from the same cnc-ddraw release
     Modified to use 5 texture fetches
 */
 
-dr_flac.h (dr_flac-flac-0.13.4), compiled into TIMER.DLL
+dr_flac.h (dr_flac-flac-0.13.4), compiled into PATCH.DLL
   Source: https://raw.githubusercontent.com/mackron/dr_libs/flac-0.13.4/dr_flac.h
   SHA-256 b8078eeb5d523502eb7964508cd7ec8450bc79d383bec90aa17fd9e2fefd9c24
   Licence, from the file:
@@ -123,7 +123,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-stb_vorbis.c (stb_vorbis-4e9b368), compiled into TIMER.DLL
+stb_vorbis.c (stb_vorbis-4e9b368), compiled into PATCH.DLL
   Source: https://raw.githubusercontent.com/nothings/stb/4e9b368bfc071e97206ea5c6adba68dd0cbf8897/stb_vorbis.c
   SHA-256 4c7cb2ff1f7011e9d67950446b7eb9ca044f2e464d76bfbb0b84dd2e23e65636
   Licence, from the file:

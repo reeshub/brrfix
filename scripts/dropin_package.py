@@ -1,6 +1,6 @@
 """dropin-package: zip Big Red Launcher for players: our files only.
 
-Writes work/release/big-red-launcher-<version>.zip containing our TIMER.DLL and launcher
+Writes work/release/big-red-launcher-<version>.zip containing our PATCH.DLL and launcher
 (Big Red Racing.exe, from work/build/dropin/ - run dropin-build first), BRRFIX.INI and
 ddraw.ini (defaults, with comments), README.txt, THIRD-PARTY.txt, LICENSE.txt once the
 project has a licence, and cnc-ddraw (ddraw.dll and the three shaders our presets use),
@@ -97,7 +97,7 @@ def third_party_text(cnc_licence, shaders):
                   block.strip() or "(cnc-ddraw's, above)", ""]
     for folder, filename, url, digest in DECODERS:
         text = (THIRD_PARTY / folder / filename).read_text(errors="replace")
-        parts += [f"{filename} ({folder}), compiled into TIMER.DLL", f"  Source: {url}", f"  SHA-256 {digest}",
+        parts += [f"{filename} ({folder}), compiled into PATCH.DLL", f"  Source: {url}", f"  SHA-256 {digest}",
                   "  Licence, from the file:", "",
                   licence_block(text, "This software is available as a choice of the following licenses")
                   if "This software is available as a choice" in text
@@ -109,7 +109,7 @@ def main(args):
     if args and args[0] in ("-h", "--help"):
         print(__doc__)
         return 0
-    dll = BUILD / "TIMER.DLL"
+    dll = BUILD / "PATCH.DLL"
     if not dll.exists():
         print("dropin-package: build it first: python3 brr.py dropin-build")
         return 1
@@ -123,7 +123,7 @@ def main(args):
     (ROOT / "THIRD-PARTY.txt").write_text(third_party)
     files = {"Big Red Racing.exe": (BUILD / "Big Red Racing.exe").read_bytes(),
              "Big Red Launcher Help.txt": (BUILD / "Big Red Launcher Help.txt").read_bytes(),
-             "TIMER.DLL": dll.read_bytes(),
+             "PATCH.DLL": dll.read_bytes(),
              "DPLAY.DLL": (BUILD / "DPLAY.DLL").read_bytes(),
              "BRRFIX.INI": crlf((SOURCE / "BRRFIX.INI").read_text()),
              "ddraw.ini": crlf((SOURCE / "ddraw.ini").read_text()),

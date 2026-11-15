@@ -1,5 +1,5 @@
 {
- "about": "Drop-in TIMER.DLL (Phase 3a): where it patches the player's own v2.25 WINRACE.EXE in memory, and the code it must leave untouched. Checksums only, no game bytes. sha256 values are recorded by 'python3 brr.py dropin-build' from work/game/WINRACE.EXE and checked on every build; the DLL checks them again at run time before patching anything.",
+ "about": "Drop-in PATCH.DLL (Phase 3a, a replacement TIMER.DLL before 2026-11-15): where it patches the player's own v2.25 WINRACE.EXE in memory, and the code it must leave untouched. Checksums only, no game bytes. sha256 values are recorded by 'python3 brr.py dropin-build' from work/game/WINRACE.EXE and checked on every build; the DLL checks them again at run time before patching anything.",
  "target": {
   "file": "WINRACE.EXE",
   "version": "V2.25",

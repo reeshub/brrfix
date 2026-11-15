@@ -1,5 +1,5 @@
-/* DLL start-up, configuration (BRRFIX.INI), logging (BRRFIX.LOG) and the
- * TIMER.DLL interface the game imports: TIMER_Init_, TIMER_Shutdown_, _TIMER_Count
+/* DLL start-up, configuration (BRRFIX.INI), logging (BRRFIX.LOG) and the game's
+ * TIMER.DLL interface, which WINRACEP.EXE imports from PATCH.DLL: TIMER_Init_, TIMER_Shutdown_, _TIMER_Count
  * and _TIMER_Handler@20 (thin register-preserving thunks in thunks.asm call these). */
 #include "brrfix.h"
 #include <stdio.h>
@@ -224,7 +224,7 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
         brr_clock_setup();
         load_config();
         open_log();
-        brr_log("Big Red Launcher %s (TIMER.DLL replacement)", BRRFIX_VERSION);
+        brr_log("Big Red Launcher %s (PATCH.DLL)", BRRFIX_VERSION);
         brr_log("config: vga=%d clock=%d cap=%d interpolation=%d camera=%d menu_keys=%d source=%s "
                 "tick_rate=%u.%03u catch_up_cap=%d frame_limit=%d vsync=%d pacing=%s delay=%d.%03u camera_smoothing=%d fine_angles=%d roll_fix=%d "
                 "resolution=%s renderer=%s render_resolution=%s aspect=%s max_draw_distance=%d",

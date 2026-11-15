@@ -294,9 +294,10 @@ The game's own files are left as they are. Windows 10 and 11 refuse to start
 the 1996 WINRACE.EXE as it is: the linker that made it in 1996 wrote its file
 headers carelessly, which Windows 95 didn't mind. So when you press Play, the
 launcher makes WINRACEP.EXE ("P" for patched) beside itself: a copy of the
-game's WINRACE.EXE with only those headers corrected, which works on every
-version of Windows. It starts that copy in the Game folder. If the game's
-WINRACE.EXE changes, the copy is made again.
+game's WINRACE.EXE with those headers corrected, which works on every version
+of Windows, and using our PATCH.DLL (the fixes) where the game used its own
+TIMER.DLL. It starts that copy in the Game folder. If the game's WINRACE.EXE
+changes, the copy is made again.
 
 ## Starting from Steam
 

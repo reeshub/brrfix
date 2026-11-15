@@ -1,4 +1,4 @@
-/* WINRACEP.EXE, the header-corrected copy (see winfix.h). Standard C file functions only. */
+/* WINRACEP.EXE, the launcher's copy of WINRACE.EXE (see winfix.h). Standard C file functions only. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -157,9 +157,12 @@ int brr_win_make_copy(const char *game_folder, const char *out, char *message, u
     }
     if (state != BRR_WIN_OTHER) {
         correct(data);
-        if (!hash_is(data, length, GAME_EXE_CORRECTED_SHA256)) {  /* can't happen: the hashes are checked */
+        /* the game imports our PATCH.DLL instead of its own TIMER.DLL: the same length */
+        if (!memcmp(data + WINRACEP_IMPORT_OFFSET, "timer.dll", 10))
+            memcpy(data + WINRACEP_IMPORT_OFFSET, "PATCH.DLL", 9);
+        if (!hash_is(data, length, WINRACEP_SHA256)) {  /* can't happen: the hashes are checked */
             free(data);
-            say(message, size, "Couldn't correct WINRACE.EXE's headers. Nothing was changed.");
+            say(message, size, "Couldn't make WINRACEP.EXE from WINRACE.EXE. Nothing was changed.");
             return -1;
         }
         state = BRR_WIN_CORRECTED;
@@ -196,7 +199,7 @@ int brr_win_make_copy(const char *game_folder, const char *out, char *message, u
             "running, or the file read-only?).");
         return -1;
     }
-    say(message, size, state == BRR_WIN_CORRECTED ? "WINRACEP.EXE is made: WINRACE.EXE with its headers corrected."
-        : "WINRACEP.EXE is made: a copy of WINRACE.EXE as it is (it isn't v2.25).");
+    say(message, size, state == BRR_WIN_CORRECTED ? "WINRACEP.EXE is made: WINRACE.EXE with its headers corrected, "
+        "using PATCH.DLL." : "WINRACEP.EXE is made: a copy of WINRACE.EXE as it is (it isn't v2.25).");
     return state;
 }

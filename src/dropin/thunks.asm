@@ -76,7 +76,7 @@
 
         .code
 
-; TIMER.DLL exports (named in dropin_build.py's linker directives).
+; The game's TIMER.DLL exports, which PATCH.DLL provides (named in dropin_build.py's linker directives).
 ; TIMER_Init_ takes hInstance in EAX.
 _brr_TIMER_Init:
         push    ecx

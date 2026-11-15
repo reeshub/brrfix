@@ -1,5 +1,5 @@
 {
- "about": "Functions the drop-in (TIMER.DLL) and the launcher may import statically, each present in retail Windows 95's system DLLs (documented in the Win32 SDK as available on Windows 95). dropin-compat checks every import against this list; with --dlls DIR it checks against the export tables of real Windows 95 DLLs instead, which is conclusive. Anything newer must be looked up at run time with GetProcAddress (AddVectoredExceptionHandler, XInputGetState, wine_get_version so far).",
+ "about": "Functions the drop-in (PATCH.DLL) and the launcher may import statically, each present in retail Windows 95's system DLLs (documented in the Win32 SDK as available on Windows 95). dropin-compat checks every import against this list; with --dlls DIR it checks against the export tables of real Windows 95 DLLs instead, which is conclusive. Anything newer must be looked up at run time with GetProcAddress (AddVectoredExceptionHandler, XInputGetState, wine_get_version so far).",
  "stubs_on_9x": {
   "KERNEL32.DLL": [
    "GetCommandLineW",

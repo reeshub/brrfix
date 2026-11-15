@@ -5,10 +5,11 @@
  * The layout: the launcher and our files at the top, the installed game in Game (BRRFIX.INI
  * [launcher] game: another folder name or a full path) and the ripped CD tracks in Music.
  * The game's files are left as they are: the launcher makes WINRACEP.EXE beside itself,
- * WINRACE.EXE with its section headers corrected (winfix.c), and starts that in the game's
- * folder. Windows looks for DLLs beside the program first, so the game gets our TIMER.DLL
- * (and DPLAY.DLL, cnc-ddraw's ddraw.dll) rather than its own, and its own KEY.DLL from the
- * game's folder (the current folder, and added to PATH).
+ * WINRACE.EXE with its section headers corrected and our PATCH.DLL imported instead of the
+ * game's TIMER.DLL (winfix.c), and starts that in the game's folder. Windows looks for DLLs
+ * beside the program first, so the game gets our PATCH.DLL, DPLAY.DLL and cnc-ddraw's
+ * ddraw.dll, and its own KEY.DLL from the game's folder (the current folder, and added to
+ * PATH).
  *
  * Settings live in BRRFIX.INI (the drop-in's) and ddraw.ini (cnc-ddraw's). They're
  * changed with WritePrivateProfileStringA, value by value, so comments, layout and keys
@@ -689,15 +690,17 @@ static int checks_pass(void)
         MessageBoxA(NULL, message, "Big Red Racing", MB_OK | MB_ICONERROR);
         return 0;
     }
-    wsprintfA(path, "%s\\TIMER.DLL", folder);
-    if (!file_contains(path, "BRRFIX.INI") && !ask("The TIMER.DLL next to Big Red Racing.exe is missing or isn't "
-                                                   "Big Red Launcher's. The game will run without the fixes, and "
-                                                   "may not run at all on modern Windows.\n\nStart anyway?"))
+    wsprintfA(path, "%s\\PATCH.DLL", folder);
+    if (!file_contains(path, "BRRFIX.INI")) {
+        MessageBoxA(NULL, "PATCH.DLL, Big Red Launcher's fix, isn't next to Big Red Racing.exe, so the game "
+                    "can't start. Copy it there again from the Big Red Launcher zip.", "Big Red Racing",
+                    MB_OK | MB_ICONERROR);
         return 0;
+    }
     wsprintfA(path, "%s\\ddraw.dll", folder);
     if (!windows_9x && GetFileAttributesA(path) == 0xFFFFFFFFu
-        && !ask("cnc-ddraw (ddraw.dll) isn't next to Big Red Racing.exe. On modern Windows and Proton the game needs it to fill "
-                "the screen.\n\nStart anyway?"))
+        && !ask("cnc-ddraw (ddraw.dll) isn't next to Big Red Racing.exe. On modern Windows and Proton the "
+                "game needs it to fill the screen.\n\nStart anyway?"))
         return 0;
     if (ini_flag("music", "music", 1)) {
         ini_get(brrfix_ini, "music", "folder", "Music", setting, sizeof setting);

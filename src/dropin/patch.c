@@ -1,5 +1,5 @@
-/* Verified in-memory patching. Nothing is written unless WINRACE.EXE on disk is the
- * exact v2.25 file (SHA-256) and every patch site and protected range in memory has
+/* Verified in-memory patching. Nothing is written unless the running program on disk is
+ * the exact v2.25 WINRACE.EXE, or WINRACEP.EXE made from it by the launcher (SHA-256), and every patch site and protected range in memory has
  * the expected SHA-256 (sites.h is generated from data/dropin-patches.json by
  * "python3 brr.py dropin-build"). Patches are all-or-nothing; the result is logged.
  * The game's code is identified by checksums only: no original bytes are stored. */
@@ -78,6 +78,10 @@ static int exe_matches(void)
     }
     hash_hex(buffer, size, hex);
     HeapFree(GetProcessHeap(), 0, buffer);
+    if (strcmp(hex, EXPECTED_WINRACEP_SHA256) == 0) {
+        brr_log("check: %s is WINRACEP.EXE, made from the v2.25 WINRACE.EXE (SHA-256 matches)", path);
+        return 1;
+    }
     if (strcmp(hex, EXPECTED_EXE_CORRECTED_SHA256) == 0) {
         brr_log("check: %s is the v2.25 WINRACE.EXE with corrected section headers (SHA-256 matches)", path);
         return 1;
@@ -351,7 +355,7 @@ void brr_patch_all(void)
     size_t count = sizeof SITES / sizeof SITES[0];
     if (!exe_matches()) {
         if (!cfg.debug_ignore_exe_checksum) {
-            brr_log("result: no patches applied; running as a plain TIMER.DLL");
+            brr_log("result: no patches applied; only the game's timer (as its own TIMER.DLL)");
             return;
         }
         brr_log("debug: ignore_exe_checksum=1, so checking the patch sites anyway");
@@ -377,7 +381,7 @@ void brr_patch_all(void)
     if (cfg.music)
         bad += brr_music_check();
     if (bad) {
-        brr_log("result: %d check(s) failed; no patches applied; running as a plain TIMER.DLL", bad);
+        brr_log("result: %d check(s) failed; no patches applied; only the game's timer (as its own TIMER.DLL)", bad);
         return;
     }
     {   /* the loaded ddraw.dll is cnc-ddraw: it exports GameHandlesClose, which no real DirectDraw does */
