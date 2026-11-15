@@ -13,9 +13,11 @@
  * Each HUD sprite goes to the layer of its corner (site sprite_scaled_entry: the caller says
  * which): the map left, the place, nitro and laps right, damage and the messages centred; top
  * or bottom by its height. When the race picture is composed (render.c), each layer is laid
- * over it enlarged by whole numbers (as the menus were: as many rows as the picture's height
- * is 200s, the columns nearest the 4:3 shape) and pinned to its corner, so a wider view leaves
- * the HUD unstretched. The 3D view itself never holds the HUD. */
+ * over it enlarged by whole numbers (as many rows as the picture's height is 200s; with
+ * [display] hud_aspect43=1, the default, the columns nearest the shape 320x200 had on a 4:3
+ * monitor, its pixels 1.2 times taller than wide; with 0 as many as the rows, square) and
+ * pinned to its corner, so a wider view leaves the HUD unstretched. The 3D view itself never
+ * holds the HUD. */
 #include "brrfix.h"
 #include <string.h>
 
@@ -74,7 +76,8 @@ void brr_hud_setup(void)
         return;
     }
     brr_log("hud: the race HUD drawn from the game's 320x200 art on layers of its own, enlarged by "
-            "whole numbers and pinned to the picture's corners ([display] hud=lowres)");
+            "whole numbers (%s) and pinned to the picture's corners ([display] hud=lowres)",
+            cfg.hud_aspect43 ? "the 4:3 monitor's shape" : "square pixels");
 }
 
 /* Before hud_draw (first = 1, a new frame's HUD) or hud_draw_playback_icon (first = 0) in
@@ -156,12 +159,12 @@ int brr_hud_overlay(const uint8_t *origin, int w, int h, void *out, int out_w, i
         return 0;
     if (!again && (origin != for_picture || w != for_w || h != for_h || SCREEN != for_screen))
         return 0;
-    /* as many rows as the picture has 200s (rounded), the columns nearest the 1996 pixels'
-     * shape (1.2 times taller than wide), and never wider than the picture */
+    /* as many rows as the picture has 200s (rounded); the columns nearest the 1996 pixels'
+     * shape (1.2 times taller than wide), or as many as the rows; never wider than the picture */
     ky = (h + HUD_H / 2) / HUD_H;
     if (ky < 1)
         ky = 1;
-    kx = (ky * 5 + 3) / 6;
+    kx = cfg.hud_aspect43 ? (ky * 5 + 3) / 6 : ky;
     if (kx * HUD_W > w)
         kx = w / HUD_W;
     if (kx < 1)

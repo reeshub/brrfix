@@ -37,6 +37,8 @@
 #define IDC_MISC_GROUP   1225
 #define IDC_MAXLIMIT     1226
 #define IDC_MAXLIMIT_LABEL 1227
+#define IDC_HUD43        1228
+#define IDC_WIDESCREEN   1229
 
 /* Audio */
 #define IDC_PAGE_AUDIO   1300

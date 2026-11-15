@@ -133,6 +133,8 @@ static void load_config(void)
     cfg.smooth_shading = ini_int(path, "display", "smooth_shading", 1);
     GetPrivateProfileStringA("display", "hud", "lowres", text, sizeof text, path);
     cfg.hud_lowres = lstrcmpiA(text, "game") != 0;
+    cfg.hud_aspect43 = ini_int(path, "display", "hud_aspect43", 1);
+    cfg.widescreen = ini_int(path, "display", "widescreen", 1);
     cfg.colour_animation = ini_int(path, "display", "colour_animation", 1);
     cfg.menu_navigation = ini_int(path, "controller", "menu_navigation", 1);
     cfg.show_version = ini_int(path, "display", "show_version", 1);
@@ -253,13 +255,14 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
         brr_log("Big Red Launcher %s (PATCH.DLL)", BRRFIX_VERSION);
         brr_log("config: vga=%d clock=%d cap=%d interpolation=%d camera=%d menu_keys=%d source=%s "
                 "tick_rate=%u.%03u catch_up_cap=%d frame_limit=%d vsync=%d pacing=%s delay=%d.%03u camera_smoothing=%d fine_angles=%d roll_fix=%d "
-                "resolution=%s renderer=%s render_resolution=%s render_max_height=%d hud=%s aspect=%s max_draw_distance=%d",
+                "resolution=%s renderer=%s render_resolution=%s render_max_height=%d widescreen=%d hud=%s hud_aspect43=%d aspect=%s max_draw_distance=%d",
                 cfg.fix_vga, cfg.fix_clock, cfg.fix_cap, cfg.fix_interpolation, cfg.fix_camera, cfg.fix_menu_keys,
                 cfg.clock_original ? "original" : "qpc", cfg.rate_milli / 1000,
                 cfg.rate_milli % 1000, cfg.cap, cfg.frame_limit, cfg.vsync, cfg.pacing_dropin ? "dropin" : "cnc-ddraw",
                 cfg.interp_delay_milli / 1000, cfg.interp_delay_milli % 1000, cfg.camera_smoothing, cfg.fine_angles, cfg.camera_roll_fix,
                 cfg.resolution_high ? "high" : "low", cfg.renderer_new ? "new" : "original",
-                cfg.render_max ? "max" : "original", cfg.render_max_rows, cfg.hud_lowres ? "lowres" : "game",
+                cfg.render_max ? "max" : "original", cfg.render_max_rows, cfg.widescreen,
+                cfg.hud_lowres ? "lowres" : "game", cfg.hud_aspect43,
                 cfg.window_aspect43 ? "4:3" : "square", cfg.max_draw_distance);
         brr_patch_all();
         brr_interp_setup();

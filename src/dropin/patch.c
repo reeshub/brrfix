@@ -184,6 +184,7 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "sky")) return brr_sky_active || brr_shade_active;  /* the 3D view's start, for both */
     if (!strcmp(fix, "shading")) return brr_shade_active;
     if (!strcmp(fix, "hud")) return brr_hud_active;
+    if (!strcmp(fix, "widescreen")) return brr_widescreen && brr_renderer_active && cfg.render_max;
     if (!strcmp(fix, "menu_pad")) return cfg.menu_navigation;
     if (!strcmp(fix, "screenshot")) return (cfg.render_max && brr_renderer_active) || brr_sky_active;
     if (!strcmp(fix, "draw_distance")) return cfg.max_draw_distance > 0;  /* experimental, off by default */
@@ -284,6 +285,12 @@ static int replacement(const struct site_info *s, uint8_t *out)
         out[0] = 0xE8;  /* CALL brr_hook_hud_draw / _icon: the HUD drawn into our layers (hud.c) */
         put_rel32(out + 1, s->address + 5,
                   !strcmp(n, "hud_draw_call") ? (void *)brr_hook_hud_draw : (void *)brr_hook_hud_icon);
+    } else if (!strcmp(n, "proj_scale_store") && s->length == 5) {
+        out[0] = 0xE8;  /* CALL brr_hook_proj_scale: our widescreen view's scale from its height */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_proj_scale);
+    } else if (!strcmp(n, "landscape_width") && s->length == 12) {
+        out[0] = 0xE8;  /* CALL brr_hook_landscape_width: the game's division, widened; NOPs after */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_landscape_width);
     } else if (!strcmp(n, "sprite_scaled_entry") && s->length == 6) {
         out[0] = 0xE9;  /* JMP brr_hook_sprite_scaled, which runs the 4 instructions replaced here */
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_sprite_scaled);

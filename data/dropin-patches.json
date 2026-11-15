@@ -599,6 +599,22 @@
    "sha256": "affbabf60b652adedbc86764fbdd0e11ed2be3ab58650b536a1aa79df764cfcb"
   },
   {
+   "name": "proj_scale_store",
+   "fix": "widescreen",
+   "address": "0x425FA1",
+   "length": 5,
+   "patch": "set_view: MOV [0x542000],EAX (the horizontal projection scale, width x 256 / 320; the vertical one follows from it) -> CALL brr_hook_proj_scale (thunks.asm): for a widescreen race view, height x 16 / 15 instead (the scale of the 4:3 view as tall), so the view shows as much from top to bottom as 4:3 and more at the sides. Native widescreen only ([display] widescreen with Max, full screen on a screen wider than 4:3)",
+   "sha256": "9f893e6501a0a6a5e3f539124add5a0a80bb950a09bda83ed402b76500b48cfd"
+  },
+  {
+   "name": "landscape_width",
+   "fix": "widescreen",
+   "address": "0x41CD16",
+   "length": 12,
+   "patch": "landscape_setup: MOV EDX,EAX; MOV EBX,10; SAR EDX,31; IDIV EBX (7 x vision / 10, the visible ground's half-width - 1 at its far edge, for 4:3) -> CALL brr_hook_landscape_width (thunks.asm) and NOPs: the same division, then brr_landscape_width (render.c) widens it by the view's shape against 4:3, as far as the 64x64 grid holds (far corners within 31 cells). Native widescreen only",
+   "sha256": "231d153bea89e06544fe0f67a08ecfd45b0348ca8c50f5b33f6bffdc0339158a"
+  },
+  {
    "name": "set_view_entry",
    "fix": "render_max",
    "address": "0x425F78",

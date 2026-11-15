@@ -36,6 +36,8 @@ struct brr_config {
     int smooth_shading;      /* [display] smooth_shading: lit polygons shaded smoothly (shade.c; full colour) */
     int hud_lowres;          /* [display] hud=lowres: the race HUD from the 320x200 art on its own layers,
                               * enlarged by whole numbers (hud.c; the new renderer only); game = the game's own */
+    int hud_aspect43;        /* [display] hud_aspect43: the HUD's blocks the 4:3 monitor's shape (1) or square */
+    int widescreen;          /* [display] widescreen: Max races at the screen's shape (render.c) */
     int colour_animation;    /* [display] colour_animation: the levels' palette cycling, as in DOS (palanim.c) */
     int menu_navigation;     /* [controller] menu_navigation: B, and the stick's left and right, in menus (keys.c) */
     int language;            /* [display] language: 1-7 (ENG, USA, FRE, GER, ITA, SPA, JAP) */
@@ -208,6 +210,11 @@ void brr_hook_screenshot_tape(void);
 #define RENDER_LIMIT_H 6132
 extern uint32_t brr_reciprocals[RECIPROCALS];
 extern int brr_view_max_w, brr_view_max_h;  /* the engine's buffers: 640x480, or Max's view */
+extern int brr_widescreen;                  /* native widescreen decided (render.c) */
+extern int32_t brr_proj_scale;
+int __cdecl brr_landscape_width(int q);
+void brr_hook_proj_scale(void);             /* thunks.asm: sites proj_scale_store, landscape_width */
+void brr_hook_landscape_width(void);
 void brr_reciprocals_fill(void);
 void brr_hook_sprite_rows(void);     /* thunks.asm: sites sprite_scale_rows and _columns */
 void brr_hook_sprite_columns(void);

@@ -131,6 +131,7 @@
    "GetDlgCtrlID",
    "GetDlgItem",
    "GetDlgItemTextA",
+   "GetSystemMetrics",
    "GetWindow",
    "GetWindowThreadProcessId",
    "IsDlgButtonChecked",

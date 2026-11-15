@@ -105,6 +105,27 @@ How many rows Max draws races with at most:
   frame rate: on a 4K screen (2880x2160) even a fast PC manages only about 25
   frames a second.
 
+With native widescreen (below) the limit is the race's height, and its width
+follows the screen's shape: 1920x1080 at 1080.
+
+**Native widescreen** (Modern renderer, with Max; on by default)
+
+In full screen on a screen wider than 4:3 (16:10 like the Steam Deck, 16:9,
+or wider), races are drawn at your screen's own shape: 1280x800 on the Steam
+Deck, 1920x1080 on a 1080p screen (and, with the 1080 limit, on 1440p and 4K
+screens, enlarged exactly). The game sees as much from top to bottom as in
+4:3 and more at the sides; nothing is stretched, and the dashboard stays in
+the corners. The menus stay 4:3, enlarged by whole numbers in the middle of
+the screen with black bars at the sides, and the picture no longer changes
+size between the menus and a race.
+
+The game only works out the ground it needs for a 4:3 view, in a grid of
+limited size; it's widened to match, up to that grid's edge. That's enough
+for 16:10 and 16:9 with the in-game sliders. With the Original engine max
+draw distance, or on ultrawide screens, the farthest ground at the far left
+and right may be missing. In a window (which is 4:3), on a 4:3 screen and in
+split-screen races the picture stays 4:3.
+
 With the Original renderer, keypad + and - still switch between high and low
 resolution in the game, as in 1996. The Modern renderer keeps the one chosen
 here.
@@ -130,6 +151,10 @@ its own choice: Integer for the Original, 4:3 sharp for the Modern one.
   pixels, as tall as the screen and kept sharp: the menus' 320x200 pictures
   are wider than 4:3 (they fill a 16:10 screen such as the Steam Deck's),
   races' 4:3 pictures have black bars at the sides.
+
+With native widescreen the pictures already have the screen's shape (the
+menus 4:3 inside them), so the 4:3 choices keep the picture's own shape
+instead: 4:3 sharp is then simply sharp, 4:3 nearest plain pixels.
 
 **Window size** (Modern renderer, in a window only)
 
@@ -182,12 +207,20 @@ input lag.
 
 ### Miscellaneous
 
-**Colour animation (as in the DOS version)** (on by default; both renderers)
+**Colour animation (as in DOS)** (on by default; both renderers)
 
 Four levels cycle some of their colours: CHOPPER3, CITY4 (Italy), MOON2 and
 RIG4. The DOS version does it; the Windows version lost it, as the code that
 did it was left uncalled. Ticked, those colours move again, at the DOS
 version's speed, while the race runs (they stop when you pause, as in DOS).
+
+**4:3 HUD correction** (Modern renderer; on by default)
+
+The race dashboard (map, place, nitro, laps, damage and messages) is the
+game's 320x200 art, enlarged by whole numbers. Ticked, each of its pixels is
+a little taller than wide (3x4 screen pixels on the Steam Deck, 4x5 at 1080
+rows), as the 320x200 art looked on a 1996 4:3 monitor. Unticked, square
+(4x4, 5x5): a little wider, as the art is in the files.
 
 **Draw distance** (Modern renderer)
 

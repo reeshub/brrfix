@@ -165,7 +165,10 @@ smoothly instead of a palette shade at a time ([display] full_colour,
 smooth_sky, smooth_shading). The race dashboard (map, place, nitro, laps,
 damage, messages) is the game's 320x200 art, drawn by the game on layers of
 its own and enlarged by whole numbers into the race picture's corners
-([display] hud=lowres; hud=game gives the game's own, as before).
+([display] hud=lowres; hud=game gives the game's own, as before; "4:3 HUD
+correction" gives its pixels the 1996 monitor's shape). With Max in full
+screen on a wide screen, races are drawn at the screen's own shape ("Native
+widescreen", [display] widescreen; the menus stay 4:3 in the middle).
 Windowed, it's a plain window drawn by cnc-ddraw: Alt+Enter switches to full
 screen and back. Its options: scaling, window size, colour depth,
 "Resolution: Max (experimental)" (the default: races drawn 4:3 as tall as the

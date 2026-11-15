@@ -17,6 +17,8 @@
         extrn   _brr_rotation_fine:near
         extrn   _brr_timer_count:dword
         extrn   _brr_reciprocals:dword
+        extrn   _brr_proj_scale:dword
+        extrn   _brr_landscape_width:near
         extrn   _brr_hud_begin:near
         extrn   _brr_hud_end:near
         extrn   _brr_hud_sprite:near
@@ -97,6 +99,7 @@
         public  _brr_call_dd_set_mode
         public  _brr_hook_sprite_rows, _brr_hook_sprite_columns
         public  _brr_hook_hud_draw, _brr_hook_hud_icon, _brr_hook_sprite_scaled
+        public  _brr_hook_proj_scale, _brr_hook_landscape_width
 
         .code
 
@@ -457,6 +460,37 @@ _brr_hook_set_view:
         push    esi
         mov     esi, edx
         jmp     dword ptr [_brr_set_view_continue]
+
+; Site proj_scale_store (set_view 0x425FA1: MOV [0x542000],EAX, the horizontal projection
+; scale, width x 256 / 320) -> CALL here: a widescreen view's from its height instead
+; (brr_proj_scale, render.c; 0 = the game's), so the view shows more at the sides rather than
+; less from top to bottom. The vertical scale follows from EAX as before; EDX (the
+; high-resolution flag) and the rest kept.
+_brr_hook_proj_scale:
+        cmp     dword ptr [_brr_proj_scale], 0
+        je      ps_store
+        mov     eax, dword ptr [_brr_proj_scale]
+ps_store:
+        mov     dword ptr ds:[542000h], eax
+        ret
+
+; Site landscape_width (landscape_setup 0x41CD16, EAX = 7 x vision: MOV EDX,EAX; MOV EBX,10;
+; SAR EDX,31; IDIV EBX, the visible ground's half-width - 1) -> CALL here: the same division,
+; then brr_landscape_width (render.c) widens it for a widescreen view. EBX 10 and the
+; remainder in EDX, as the game leaves them.
+_brr_hook_landscape_width:
+        mov     edx, eax
+        mov     ebx, 0Ah
+        sar     edx, 1Fh
+        idiv    ebx
+        push    ecx
+        push    edx
+        push    eax
+        call    _brr_landscape_width
+        add     esp, 4
+        pop     edx
+        pop     ecx
+        ret
 
 ; Sites hud_draw_call (render_view 0x417865) and hud_icon_call (0x417877): CALL hud_draw
 ; (0x423658, the vehicle in EAX) and CALL hud_draw_playback_icon (0x4236F0) -> here: the game's

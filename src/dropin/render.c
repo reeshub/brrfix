@@ -71,6 +71,12 @@ uint32_t brr_orig_screenshot_race = 0x423B5C, brr_orig_screenshot_tape = 0x423C4
 
 uint32_t brr_reciprocals[RECIPROCALS];       /* the 3D engine's reciprocal table, bigger (recip_* sites) */
 int brr_view_max_w = 640, brr_view_max_h = 480;  /* the engine's buffers' size (site view_max) */
+/* Native widescreen ([display] widescreen, with Max, full screen on a screen wider than 4:3):
+ * races drawn at the screen's own shape, with the field of view from the height (sites
+ * proj_scale_store and landscape_width), and every picture handed to cnc-ddraw at that size,
+ * the menus enlarged into it at 4:3 by whole numbers, with black bars at the sides. */
+int brr_widescreen;
+int32_t brr_proj_scale;  /* set_view's horizontal scale for the view being set (0: the game's) */
 static void race_view_size(int out_w, int out_h, int *w, int *h);
 
 /* 2^32 / n, as the engine's own table at 0x54A380 (engine_init_core 0x447950: entry 1 is
@@ -98,6 +104,24 @@ static int find_screen_size(void)
     screen_w = (int)mode.dmPelsWidth;
     screen_h = (int)mode.dmPelsHeight;
     return screen_w >= 640 && screen_h >= 480;
+}
+
+/* Whether cnc-ddraw shows the picture at its own shape, as native widescreen needs: not with
+ * a fixed aspect_ratio (the 4:3 presets), which would squeeze it; the launcher writes it
+ * empty for widescreen. Logs why not. */
+static int keeps_shape(void)
+{
+    char path[MAX_PATH], aspect[32], maintas[16], boxing[16];
+    brr_path_beside_dll(path, sizeof path, "ddraw.ini");
+    GetPrivateProfileStringA("ddraw", "aspect_ratio", "", aspect, sizeof aspect, path);
+    GetPrivateProfileStringA("ddraw", "maintas", "false", maintas, sizeof maintas, path);
+    GetPrivateProfileStringA("ddraw", "boxing", "false", boxing, sizeof boxing, path);
+    if (aspect[0] && !lstrcmpiA(maintas, "true") && lstrcmpiA(boxing, "true")) {
+        brr_log("render: native widescreen: off, as ddraw.ini keeps the picture at %s (aspect_ratio); "
+                "Big Red Launcher writes it empty for widescreen", aspect);
+        return 0;
+    }
+    return 1;
 }
 
 /* Whether the new renderer can run; logs why not. cnc_ddraw: the loaded DirectDraw is cnc-ddraw. */
@@ -134,8 +158,16 @@ int brr_renderer_decide(int cnc_ddraw)
         brr_log("render: cnc-ddraw's window: %dx%d (ddraw.ini)", window_w, window_h);
     if (cfg.render_max) {  /* Max's view, for the engine's buffers (it can't change later) */
         int windowed = cfg.display_mode == DISPLAY_WINDOWED && window_w > 0 && window_h > 0;
-        race_view_size(windowed ? window_w : screen_w, windowed ? window_h : screen_h, &brr_view_max_w,
-                       &brr_view_max_h);
+        int out_w = windowed ? window_w : screen_w, out_h = windowed ? window_h : screen_h;
+        brr_widescreen = cfg.widescreen && out_w * 3 > out_h * 4 && keeps_shape();
+        race_view_size(out_w, out_h, &brr_view_max_w, &brr_view_max_h);
+        if (brr_widescreen)
+            brr_log("render: native widescreen: races at %dx%d (the %dx%d %s's shape), the field of view from "
+                    "the height; menus 4:3 in the middle of that picture", brr_view_max_w, brr_view_max_h,
+                    out_w, out_h, windowed ? "window" : "screen");
+        else if (cfg.widescreen)
+            brr_log("render: native widescreen: off, as the %s is %dx%d (no wider than 4:3)",
+                    windowed ? "window" : "screen", out_w, out_h);
     }
     return 1;
 }
@@ -148,11 +180,11 @@ struct layout { int sx, sy, x, y; };
  * number across nearest that shape; with square: the same whole number both ways. */
 static void fit(int w, int h, int out_w, int out_h, struct layout *l)
 {
-    int sx, sy;
+    int sx, sy, aspect43 = cfg.window_aspect43 || brr_widescreen;  /* widescreen: menus at 4:3 */
     sy = out_h / h;
     if (sy < 1)
         sy = 1;
-    if (cfg.window_aspect43)  /* sx / sy = 4h / 3w, rounded to the nearest */
+    if (aspect43)  /* sx / sy = 4h / 3w, rounded to the nearest */
         sx = (sy * 8 * h + 3 * w) / (6 * w);
     else
         sx = sy;
@@ -162,7 +194,7 @@ static void fit(int w, int h, int out_w, int out_h, struct layout *l)
         sx = out_w / w;
         if (sx < 1)
             sx = 1;
-        sy = cfg.window_aspect43 ? (sx * 6 * w + 4 * h) / (8 * h) : sx;
+        sy = aspect43 ? (sx * 6 * w + 4 * h) / (8 * h) : sx;
         if (sy < 1)
             sy = 1;
         if (sy * h > out_h && out_h / h >= 1)
@@ -543,6 +575,18 @@ static void race_view_size(int out_w, int out_h, int *w, int *h)
         hh = cfg.render_max_rows;
     if (hh > RENDER_LIMIT_H)
         hh = RENDER_LIMIT_H;
+    if (brr_widescreen) {  /* the screen's own shape: 1280x800, 1920x1080 (and on 2560x1440 and 4K) */
+        ww = hh * out_w / out_h;
+        if (ww > out_w)
+            ww = out_w;
+        if (ww > RENDER_LIMIT_W)
+            ww = RENDER_LIMIT_W;
+        ww &= ~15;
+        hh = ww * out_h / out_w;
+        *w = ww >= 640 && hh >= 480 ? ww : 640;
+        *h = ww >= 640 && hh >= 480 ? hh : 480;
+        return;
+    }
     ww = hh * 4 / 3;
     if (ww > out_w)
         ww = out_w;
@@ -567,6 +611,7 @@ uint32_t __cdecl brr_view_size(uint32_t width, uint32_t height)
         out_w = window_w;
         out_h = window_h;
     }
+    brr_proj_scale = 0;
     if ((width & 0xFFFF) != 640 || (height & 0xFFFF) != 480 || SPLIT_SCREEN || out_w <= 0 || view_held)
         return (height & 0xFFFF) << 16 | (width & 0xFFFF);
     race_view_size(out_w, out_h, &w, &h);
@@ -576,6 +621,10 @@ uint32_t __cdecl brr_view_size(uint32_t width, uint32_t height)
     }
     race_w = w;
     race_h = h;
+    /* widescreen: the scale of the 4:3 view as tall (width x 256 / 320 with width = height x 4 / 3),
+     * so the picture shows as much from top to bottom as a 4:3 one, and more at the sides */
+    if (brr_widescreen && w * 3 != h * 4)
+        brr_proj_scale = h * 16 / 15;
     if (w != logged_w || h != logged_h) {
         logged_w = w;
         logged_h = h;
@@ -583,6 +632,39 @@ uint32_t __cdecl brr_view_size(uint32_t width, uint32_t height)
                 out_w, out_h, out_w == screen_w && out_h == screen_h ? "screen" : "window");
     }
     return (uint32_t)h << 16 | (uint32_t)w;
+}
+
+/* Site landscape_width (landscape_setup 0x41CC80, through thunks.asm): the visible ground's
+ * half-width at its far edge, less one, for the vision distance d: the game's 7d / 10 (q)
+ * suits the 4:3 view; a widescreen view needs it wider by its shape against 4:3. The shape is
+ * drawn into a 64x64 grid around the camera, so its far corners must stay within 31 cells
+ * (d^2 + width^2 <= 961, as at the game's maximum of 25 with 4:3: KNOWLEDGE, draw distance);
+ * where they wouldn't, the width stops there and the farthest corners go undrawn. */
+#define DETAIL_LEVEL (*(volatile int32_t *)0x44B044)
+int __cdecl brr_landscape_width(int q)
+{
+    static int logged_w, logged_d;
+    int d = DETAIL_LEVEL, w, cap;
+    if (!brr_widescreen || !race_w || VIEW_W != race_w || VIEW_H != race_h || race_w * 3 <= race_h * 4
+        || d < 1 || d > 30)
+        return q;
+    w = 7 * d * race_w * 3 / (10 * race_h * 4);
+    for (cap = 0; d * d + (cap + 2) * (cap + 2) <= 961; cap++)  /* the largest width - 1 that fits */
+        ;
+    if (w > cap)
+        w = cap;
+    if (w < q)
+        w = q;
+    if (w != logged_w || d != logged_d) {
+        static int logs;
+        logged_w = w;
+        logged_d = d;
+        if (logs++ < 6)
+            brr_log("landscape: widescreen: the visible ground %d cells either side at vision %d (4:3: %d)%s",
+                    w + 1, d, q + 1, w == cap && 7 * d * race_w * 3 / (10 * race_h * 4) > cap
+                    ? ", the most the 64x64 grid holds" : "");
+    }
+    return w;
 }
 
 /* Sites screenshot_race_call and screenshot_tape_call (run_screen_frame 0x428D9E, the race's
@@ -630,6 +712,10 @@ uint32_t __cdecl brr_render_mode(uint32_t windowed)
     }
     mode_w = want_w > 0 ? want_w : MENU_W;
     mode_h = want_h > 0 ? want_h : MENU_H;
+    if (brr_widescreen) {  /* one size for every picture: the race's */
+        mode_w = brr_view_max_w;
+        mode_h = brr_view_max_h;
+    }
     if (logged++ < 12)
         brr_log("render: DirectDraw at %dx%d, the picture's own size%s (screen 0x%02X; the game's display %ldx%ld)",
                 mode_w, mode_h, brr_modern_window ? ", in cnc-ddraw's window" : "",
@@ -642,7 +728,13 @@ static void follow_picture_size(void)
 {
     const uint8_t *pixels;
     int w, h, pitch;
-    if (switching || !game_picture(&pixels, &w, &h, &pitch) || (w == mode_w && h == mode_h))
+    if (switching || !game_picture(&pixels, &w, &h, &pitch))
+        return;
+    if (brr_widescreen) {
+        w = brr_view_max_w;
+        h = brr_view_max_h;
+    }
+    if (w == mode_w && h == mode_h)
         return;
     switching = 1;
     want_w = w;

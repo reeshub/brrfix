@@ -260,6 +260,8 @@ static int hidden_by_choice(HWND dialog, int id)
     case IDC_SCALE_LABEL:
     case IDC_MAXLIMIT:
     case IDC_MAXLIMIT_LABEL:
+    case IDC_WIDESCREEN:
+    case IDC_HUD43:
     case IDC_COLOUR:
     case IDC_COLOUR_LABEL:
     case IDC_DRAWDIST:
@@ -294,6 +296,8 @@ static void layout_video(HWND dialog)
         place(dialog, IDC_MAXLIMIT_LABEL, 18, y + 2, 44, 8);
         place(dialog, IDC_MAXLIMIT, 62, y, 94, 60);
         y += 14;
+        place(dialog, IDC_WIDESCREEN, 18, y, 140, 10);
+        y += 12;
     }
     place(dialog, IDC_PRESET_LABEL, 18, y + 2, 44, 8);
     place(dialog, IDC_PRESET, 62, y, 94, 70);
@@ -311,7 +315,8 @@ static void layout_video(HWND dialog)
     place(dialog, IDC_DISPLAY_GROUP, 12, 24, 150, bottom - 24);
     top = (bottom > 98 ? bottom : 98) + 4;
     place(dialog, IDC_MISC_GROUP, 12, top, 300, fresh ? 44 : 30);
-    place(dialog, IDC_COLOUR_ANIM, 18, top + 12, 280, 10);
+    place(dialog, IDC_COLOUR_ANIM, 18, top + 12, fresh ? 140 : 280, 10);
+    place(dialog, IDC_HUD43, 160, top + 12, 140, 10);
     place(dialog, IDC_DRAWDIST_LABEL, 18, top + 28, 96, 8);
     place(dialog, IDC_DRAWDIST, 116, top + 26, 136, 60);
 }
@@ -338,11 +343,12 @@ static void update_enabled(HWND dialog)
     size_t i;
     if (offered != (fresh ? 3 : ORIGINAL_RESOLUTIONS))  /* the renderer has changed */
         fill_resolutions(dialog, chosen(dialog, IDC_RESOLUTION, resolutions));
-    /* Max's limit, for Max only */
+    /* Max's limit and widescreen, for Max only */
     {
         int max = !lstrcmpiA(chosen(dialog, IDC_RESOLUTION, resolutions), "max");
         enable(dialog, IDC_MAXLIMIT_LABEL, max);
         enable(dialog, IDC_MAXLIMIT, max);
+        enable(dialog, IDC_WIDESCREEN, max);
     }
     /* the Modern renderer's window (cnc-ddraw's) */
     enable(dialog, IDC_SCALE_LABEL, window);
@@ -380,8 +386,12 @@ static const struct { int id; const char *text; } tips[] = {
                "full screen."},
     {IDC_RESOLUTION, "High: 640x480. Low: 320x200, as the game starts. Max (Modern, experimental): races with as "
                      "many pixels as Max limit allows. Original: keypad + and - switch in the game."},
-    {IDC_MAXLIMIT, "How many rows Max draws races with at most (4:3), or the screen's own height. The game draws "
+    {IDC_MAXLIMIT, "How many rows Max draws races with at most, or the screen's own height. The game draws "
                    "in software, so more rows cost frame rate: 1080 is smooth on any modern PC."},
+    {IDC_WIDESCREEN, "With Max, in full screen on a wide screen: races at the screen's own shape, seeing more at the "
+                     "sides; the menus 4:3 in the middle, with black bars."},
+    {IDC_HUD43, "The race dashboard's pixels 1.2 times taller than wide, as the 320x200 art looked on a 1996 4:3 "
+                "monitor; off: square."},
     {IDC_SCALE, "How big the Modern renderer's window is, in whole multiples of 640x480; the picture is "
                 "scaled into it as Scaling says."},
     {IDC_COLOUR, "256 colours, as the game drew them, or full colour, for the smoother gradients below."},
@@ -568,6 +578,8 @@ static void load(HWND dialog, int defaults)
     check(dialog, IDC_SMOOTH_SKY, defaults ? 1 : ini_flag("display", "smooth_sky", 1));
     check(dialog, IDC_SMOOTH_SHADING, defaults ? 1 : ini_flag("display", "smooth_shading", 1));
     check(dialog, IDC_COLOUR_ANIM, defaults ? 1 : ini_flag("display", "colour_animation", 1));
+    check(dialog, IDC_WIDESCREEN, defaults ? 1 : ini_flag("display", "widescreen", 1));
+    check(dialog, IDC_HUD43, defaults ? 1 : ini_flag("display", "hud_aspect43", 1));
     if (!defaults)
         check(dialog, IDC_SKIP, ini_flag("launcher", "skip", 0));
 #undef GET
@@ -623,6 +635,8 @@ static void save(HWND dialog)
     ini_set(brrfix_ini, "display", "smooth_sky", checked(dialog, IDC_SMOOTH_SKY) ? "1" : "0");
     ini_set(brrfix_ini, "display", "smooth_shading", checked(dialog, IDC_SMOOTH_SHADING) ? "1" : "0");
     ini_set(brrfix_ini, "display", "colour_animation", checked(dialog, IDC_COLOUR_ANIM) ? "1" : "0");
+    ini_set(brrfix_ini, "display", "widescreen", checked(dialog, IDC_WIDESCREEN) ? "1" : "0");
+    ini_set(brrfix_ini, "display", "hud_aspect43", checked(dialog, IDC_HUD43) ? "1" : "0");
     ini_set(brrfix_ini, "launcher", "skip", checked(dialog, IDC_SKIP) ? "1" : "0");
     if (windows_9x)
         ini_set(brrfix_ini, "clock", "vsync", checked(dialog, IDC_VSYNC) ? "1" : "0");
@@ -676,6 +690,12 @@ static void save(HWND dialog)
             preset = 3;
         for (i = 0; i < 5; i++)
             ini_set(ddraw_ini, "ddraw", preset_names[i], preset_keys[preset][i]);
+        /* Native widescreen (Max, full screen, a screen wider than 4:3): the pictures already
+         * have the screen's shape, the menus 4:3 inside them, so cnc-ddraw keeps their shape */
+        if (fresh && full && checked(dialog, IDC_WIDESCREEN)
+            && !lstrcmpiA(chosen(dialog, IDC_RESOLUTION, resolutions), "max")
+            && GetSystemMetrics(SM_CXSCREEN) * 3 > GetSystemMetrics(SM_CYSCREEN) * 4)
+            ini_set(ddraw_ini, "ddraw", "aspect_ratio", "");
     }
 }
 
