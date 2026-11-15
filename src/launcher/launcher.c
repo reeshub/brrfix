@@ -50,11 +50,15 @@ struct choice { const char *label, *value; };
 
 static const struct choice modes[] = {
     {"Full screen", "fullscreen"}, {"Windowed", "windowed"}, {0, 0}};
-static const struct choice resolutions[] = {{"High (640x480)", "high"}, {"Low (320x200)", "low"}, {0, 0}};
-static const struct choice renderers[] = {{"New (sharp)", "new"}, {"Original", "original"}, {0, 0}};
-static const struct choice render_resolutions[] = {{"Original", "original"}, {"Max (experimental)", "max"}, {0, 0}};
-static const struct choice distances[] = {{"The game's own (its sliders)", "0"}, {"Furthest in one pass (25)", "25"},
-                                          {"Double (44, experimental)", "44"}, {0, 0}};
+/* the Original renderer shows the first two; Max is the Modern renderer's (resolution=high
+ * with render_resolution=max in BRRFIX.INI) */
+static const struct choice resolutions[] = {
+    {"High (640x480)", "high"}, {"Low (320x200)", "low"}, {"Max (experimental)", "max"}, {0, 0}};
+#define ORIGINAL_RESOLUTIONS 2
+static const struct choice renderers[] = {{"Modern", "new"}, {"Original", "original"}, {0, 0}};
+static const struct choice distances[] = {{"In-game sliders (in options menu)", "0"}, {"Original engine max (25)", "25"},
+                                          {"Max out (experimental)", "44"}, {0, 0}};
+static const struct choice colour_depths[] = {{"256 colours (original)", "0"}, {"Full colour", "1"}, {0, 0}};
 static const struct choice languages[] = {
     {"English", "ENG"}, {"USA", "USA"}, {"French", "FRE"},
     {"German", "GER"}, {"Italian", "ITA"}, {"Spanish", "SPA"}, {"Japanese", "JAP"}, {0, 0}};
@@ -111,17 +115,23 @@ static void ini_set(const char *file, const char *section, const char *key, cons
 }
 
 /* ---- combo boxes ---- */
-static void fill(HWND dialog, int id, const struct choice *list, const char *value)
+/* the first count choices of list (all with -1) */
+static void fill_first(HWND dialog, int id, const struct choice *list, const char *value, int count)
 {
     HWND box = GetDlgItem(dialog, id);
     int i, chosen = 0;
     SendMessageA(box, CB_RESETCONTENT, 0, 0);
-    for (i = 0; list[i].label; i++) {
+    for (i = 0; list[i].label && (count < 0 || i < count); i++) {
         SendMessageA(box, CB_ADDSTRING, 0, (LPARAM)list[i].label);
         if (!lstrcmpiA(list[i].value, value))
             chosen = i;
     }
     SendMessageA(box, CB_SETCURSEL, (WPARAM)chosen, 0);  /* unreadable values fall back to the first */
+}
+
+static void fill(HWND dialog, int id, const struct choice *list, const char *value)
+{
+    fill_first(dialog, id, list, value, -1);
 }
 
 static const char *chosen(HWND dialog, int id, const struct choice *list)
@@ -158,6 +168,8 @@ static void hide_for_good(HWND dialog, int id)
     ShowWindow(GetDlgItem(dialog, id), SW_HIDE);
 }
 
+static int hidden_by_choice(HWND dialog, int id);
+
 static void show_page(HWND dialog, int page)
 {
     HWND child;
@@ -172,6 +184,8 @@ static void show_page(HWND dialog, int page)
         for (i = 0; i < never_shown_count; i++)
             if (never_shown[i] == id)
                 show = 0;
+        if (show && hidden_by_choice(dialog, id))
+            show = 0;
         ShowWindow(child, show ? SW_SHOWNA : SW_HIDE);
     }
     if (visible) {
@@ -211,10 +225,76 @@ static void set_title(HWND dialog)
     }
 }
 
-/* Whether the new renderer is chosen (Windows 95, 98 and ME have only the original) */
+/* Whether the Modern renderer is chosen (Windows 95, 98 and ME have only the original) */
 static int new_renderer(HWND dialog)
 {
     return !windows_9x && !lstrcmpiA(chosen(dialog, IDC_RENDERER, renderers), "new");
+}
+
+static int full_colour(HWND dialog)
+{
+    return new_renderer(dialog) && !lstrcmpiA(chosen(dialog, IDC_COLOUR, colour_depths), "1");
+}
+
+/* The director's renderer split (2026-11-15): the Original renderer offers only what the 1996
+ * game and cnc-ddraw did (mode, resolution, the full-screen scaling, smoothness); the Modern
+ * one its own window size and shape, colour depth (and with full colour the smoother
+ * gradients) and draw distance. The colour animation is for both. */
+static int hidden_by_choice(HWND dialog, int id)
+{
+    int fresh = new_renderer(dialog);
+    switch (id) {
+    case IDC_PRESET:
+    case IDC_PRESET_LABEL:
+        return fresh;
+    case IDC_SCALE:
+    case IDC_SCALE_LABEL:
+    case IDC_ASPECT:
+    case IDC_COLOUR:
+    case IDC_COLOUR_LABEL:
+    case IDC_DRAWDIST:
+    case IDC_DRAWDIST_LABEL:
+        return !fresh;
+    case IDC_SMOOTH_SKY:
+    case IDC_SMOOTH_SHADING:
+        return !full_colour(dialog);
+    }
+    return 0;
+}
+
+/* a control's place, in dialog units */
+static void place(HWND dialog, int id, int x, int y, int w, int h)
+{
+    RECT r;
+    r.left = x;
+    r.top = y;
+    r.right = x + w;
+    r.bottom = y + h;
+    MapDialogRect(dialog, &r);
+    SetWindowPos(GetDlgItem(dialog, id), NULL, r.left, r.top, r.right - r.left, r.bottom - r.top,
+                 SWP_NOZORDER | SWP_NOACTIVATE);
+}
+
+/* The Display group as tall as the rows shown, and Miscellaneous just below it (launcher.rc) */
+static void layout_video(HWND dialog)
+{
+    int fresh = new_renderer(dialog), bottom, top;
+    bottom = !fresh ? 96 : full_colour(dialog) ? 146 : 120;
+    place(dialog, IDC_DISPLAY_GROUP, 12, 24, 150, bottom - 24);
+    top = (bottom > 98 ? bottom : 98) + 4;
+    place(dialog, IDC_MISC_GROUP, 12, top, 300, fresh ? 44 : 30);
+    place(dialog, IDC_COLOUR_ANIM, 18, top + 12, 280, 10);
+    place(dialog, IDC_DRAWDIST_LABEL, 18, top + 28, 96, 8);
+    place(dialog, IDC_DRAWDIST, 116, top + 26, 136, 60);
+}
+
+/* The resolutions each renderer offers, keeping the choice where it can (Max -> High) */
+static void fill_resolutions(HWND dialog, const char *value)
+{
+    int fresh = new_renderer(dialog);
+    if (!fresh && !lstrcmpiA(value, "max"))
+        value = "high";
+    fill_first(dialog, IDC_RESOLUTION, resolutions, value, fresh ? -1 : ORIGINAL_RESOLUTIONS);
 }
 
 /* Grey out what the other choices make irrelevant */
@@ -226,21 +306,18 @@ static void update_enabled(HWND dialog)
                                        IDC_VIBRATION, IDC_NITRO_RUMBLE};
     const char *mode = chosen(dialog, IDC_MODE, modes);
     int window = lstrcmpiA(mode, "fullscreen") != 0, full = lstrcmpiA(mode, "windowed") != 0;
-    int low = !lstrcmpiA(chosen(dialog, IDC_RESOLUTION, resolutions), "low");
-    int fresh = new_renderer(dialog);
+    int fresh = new_renderer(dialog), offered = (int)SendDlgItemMessageA(dialog, IDC_RESOLUTION, CB_GETCOUNT, 0, 0);
     size_t i;
+    if (offered != (fresh ? 3 : ORIGINAL_RESOLUTIONS))  /* the renderer has changed */
+        fill_resolutions(dialog, chosen(dialog, IDC_RESOLUTION, resolutions));
+    /* the Modern renderer's window (cnc-ddraw's) */
     enable(dialog, IDC_SCALE_LABEL, window);
     enable(dialog, IDC_SCALE, window);
-    /* the new renderer shapes the 320x200 menus in a window and full screen; the original
-     * stretches only a window at 320x200 (640x480 already is 4:3) */
-    enable(dialog, IDC_ASPECT, fresh || (window && low));
-    /* cnc-ddraw's scaling presets apply to the original renderer only: the new one's picture
-     * is already the screen's size */
-    enable(dialog, IDC_PRESET_LABEL, full && !fresh);
-    enable(dialog, IDC_PRESET, full && !fresh);
-    /* races drawn with more pixels: the new renderer composes them */
-    enable(dialog, IDC_RENDERRES_LABEL, fresh);
-    enable(dialog, IDC_RENDERRES, fresh);
+    /* cnc-ddraw's scaling presets: the Original renderer's full screen */
+    enable(dialog, IDC_PRESET_LABEL, full);
+    enable(dialog, IDC_PRESET, full);
+    layout_video(dialog);
+    show_page(dialog, current_page);
     for (i = 0; i < sizeof music_controls / sizeof music_controls[0]; i++)
         enable(dialog, music_controls[i], checked(dialog, IDC_MUSIC));
     for (i = 0; i < sizeof pad_controls / sizeof pad_controls[0]; i++)
@@ -255,15 +332,22 @@ static void update_enabled(HWND dialog)
 
 /* One line on each setting, shown when the mouse rests on it */
 static const struct { int id; const char *text; } tips[] = {
-    {IDC_RENDERER, "New: the picture is made once at your screen's or window's own size, in whole-number "
-                   "multiples, so it's sharp. Original: the game's own drawing, scaled by cnc-ddraw."},
-    {IDC_MODE, "Full screen, or the game's own window with its 1996 menu bar."},
-    {IDC_RESOLUTION, "High: the game's sharper 640x480 mode (keypad + in the game). Low: 320x200, as it starts."},
-    {IDC_SCALE, "How big the window is, in whole multiples of the game's picture (320x200 or 640x480)."},
+    {IDC_RENDERER, "Modern: the picture made once at your screen's or window's size, sharp, in full colour if you "
+                   "like. Original: the 1996 game's own drawing, as it was."},
+    {IDC_MODE, "Full screen, or a window: Original, the game's own with its 1996 menu bar; Modern, Alt+Enter for "
+               "full screen."},
+    {IDC_RESOLUTION, "High: 640x480. Low: 320x200, as the game starts. Max (Modern, experimental): races with up to "
+                     "1008x756 pixels. Original: keypad + and - switch in the game."},
+    {IDC_SCALE, "How big the Modern renderer's window is, in whole multiples of the game's picture."},
+    {IDC_COLOUR, "256 colours, as the game drew them, or full colour, for the smoother gradients below."},
+    {IDC_SMOOTH_SKY, "The sky as a smooth gradient instead of the game's 16 flat bands."},
+    {IDC_SMOOTH_SHADING, "Lit surfaces (buildings, trees, vehicles, tunnels) shaded smoothly, not a palette shade at "
+                         "a time."},
+    {IDC_COLOUR_ANIM, "The colour cycling of four levels (CHOPPER3, CITY4 Italy, MOON2, RIG4) that the DOS version "
+                      "had and the Windows version lost."},
     {IDC_ASPECT, "For 320x200 pictures (the menus, and low resolution): pixels a fifth taller than wide, as a "
                  "1996 monitor showed them. Off: square, sharp pixels."},
-    {IDC_PRESET, "Original renderer, full screen: how cnc-ddraw fills the screen: sharp with borders, 4:3, "
-                 "stretched or smooth."},
+    {IDC_PRESET, "Full screen: how cnc-ddraw fills the screen: sharp with borders, 4:3, stretched or smooth."},
     {IDC_INTERP, "Draws the vehicles and the camera between the game's 35 physics steps a second, for smooth motion."},
     {IDC_SMOOTHING, "Experimental: softens the camera's movement further. Not needed for the stutter fix."},
     {IDC_FRAMES, "The most pictures drawn a second. The game itself runs at the same speed whatever you choose."},
@@ -284,16 +368,13 @@ static const struct { int id; const char *text; } tips[] = {
     {IDC_RATE, "Game ticks a second: 70.0 as the DOS version (real time), or 71.43 as the 1996 Windows version ran (2% fast)."},
     {IDC_CAP, "After a pause, how much missed game time is caught up at once: 8 ticks, or 35 as the original (see Help)."},
     {IDC_LOG, "Writes BRRFIX.LOG next to the launcher: what was fixed, for bug reports."},
-    {IDC_DRAWDIST, "Experimental: how far races are drawn. Furthest in one pass: as far as the game's engine "
-                   "allows (25 squares; its slider stops at 22), textured all the way. Double: 44 squares, with "
-                   "extra passes. The in-game sliders are ignored unless it's the game's own."},
-    {IDC_RENDERRES, "Experimental, new renderer only: races drawn with more pixels, up to 1008x756 (the most the "
-                    "game's 3D engine can draw), enlarged by whole numbers to fill the screen. The HUD stays the game's own."},
+    {IDC_DRAWDIST, "How far races are drawn. In-game sliders: the options menu's own. Original engine max: 25 "
+                   "squares, the most the 1996 engine draws, textured all the way. Max out: 44, in extra passes."},
     {IDC_DEFAULTS, "Puts every setting back to the defaults for this PC: Period defaults on Windows 95, 98 and ME, "
                    "Modern defaults on anything newer (press Save or Play to keep them)."},
     {IDC_PERIOD, "Every setting for a 1990s PC: full screen at 320x200, the original renderer (press Save or Play "
                  "to keep them)."},
-    {IDC_MODERN, "Every setting for a modern PC: full screen at 640x480, the new renderer, modern pads (press Save "
+    {IDC_MODERN, "Every setting for a modern PC: full screen at 640x480, the Modern renderer in full colour, modern pads (press Save "
                  "or Play to keep them)."},
     {IDC_SKIP, "Start the game straight away next time. Hold Shift while starting to see this window again."},
     {IDC_DOSPATCH, "Fixes the DOS version's RACING.EXE for DOS PCs and DOSBox, keeping the original as RACING.ORI."},
@@ -372,7 +453,13 @@ static void load(HWND dialog, int defaults)
 #define GET(file, section, key, fallback) (ini_get(file, section, key, fallback, v, sizeof v), v)
     fill(dialog, IDC_MODE, modes, GET(f, "display", "mode", "fullscreen"));
     fill(dialog, IDC_RENDERER, renderers, GET(f, "display", "renderer", period ? "original" : "new"));
-    fill(dialog, IDC_RESOLUTION, resolutions, GET(f, "display", "resolution", period ? "low" : "high"));
+    {
+        char resolution[16];
+        ini_get(f, "display", "resolution", period ? "low" : "high", resolution, sizeof resolution);
+        if (!lstrcmpiA(resolution, "high") && !lstrcmpiA(GET(f, "display", "render_resolution", "original"), "max"))
+            lstrcpyA(resolution, "max");
+        fill_resolutions(dialog, resolution);
+    }
     fill(dialog, IDC_LANGUAGE, languages, GET(f, "display", "language", "ENG"));
     fill(dialog, IDC_SCALE, scales, GET(f, "display", "window_scale", "auto"));
     check(dialog, IDC_ASPECT, !lstrcmpiA(GET(f, "display", "aspect", "4:3"), "4:3"));
@@ -422,7 +509,10 @@ static void load(HWND dialog, int defaults)
     check(dialog, IDC_LOG, defaults ? 0 : ini_flag("log", "log", 0));
     GET(f, "display", "max_draw_distance", "0");
     fill(dialog, IDC_DRAWDIST, distances, !lstrcmpiA(v, "1") ? "25" : v);  /* 1: the first experiment's on */
-    fill(dialog, IDC_RENDERRES, render_resolutions, GET(f, "display", "render_resolution", "original"));
+    fill(dialog, IDC_COLOUR, colour_depths, defaults ? "1" : (ini_flag("display", "full_colour", 1) ? "1" : "0"));
+    check(dialog, IDC_SMOOTH_SKY, defaults ? 1 : ini_flag("display", "smooth_sky", 1));
+    check(dialog, IDC_SMOOTH_SHADING, defaults ? 1 : ini_flag("display", "smooth_shading", 1));
+    check(dialog, IDC_COLOUR_ANIM, defaults ? 1 : ini_flag("display", "colour_animation", 1));
     if (!defaults)
         check(dialog, IDC_SKIP, ini_flag("launcher", "skip", 0));
 #undef GET
@@ -439,7 +529,13 @@ static void save(HWND dialog)
     ini_set(brrfix_ini, "display", "mode", mode);
     if (!windows_9x)  /* there the DLL keeps the original renderer whatever the file says */
         ini_set(brrfix_ini, "display", "renderer", chosen(dialog, IDC_RENDERER, renderers));
-    ini_set(brrfix_ini, "display", "resolution", chosen(dialog, IDC_RESOLUTION, resolutions));
+    {
+        const char *resolution = chosen(dialog, IDC_RESOLUTION, resolutions);
+        int max = !lstrcmpiA(resolution, "max");
+        ini_set(brrfix_ini, "display", "resolution", max ? "high" : resolution);
+        if (!windows_9x)
+            ini_set(brrfix_ini, "display", "render_resolution", max ? "max" : "original");
+    }
     ini_set(brrfix_ini, "display", "language", chosen(dialog, IDC_LANGUAGE, languages));
     if (preset < 0 || preset > 4)
         preset = 0;
@@ -464,32 +560,40 @@ static void save(HWND dialog)
     ini_set(brrfix_ini, "controller", "vibration_intensity", chosen(dialog, IDC_INTENSITY, intensities));
     ini_set(brrfix_ini, "log", "log", checked(dialog, IDC_LOG) ? "1" : "0");
     ini_set(brrfix_ini, "display", "max_draw_distance", chosen(dialog, IDC_DRAWDIST, distances));
-    if (!windows_9x)
-        ini_set(brrfix_ini, "display", "render_resolution", chosen(dialog, IDC_RENDERRES, render_resolutions));
+    ini_set(brrfix_ini, "display", "full_colour", chosen(dialog, IDC_COLOUR, colour_depths));
+    ini_set(brrfix_ini, "display", "smooth_sky", checked(dialog, IDC_SMOOTH_SKY) ? "1" : "0");
+    ini_set(brrfix_ini, "display", "smooth_shading", checked(dialog, IDC_SMOOTH_SHADING) ? "1" : "0");
+    ini_set(brrfix_ini, "display", "colour_animation", checked(dialog, IDC_COLOUR_ANIM) ? "1" : "0");
     ini_set(brrfix_ini, "launcher", "skip", checked(dialog, IDC_SKIP) ? "1" : "0");
     if (windows_9x)
         ini_set(brrfix_ini, "clock", "vsync", checked(dialog, IDC_VSYNC) ? "1" : "0");
     else {
         /* cnc-ddraw: the window mode follows ours, and the full-screen preset */
-        ini_set(ddraw_ini, "ddraw", "windowed", lstrcmpiA(mode, "fullscreen") ? "true" : "false");
-        /* In a window the drop-in draws and scales the picture and the mouse itself, so cnc-ddraw
-         * mustn't lock the pointer to its 320x200 idea of the window, scale the mouse again, or
-         * hook the window. Full screen is cnc-ddraw's job, with hook=3: what it chose itself from
-         * its default hook=4 while WINRACEP.EXE imported it as ddraw.dll. */
-        {
-            int full = !lstrcmpiA(mode, "fullscreen");
-            ini_set(ddraw_ini, "ddraw", "hook", full ? "3" : "0");
-            ini_set(ddraw_ini, "ddraw", "adjmouse", full ? "true" : "false");
-            ini_set(ddraw_ini, "ddraw", "devmode", full ? "false" : "true");
-            /* at the desktop's own resolution: otherwise Windows switches to the game's (blurry) */
-            ini_set(ddraw_ini, "ddraw", "fullscreen", full ? "true" : "false");
-        }
+        int full = !lstrcmpiA(mode, "fullscreen"), fresh = new_renderer(dialog);
+        ini_set(ddraw_ini, "ddraw", "windowed", full ? "false" : "true");
+        /* The Original renderer's window is the game's own: the drop-in draws and scales the
+         * picture and the mouse itself, so cnc-ddraw mustn't lock the pointer to its 320x200
+         * idea of the window, scale the mouse again, or hook the window. Full screen, and the
+         * Modern renderer's window (the game runs full screen; cnc-ddraw makes the window,
+         * director 2026-11-15), are cnc-ddraw's job, with hook=3: what it chose itself from its
+         * default hook=4 while WINRACEP.EXE imported it as ddraw.dll. */
+        ini_set(ddraw_ini, "ddraw", "hook", full || fresh ? "3" : "0");
+        ini_set(ddraw_ini, "ddraw", "adjmouse", full || fresh ? "true" : "false");
+        ini_set(ddraw_ini, "ddraw", "devmode", full || fresh ? "false" : "true");
+        /* at the desktop's own resolution: otherwise Windows switches to the game's (blurry) */
+        ini_set(ddraw_ini, "ddraw", "fullscreen", full ? "true" : "false");
+        /* Alt+Enter: the Modern renderer's window <-> full screen upscaled at the desktop's own
+         * resolution, not a change of the screen's mode */
+        ini_set(ddraw_ini, "ddraw", "toggle_upscaled", fresh ? "true" : "false");
         ini_set(ddraw_ini, "ddraw", "vsync", checked(dialog, IDC_VSYNC) ? "true" : "false");
-        /* In a window, no letterbox: under Wine cnc-ddraw otherwise moves the mouse by the
-         * borders it would have drawn (playtest 2026-11-10: 60 pixels at 960x720). Likewise
-         * with the new renderer in full screen: its picture is the screen's own size, so
-         * cnc-ddraw must add nothing (the stretch preset, nearest-neighbour). */
-        if (lstrcmpiA(mode, "fullscreen") || new_renderer(dialog))
+        /* The Original renderer's window: no letterbox, as under Wine cnc-ddraw otherwise moves
+         * the mouse by the borders it would have drawn (playtest 2026-11-10: 60 pixels at
+         * 960x720). The Modern renderer in full screen: its picture is the screen's own size, so
+         * cnc-ddraw must add nothing (the stretch preset, nearest-neighbour); in its window,
+         * whole-number scaling for Alt+Enter's full screen (the integer preset). */
+        if (fresh)
+            preset = full ? 3 : 0;
+        else if (!full)
             preset = 3;
         for (i = 0; i < 5; i++)
             ini_set(ddraw_ini, "ddraw", preset_names[i], preset_keys[preset][i]);
@@ -577,8 +681,6 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
         if (windows_9x) {  /* no cnc-ddraw (DirectDraw does full screen itself), no XInput, no new renderer */
             hide_for_good(dialog, IDC_RENDERER);
             hide_for_good(dialog, IDC_RENDERER_LABEL);
-            hide_for_good(dialog, IDC_RENDERRES);
-            hide_for_good(dialog, IDC_RENDERRES_LABEL);
             hide_for_good(dialog, IDC_PRESET);
             hide_for_good(dialog, IDC_PRESET_LABEL);
             for (i = 0; i < sizeof pad_controls / sizeof pad_controls[0]; i++)
@@ -619,6 +721,7 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
         case IDC_MODE:
         case IDC_RENDERER:
         case IDC_RESOLUTION:
+        case IDC_COLOUR:
             if (HIWORD(wparam) == CBN_SELCHANGE)
                 update_enabled(dialog);
             return TRUE;

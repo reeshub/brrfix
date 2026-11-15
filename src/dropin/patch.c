@@ -167,6 +167,8 @@ static int enabled(const char *fix)
         return cfg.display_mode != DISPLAY_ASK || brr_renderer_active;
     if (!strcmp(fix, "renderer"))
         return brr_renderer_active;
+    if (!strcmp(fix, "renderer_resolution"))  /* the Modern renderer chooses the size itself */
+        return brr_renderer_active;
     if (!strcmp(fix, "vsync"))
         return cfg.vsync;
     if (!strcmp(fix, "fine_angles"))
@@ -233,6 +235,11 @@ static int replacement(const struct site_info *s, uint8_t *out)
         put_abs32(out, (void *)version_number);
     } else if ((!strcmp(n, "window_command_66") || !strcmp(n, "window_command_67")) && s->length == 4) {
         put_rel32(out, s->address + 4, (void *)0x402619);  /* WndProc's default: DefWindowProcA */
+    } else if (!strcmp(n, "class_menu") && s->length == 1) {
+        out[0] = 0x74;  /* MOV [ESP+0x24],ESI: the window class has no menu */
+    } else if (!strcmp(n, "window_command_resolution") && s->length == 7) {
+        out[0] = 0xE9;  /* commands 0x64 and 0x65 (keypad - and +, the Modes menu) -> DefWindowProcA */
+        put_rel32(out + 1, s->address + 5, (void *)0x402619);
     } else if (!strcmp(n, "set_menu_call") && s->length == 7) {
         out[0] = 0xE8;
         put_rel32(out + 1, s->address + 5, (void *)brr_set_menu);
@@ -424,6 +431,17 @@ void brr_patch_all(void)
         return;
     }
     brr_renderer_active = brr_renderer_decide(brr_is_cnc_ddraw(brr_ddraw_module()));
+    if (!brr_renderer_active) {
+        /* The original renderer is the 1996 game's picture (the director's renderer split,
+         * 2026-11-15): its window at the game's own size and shape, and its own draw distance */
+        cfg.max_draw_distance = 0;
+        cfg.window_scale = 1;
+        cfg.window_aspect43 = 0;
+        cfg.render_max = 0;
+        brr_log("render: the original renderer draws as in 1996: a window at the game's own size, "
+                "the game's draw distance sliders");
+    }
+    brr_modern_window = brr_renderer_active && cfg.display_mode == DISPLAY_WINDOWED;
     brr_full_colour = brr_renderer_active && cfg.full_colour;
     brr_sky_active = brr_full_colour && cfg.smooth_sky;
     brr_shade_active = brr_full_colour && cfg.smooth_shading;

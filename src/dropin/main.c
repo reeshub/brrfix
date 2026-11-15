@@ -127,6 +127,7 @@ static void load_config(void)
     cfg.full_colour = ini_int(path, "display", "full_colour", 1);
     cfg.smooth_sky = ini_int(path, "display", "smooth_sky", 1);
     cfg.smooth_shading = ini_int(path, "display", "smooth_shading", 1);
+    cfg.colour_animation = ini_int(path, "display", "colour_animation", 1);
     cfg.show_version = ini_int(path, "display", "show_version", 1);
     cfg.controller = ini_int(path, "controller", "enabled", 1);
     cfg.pad_deadzone = ini_int(path, "controller", "deadzone", 15);

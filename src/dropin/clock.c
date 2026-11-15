@@ -308,6 +308,8 @@ uint32_t __cdecl brr_clock_read(void)
                     (long)(brr_prof_draw * 1000000 / freq),
                     (long)((now - prof_read_exit - prof_wait - brr_prof_ticks - brr_prof_draw) * 1000000 / freq));
     }
+    if (started && last_count)
+        brr_colour_anim(count - last_count);  /* the levels' colour cycling (palanim.c) */
     last_count = count;
     InterlockedExchange(&brr_timer_count, (LONG)count);
     last_frame_qpc = now;

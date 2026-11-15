@@ -24,8 +24,8 @@ from:
   (320x200), drawn by the original renderer, with interpolation on and the
   frame limit at the display rate.
 - **Modern defaults:** for today's Windows, Linux and Steam Deck: full screen
-  at high resolution (640x480), drawn sharp by the new renderer, with modern
-  pads on.
+  at high resolution (640x480), drawn sharp in full colour by the Modern
+  renderer, with modern pads on.
 
 Each button sets every setting on every tab. Press Save or Play to keep them.
 The Defaults button at the bottom of the window chooses the set for your PC:
@@ -33,34 +33,46 @@ Period defaults on Windows 95, 98 and ME, Modern defaults on anything newer.
 
 ## Video
 
+The Video tab shows the settings of the renderer you choose (the first
+setting below). Each renderer has its own:
+
+- **Original** is the 1996 game's own drawing, as close to what players saw
+  then as possible, with only the smooth-motion fixes and cnc-ddraw's
+  full-screen scaling added. It stays as it is from now on.
+- **Modern** is where the improvements go: sharp at any size, full colour
+  with smoother gradients, further draw distances, more pixels in races.
+
 ### Display
 
 **Renderer** (not on Windows 95, 98 or ME, which always use the original)
 
-- **New (sharp)** (the default): the picture is made once, at your screen's
-  own resolution (full screen) or your window's size (windowed), as a whole-
-  number enlargement of the game's picture centred on black, and shown with no
-  scaling after that. Nothing is scaled twice, so it stays sharp on any
+- **Modern** (the default): the picture is made once, at your screen's own
+  resolution (full screen) or your window's size (windowed), as a whole-
+  number enlargement of the game's picture centred on black, and shown with
+  no scaling after that. Nothing is scaled twice, so it stays sharp on any
   screen. The 320x200 menus are enlarged by the whole numbers across and
   down that come nearest to the 4:3 shape of a 1996 monitor (see "4:3"
-  below); 640x480 races are enlarged by the same whole number both ways. In
-  full screen it needs cnc-ddraw (CNCDD.DLL, next to Big Red Racing.exe), as
-  the game does on modern Windows; without it, the original is used. It works
-  in full colour, so the sky is a smooth gradient instead of the game's
-  16 flat bands, and lit surfaces are shaded smoothly instead of a palette
-  shade at a time (BRRFIX.INI's [display] full_colour, smooth_sky and
-  smooth_shading turn these off).
-- **Original:** the game's own drawing. In full screen cnc-ddraw enlarges it
-  (see "Full screen" below); the menus are 320x200 pictures doubled into the
-  middle of a 640x480 picture, with black bands above and below.
+  below); 640x480 races are enlarged by the same whole number both ways. It
+  needs cnc-ddraw (CNCDD.DLL, next to Big Red Racing.exe), as the game does
+  on modern Windows; without it, the original is used.
+- **Original:** the game's own drawing, exactly as in 1996. In full screen
+  cnc-ddraw enlarges it (see "Full screen" below); the menus are 320x200
+  pictures doubled into the middle of a 640x480 picture, with black bands
+  above and below. The draw distance is the in-game sliders', and a window
+  is the game's own size.
 
 **Mode**
 
 - **Full screen** (the default): the game fills the screen, without asking.
-- **Windowed:** the game's own 1996 window, with its menu bar (About,
-  Modes, Language), as on a Windows 95 desktop. Its Modes menu no longer
-  offers Full screen, and Tab no longer switches: that switch broke the
-  window. Choose the mode here instead.
+- **Windowed:** with the Modern renderer, a plain window (no menu bar) that
+  cnc-ddraw draws; press **Alt+Enter** to switch it to full screen and back.
+  With the Original renderer, the game's own 1996 window, with its menu bar
+  (About, Modes, Language), as on a Windows 95 desktop, at the game's own
+  size.
+
+To switch between a window and full screen otherwise, quit and choose the
+other mode here: the game's own switch (the Modes menu's Full screen item, and
+Tab) broke its window, so it's removed.
 
 **Resolution**
 
@@ -69,29 +81,24 @@ Period defaults on Windows 95, 98 and ME, Modern defaults on anything newer.
   the first screen. Races are drawn at 640x480; the menus are always 320x200
   pictures.
 - **Low (320x200):** as the game starts.
+- **Max (experimental)** (Modern renderer only): races and the attract-mode
+  demo drawn with up to 1008x756 pixels, the most the game's 3D engine can
+  draw. The size is the 4:3 picture that, enlarged by a whole number, fills
+  the most of your screen or window, and never less than 640x480: 1008x756
+  shown as it is on 1280x800 (Steam Deck), 1366x768 or 1600x900; 720x540
+  doubled on 1920x1080; 960x720 doubled on 2560x1440 and tripled on
+  3840x2160. The dashboard (position, laps, map) is the game's own, enlarged
+  by the game itself to match, so its edges may look a little uneven. Menus
+  and split-screen races stay as they are. If something looks wrong in a
+  race, go back to High and tell us.
 
-In the game, keypad + and - still switch between them.
+With the Original renderer, keypad + and - still switch between high and low
+resolution in the game, as in 1996. The Modern renderer keeps the one chosen
+here.
 
-**Window size** (in a window only)
+**Full screen** (Original renderer, in full screen only; not on Windows 95, 98 or ME)
 
-How big the window is, in whole multiples of the game's picture (320x200 or
-640x480). "Largest that fits" picks the biggest that fits on your screen.
-
-**4:3 (non-square pixels)** (on by default; with the original renderer, in a window at low resolution only)
-
-The game's 320x200 pictures (the menus, and everything at low resolution) were
-made for 1996 monitors, which showed them at 4:3, so everything looked a
-little taller. Ticked, they are shown at about that shape: with the new
-renderer by the whole numbers across and down that come nearest (on a
-1920x1080 screen, 4 across by 5 down, which is 1280x1000), with the original
-by stretching the height by 1.2. Unticked, pixels are square. At 640x480 the
-picture already has the 4:3 shape.
-
-**Full screen** (original renderer, in full screen only; not on Windows 95, 98 or ME)
-
-How cnc-ddraw fills the screen with the original renderer. With the new
-renderer this is greyed out: the picture is already the screen's own size,
-and cnc-ddraw adds nothing.
+How cnc-ddraw fills the screen:
 
 - **Integer (sharp):** the largest whole-number size that fits, with square
   pixels and black borders. 4x on the Steam Deck, which fills its screen.
@@ -103,6 +110,37 @@ and cnc-ddraw adds nothing.
   one screen pixel wider than others.
 - **Stretch:** fills the whole screen, whatever its shape.
 - **Smooth:** slightly blurred, as cnc-ddraw does by default.
+
+**Window size** (Modern renderer, in a window only)
+
+How big the window is, in whole multiples of the game's picture (320x200 or
+640x480). "Largest that fits" picks the biggest that fits on your screen.
+
+**4:3 (non-square pixels)** (Modern renderer; on by default)
+
+The game's 320x200 pictures (the menus, and everything at low resolution) were
+made for 1996 monitors, which showed them at 4:3, so everything looked a
+little taller. Ticked, they are shown at about that shape, by the whole
+numbers across and down that come nearest (on a 1920x1080 screen, 4 across by
+5 down, which is 1280x1000). Unticked, pixels are square. At 640x480 the
+picture already has the 4:3 shape.
+
+**Colour depth** (Modern renderer)
+
+- **Full colour** (the default): the picture is made in full colour from the
+  game's own 256, which allows the smoother gradients below.
+- **256 colours (original):** the game's own colours, as it drew them.
+
+**Smoother sky gradients** (full colour; on by default)
+
+The sky as a smooth gradient, worked out for every pixel, instead of the
+game's 16 flat bands of colour.
+
+**Smoother game object gradients** (full colour; on by default)
+
+Lit surfaces (buildings, trees, vehicles, tunnel walls) shaded smoothly. The
+game shades them a whole palette colour at a time, which shows as stripes;
+the shade in between is worked out for every pixel instead.
 
 ### Smoothness
 
@@ -130,42 +168,32 @@ Waits for the screen to finish each refresh before showing the next picture,
 so there are no horizontal tears when the camera turns. It can add a little
 input lag.
 
-### Races
+### Miscellaneous
 
-**Draw distance (experimental)**
+**Colour animation (as in the DOS version)** (on by default; both renderers)
+
+Four levels cycle some of their colours: CHOPPER3, CITY4 (Italy), MOON2 and
+RIG4. The DOS version does it; the Windows version lost it, as the code that
+did it was left uncalled. Ticked, those colours move again, at the DOS
+version's speed, while the race runs (they stop when you pause, as in DOS).
+
+**Draw distance** (Modern renderer)
 
 How far races and replays are drawn:
 
-- **The game's own** (the default): the in-game vision and texture distance
-  sliders, as in 1996.
-- **Furthest in one pass (25):** as far as the game's engine allows on its
+- **In-game sliders (in options menu)** (the default): the vision and texture
+  distance sliders in the game's options menu, as in 1996.
+- **Original engine max (25):** as far as the game's engine allows on its
   own: 25 landscape squares instead of the slider's 22, with textures all the
   way out instead of stopping at 14.
-- **Double (44, experimental):** the ground goes on to 44 squares, drawn in
+- **Max out (experimental):** the ground goes on to 44 squares, drawn in
   extra passes beyond the engine's own limit. Trees, buildings and other
   scenery still appear at 25.
 
 With either of the last two, the in-game sliders are ignored, and your own
 settings are kept for when you go back. If something looks wrong (missing
-patches of ground, cracks, flicker in the distance), go back to the game's own
-and tell us.
-
-**In-game render resolution** (new renderer only; not on Windows 95, 98 or ME)
-
-How many pixels races and the attract-mode demo are drawn with:
-
-- **Original** (the default): the game's own 640x480.
-- **Max (experimental):** up to 1008x756, the most the game's 3D engine can
-  draw. The size is the 4:3 picture that, enlarged by a whole number, fills
-  the most of your screen or window, and never less than 640x480: 1008x756
-  shown as it is on 1280x800 (Steam Deck), 1366x768 or 1600x900; 720x540
-  doubled on 1920x1080; 960x720 doubled on 2560x1440 and tripled on
-  3840x2160. The picture keeps the game's own view, with more detail. The
-  dashboard (position, laps, map) is the game's own, enlarged by the game
-  itself to match, so its edges may look a little uneven. Menus and
-  split-screen races stay as they are.
-
-If something looks wrong in a race, go back to Original and tell us.
+patches of ground, cracks, flicker in the distance), go back to the in-game
+sliders and tell us.
 
 ## Audio
 

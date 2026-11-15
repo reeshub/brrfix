@@ -82,6 +82,7 @@
         public  _brr_hook_credit_lookup, _brr_hook_set_view, _brr_call_set_view
         public  _brr_hook_screenshot_race, _brr_hook_screenshot_tape
         public  _brr_span_gouraud, _brr_span_gouraud_z, _brr_poly_light_smooth
+        public  _brr_call_palette_set
 
         .code
 
@@ -323,6 +324,18 @@ _brr_hook_sky_draw:
         pop     edx
         pop     ecx
         ret     8
+
+; brr_call_palette_set(rgb, first, count), cdecl: the game's palette_set (0x42D1E8; EAX the
+; 6-bit entries, EDX the first, EBX the count; it keeps every register but EAX)
+_brr_call_palette_set:
+        push    ebx
+        mov     eax, [esp + 8]
+        mov     edx, [esp + 12]
+        mov     ebx, [esp + 16]
+        mov     ecx, 42D1E8h
+        call    ecx
+        pop     ebx
+        ret
 
 ; brr_call_sky_draw(ground, sky), cdecl: the game's sky_draw (0x41A4D0, stdcall; it keeps
 ; EBX, ESI, EDI and EBP)

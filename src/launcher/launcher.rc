@@ -26,22 +26,27 @@ BEGIN
     PUSHBUTTON      "Period defaults", IDC_PERIOD, 20, 134, 64, 14, WS_TABSTOP
     LTEXT           "For a 1990s PC with Windows 95, 98 or ME: full screen at the game's low resolution (320x200), drawn as the 1996 game drew it.", IDC_PAGE_GENERAL, 90, 133, 216, 24
     PUSHBUTTON      "Modern defaults", IDC_MODERN, 20, 162, 64, 14, WS_TABSTOP
-    LTEXT           "For today's Windows, Linux and Steam Deck: full screen at high resolution (640x480), drawn sharp by the new renderer, with modern pads.", IDC_PAGE_GENERAL, 90, 161, 216, 24
+    LTEXT           "For today's Windows, Linux and Steam Deck: full screen at high resolution (640x480), drawn sharp in full colour by the Modern renderer, with modern pads.", IDC_PAGE_GENERAL, 90, 161, 216, 24
     LTEXT           "Each sets every setting; press Save or Play to keep them. Defaults, below, chooses the one for this PC.", IDC_PAGE_GENERAL, 20, 190, 286, 16
 
-    /* Video */
-    GROUPBOX        "Display", IDC_PAGE_VIDEO, 12, 24, 150, 98
+    /* Video (launcher.c, layout_video, shows each renderer's controls and moves the rows below
+     * them; the Original renderer's Full screen row and the Modern one's Window size share a row) */
+    GROUPBOX        "Display", IDC_DISPLAY_GROUP, 12, 24, 150, 122
     LTEXT           "&Renderer:", IDC_RENDERER_LABEL, 18, 38, 40, 8
     COMBOBOX        IDC_RENDERER, 62, 36, 94, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
     LTEXT           "&Mode:", IDC_PAGE_VIDEO, 18, 52, 40, 8
     COMBOBOX        IDC_MODE, 62, 50, 94, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
     LTEXT           "Resolutio&n:", IDC_PAGE_VIDEO, 18, 66, 44, 8
     COMBOBOX        IDC_RESOLUTION, 62, 64, 94, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "&Full screen:", IDC_PRESET_LABEL, 18, 80, 44, 8
+    COMBOBOX        IDC_PRESET, 62, 78, 94, 70, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
     LTEXT           "&Window size:", IDC_SCALE_LABEL, 18, 80, 44, 8
     COMBOBOX        IDC_SCALE, 62, 78, 94, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
     AUTOCHECKBOX    "4:3 (non-&square pixels)", IDC_ASPECT, 18, 92, 140, 10, WS_TABSTOP
-    LTEXT           "&Full screen:", IDC_PRESET_LABEL, 18, 105, 44, 8
-    COMBOBOX        IDC_PRESET, 62, 103, 94, 70, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "&Colour depth:", IDC_COLOUR_LABEL, 18, 107, 44, 8
+    COMBOBOX        IDC_COLOUR, 62, 105, 94, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    AUTOCHECKBOX    "Smoother sk&y gradients", IDC_SMOOTH_SKY, 18, 120, 140, 10, WS_TABSTOP
+    AUTOCHECKBOX    "Smoother game &object gradients", IDC_SMOOTH_SHADING, 18, 132, 140, 10, WS_TABSTOP
 
     GROUPBOX        "Smoothness", IDC_PAGE_VIDEO, 168, 24, 144, 74
     AUTOCHECKBOX    "&Interpolation (smooth motion)", IDC_INTERP, 174, 36, 134, 10, WS_TABSTOP
@@ -51,11 +56,10 @@ BEGIN
     COMBOBOX        IDC_FRAMES, 236, 63, 70, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
     AUTOCHECKBOX    "&Vsync", IDC_VSYNC, 174, 79, 134, 10, WS_TABSTOP
 
-    GROUPBOX        "Races", IDC_PAGE_VIDEO, 12, 126, 300, 48
-    LTEXT           "Draw distance:", IDC_PAGE_VIDEO, 18, 140, 96, 8
-    COMBOBOX        IDC_DRAWDIST, 116, 138, 136, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    LTEXT           "In-game render resolution:", IDC_RENDERRES_LABEL, 18, 156, 96, 8
-    COMBOBOX        IDC_RENDERRES, 116, 154, 136, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    GROUPBOX        "Miscellaneous", IDC_MISC_GROUP, 12, 150, 300, 44
+    AUTOCHECKBOX    "Colour &animation (as in the DOS version)", IDC_COLOUR_ANIM, 18, 162, 280, 10, WS_TABSTOP
+    LTEXT           "&Draw distance:", IDC_DRAWDIST_LABEL, 18, 178, 96, 8
+    COMBOBOX        IDC_DRAWDIST, 116, 176, 136, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
 
     /* Audio */
     GROUPBOX        "Music", IDC_PAGE_AUDIO, 12, 24, 300, 78

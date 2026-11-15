@@ -26,6 +26,8 @@ Windows and on Linux/Steam Deck through Proton, and makes it run smoothly:
 - The game's sharper 640x480 mode by default (it was only reachable from its
   window's menu or keypad +), and its language chosen in the launcher.
 - The window's Full screen switch (and Tab), which broke the window, removed.
+- The colour animation of four levels (CHOPPER3, CITY4, MOON2, RIG4), lost in
+  the Windows version, restored as in DOS.
 - The main menu says V2.25, the official update you installed (the game
   itself still said V2.24), with Big Red Launcher's version, and its credits
   line at the top includes "Camera / Modern Windows fix by ctrl-alt-rees".
@@ -151,37 +153,36 @@ With no tracks there, the game plays a real CD if there is one.
 
 Display and scaling
 -------------------
-By default the game fills the screen, at your desktop's own resolution, with
-sharp whole-number scaling. The new renderer ([display] renderer=new, the
-default; "Renderer" in the launcher) makes the picture once, at the screen's
-own resolution (full screen) or the window's size (windowed), enlarging the
-game's picture by whole numbers on black, so nothing is scaled twice. Windows
-95, 98 and ME, and full screen without cnc-ddraw, keep the game's own
-drawing (renderer=original), which cnc-ddraw scales with its presets.
-The new renderer works in full colour (32 bits): the sky is a smooth gradient
-instead of the game's 16 flat bands, and lit surfaces (buildings, trees,
-vehicles, tunnel walls) are shaded smoothly instead of a palette shade at a
-time ([display] full_colour, smooth_sky and smooth_shading).
-Windowed: pick it in the launcher (or [display]
-mode=windowed in BRRFIX.INI, and windowed=true in ddraw.ini): the game's own
-window with its 1996 menu bar (About, Modes, Language), as big as fits on your
-screen, with exact colours. For full screen with the original renderer,
-ddraw.ini has presets:
-integer (sharp, square pixels; the default), 4:3 sharp, 4:3 nearest, stretch
-and smooth.
+Two renderers ("Renderer" in the launcher, [display] renderer in BRRFIX.INI):
 
-Experimental: "Draw distance" in the launcher ([display] max_draw_distance)
-draws races and replays further: 25 squares (the most the 1996 engine holds
-on its own; its slider stops at 22) with textures all the way out, or 44
-(double) with extra passes for the ground beyond. The in-game sliders are
-ignored unless it's set to the game's own.
+Modern (renderer=new, the default; Windows 2000 onwards, Wine and Proton, with
+cnc-ddraw): the picture is made once, at the screen's own resolution (full
+screen) or the window's size, enlarging the game's picture by whole numbers on
+black, so nothing is scaled twice. In full colour (32 bits) the sky is a
+smooth gradient instead of the game's 16 flat bands, and lit surfaces
+(buildings, trees, vehicles, tunnel walls) are shaded smoothly instead of a
+palette shade at a time ([display] full_colour, smooth_sky, smooth_shading).
+Windowed, it's a plain window drawn by cnc-ddraw: Alt+Enter switches to full
+screen and back. Its options: window size and the 4:3 shape, colour depth,
+"Resolution: Max (experimental)" (races with up to 1008x756 pixels, the most
+the game's 3D engine can draw, at the 4:3 size that fills the most of the
+screen when enlarged by a whole number), and "Draw distance": the in-game
+sliders, the engine's own maximum (25 squares, textured all the way), or
+"Max out" (44, experimental, extra passes for the ground beyond).
 
-Experimental: "In-game render resolution" in the launcher ([display]
-render_resolution=max; new renderer only) draws races and the attract-mode
-demo with more pixels: up to 1008x756, the most the game's 3D engine can draw,
-at the 4:3 size that fills the most of the screen when enlarged by a whole
-number (1008x756 on 1280x800 or 1600x900, 720x540 doubled on 1920x1080). The
-dashboard is the game's own, enlarged by the game to match.
+Original (renderer=original; the only one on Windows 95, 98 and ME): the 1996
+game's own drawing, as players saw it, with only the smooth-motion fixes and
+cnc-ddraw's full-screen scaling presets (integer, the default; 4:3 sharp, 4:3
+nearest, stretch and smooth). Windowed, it's the game's own window with its
+1996 menu bar (About, Modes, Language) at the game's own size. Keypad + and -
+switch between 640x480 and 320x200 as in 1996; the draw distance is the
+in-game sliders'.
+
+Both: the game's switch between a window and full screen (Tab, and the Modes
+menu's Full screen item) broke the window and is removed: choose the mode in
+the launcher. The colour cycling of four levels (CHOPPER3, CITY4 Italy, MOON2,
+RIG4), which the DOS version has and the Windows version lost, runs again
+("Colour animation", [display] colour_animation).
 
 Controllers
 -----------

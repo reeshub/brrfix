@@ -11,12 +11,18 @@
 #include <string.h>
 
 uint32_t brr_display_windowed = 0x40112A, brr_display_fullscreen = 0x401114, brr_display_prompt = 0x4010EE;
+int brr_modern_window;  /* the Modern renderer in a window: full screen to the game, cnc-ddraw's window */
 
 /* 0 = windowed, 1 = full screen, 2 = ask (the original question) */
 int __cdecl brr_display_choice(uint32_t depth)
 {
     if (cfg.display_mode == DISPLAY_FULLSCREEN) {
         brr_log("display: full screen ([display] mode=fullscreen)");
+        return 1;
+    }
+    if (brr_modern_window) {
+        brr_log("display: the Modern renderer in a window: full screen as far as the game knows, "
+                "in cnc-ddraw's window (no menu bar; Alt+Enter for full screen)");
         return 1;
     }
     if (cfg.display_mode == DISPLAY_WINDOWED) {
@@ -105,6 +111,11 @@ static LRESULT CALLBACK mouse_filter(int code, WPARAM removed, LPARAM lparam)
  * the switches between window and full screen, which break the window (director, 2026-11-10). */
 BOOL WINAPI brr_set_menu(HWND window, HMENU menu)
 {
+    if (brr_renderer_active) {  /* the Modern renderer's game is always full screen: no menu bar */
+        if (menu)
+            DestroyMenu(menu);
+        return SetMenu(window, NULL);  /* the window is created with one */
+    }
     if (menu) {
         DeleteMenu(menu, 0x66, MF_BYCOMMAND);
         DeleteMenu(menu, 0x67, MF_BYCOMMAND);

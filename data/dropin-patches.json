@@ -199,6 +199,22 @@
    "sha256": "c8e6237a9731074e99e511b7822004c06b0fbec1301e11b628dabc0e626847ec"
   },
   {
+   "name": "window_command_resolution",
+   "fix": "renderer_resolution",
+   "address": "0x402164",
+   "length": 7,
+   "patch": "WndProc's WM_COMMAND dispatch, commands 0x64 and 0x65 (low and high resolution: keypad - and +, the Modes menu): JBE 0x4021B9; JMP 0x40228B -> JMP 0x402619 (DefWindowProcA) + 2 NOPs. Modern renderer only, which chooses the picture's size itself (the director's renderer split, 2026-11-15); the original renderer keeps both, as in 1996",
+   "sha256": "593a7393ac21c887e5d1237905c796aca958038612760a6e5670b9e2b3dc39b9"
+  },
+  {
+   "name": "class_menu",
+   "fix": "renderer_resolution",
+   "address": "0x401375",
+   "length": 1,
+   "patch": "window_register_class: MOV [ESP+0x24],EDI (WNDCLASS lpszMenuName = 'AppMenu_' + language) -> MOV [ESP+0x24],ESI (0): no menu bar on the window. Modern renderer only, whose game runs full screen, in cnc-ddraw's window when windowed (the director's renderer split, 2026-11-15)",
+   "sha256": "cbe5cfdf7c2118a9c3d78ef1d684f3afa089201352886449a06a6511cfef74a7"
+  },
+  {
    "name": "set_menu_call",
    "fix": "mode_switch",
    "address": "0x4016E7",

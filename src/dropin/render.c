@@ -98,13 +98,14 @@ int brr_renderer_decide(int cnc_ddraw)
         brr_log("render: can't read the screen's resolution; the original renderer instead");
         return 0;
     }
-    if (cfg.display_mode != DISPLAY_WINDOWED && !cnc_ddraw) {
-        brr_log("render: the new renderer's full screen needs cnc-ddraw (CNCDD.DLL beside the launcher); "
+    if (!cnc_ddraw) {
+        brr_log("render: the Modern renderer needs cnc-ddraw (CNCDD.DLL beside the launcher); "
                 "the original renderer instead");
         return 0;
     }
-    brr_log("render: the new renderer: the picture composed at %s and shown 1:1; menus %s",
-            cfg.display_mode == DISPLAY_WINDOWED ? "the window's size" : "the screen's resolution",
+    brr_log("render: the Modern renderer: the picture composed at %s and shown 1:1; menus %s",
+            cfg.display_mode == DISPLAY_WINDOWED ? "the window's size (cnc-ddraw's window; Alt+Enter: full screen)"
+                                                 : "the screen's resolution",
             cfg.window_aspect43 ? "at the 4:3 shape of a 1996 monitor" : "with square pixels");
     return 1;
 }
@@ -575,6 +576,34 @@ void __cdecl brr_screenshot_end(void)
 
 /* ---- full screen: DirectDraw at the screen's resolution ---- */
 
+/* The Modern renderer in a window: the game runs full screen and cnc-ddraw shows its picture
+ * in a window (Alt+Enter for full screen), so the mode is the window's size: the game's
+ * picture (640x480, or 320x200 a fifth taller with 4:3) times window_scale, or with auto the
+ * largest whole number that fits 85% of the desktop's work area, as the game's own window. */
+static void window_mode_size(int *w, int *h)
+{
+    RECT work;
+    int frame_w = DISPLAY_W, frame_h = DISPLAY_H, scale = cfg.window_scale, stretch;
+    if (frame_w <= 0 || frame_h <= 0) {
+        frame_w = 640;
+        frame_h = 480;
+    }
+    stretch = cfg.window_aspect43 && frame_w * 3 != frame_h * 4;
+    if (scale <= 0) {
+        SystemParametersInfoA(SPI_GETWORKAREA, 0, &work, 0);
+        for (scale = 8; scale > 1; scale--)
+            if (frame_w * scale <= (work.right - work.left) * 85 / 100
+                && frame_h * scale * (stretch ? 6 : 5) / 5 <= (work.bottom - work.top) * 85 / 100)
+                break;
+    }
+    *w = frame_w * scale;
+    *h = stretch ? frame_h * scale * 6 / 5 : frame_h * scale;
+    if (*w > screen_w || *h > screen_h) {
+        *w = screen_w;
+        *h = screen_h;
+    }
+}
+
 /* Site dd_setup_entry: the DirectDraw set-up's mode, given its windowed flag. Returns the
  * mode for full screen as height << 16 | width, or 0 to keep the game's. */
 uint32_t __cdecl brr_render_mode(uint32_t windowed)
@@ -586,8 +615,11 @@ uint32_t __cdecl brr_render_mode(uint32_t windowed)
     }
     mode_w = screen_w;
     mode_h = screen_h;
+    if (brr_modern_window)
+        window_mode_size(&mode_w, &mode_h);
     if (logged++ < 4)
-        brr_log("render: full screen: DirectDraw at %dx%d (the screen's own), shown 1:1; the game runs at %ldx%ld",
+        brr_log("render: %s: DirectDraw at %dx%d, shown 1:1; the game runs at %ldx%ld",
+                brr_modern_window ? "in cnc-ddraw's window" : "full screen (the screen's own size)",
                 mode_w, mode_h, (long)DISPLAY_W, (long)DISPLAY_H);
     return (uint32_t)mode_h << 16 | (uint32_t)mode_w;
 }
