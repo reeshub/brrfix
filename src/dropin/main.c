@@ -126,6 +126,7 @@ static void load_config(void)
     cfg.debug_log_mouse = ini_int(path, "debug", "log_mouse", 0);
     cfg.full_colour = ini_int(path, "display", "full_colour", 1);
     cfg.smooth_sky = ini_int(path, "display", "smooth_sky", 1);
+    cfg.smooth_shading = ini_int(path, "display", "smooth_shading", 1);
     cfg.show_version = ini_int(path, "display", "show_version", 1);
     cfg.controller = ini_int(path, "controller", "enabled", 1);
     cfg.pad_deadzone = ini_int(path, "controller", "deadzone", 15);
@@ -184,6 +185,11 @@ static void load_config(void)
     cfg.debug_hold_roll = ini_int(path, "debug", "hold_roll", 0);
     cfg.debug_prove_fine_angles = ini_int(path, "debug", "prove_fine_angles", 0);
     cfg.debug_log_keys = ini_int(path, "debug", "log_keys", 0);
+    cfg.debug_span_census = ini_int(path, "debug", "span_census", 0);
+    GetPrivateProfileStringA("debug", "level", "", cfg.debug_level, sizeof cfg.debug_level, path);
+    cfg.debug_shade_split = ini_int(path, "debug", "shade_split", 0);
+    cfg.debug_shot_tick = ini_int(path, "debug", "shot_tick", 0);
+    cfg.debug_shade_no_corners = ini_int(path, "debug", "shade_no_corners", 0);
     if (cfg.clock_original)
         cfg.fix_clock = 0;
     if (!cfg.fix_clock && cfg.fix_interpolation) {
@@ -249,6 +255,7 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
         brr_patch_all();
         brr_interp_setup();
         brr_debug_setup();
+        brr_shade_census_setup();
     } else if (reason == DLL_PROCESS_DETACH) {
         brr_interp_close();
         if (log_file) {

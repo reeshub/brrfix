@@ -129,6 +129,7 @@ void __cdecl brr_sky_draw(int16_t *ground, int16_t *sky)
     int16_t *g = ground ? ground : DEFAULT_GROUND, *s = sky ? sky : DEFAULT_SKY;
     int16_t saved[2 * BANDS];
     int n_sky, n_ground, i;
+    brr_shade_view_begin();  /* smooth shading (shade.c): this view's part of the side buffer */
     if (!brr_sky_active || brr_screenshot_drawing) {
         brr_call_sky_draw(ground, sky);
         return;

@@ -158,9 +158,10 @@ own resolution (full screen) or the window's size (windowed), enlarging the
 game's picture by whole numbers on black, so nothing is scaled twice. Windows
 95, 98 and ME, and full screen without cnc-ddraw, keep the game's own
 drawing (renderer=original), which cnc-ddraw scales with its presets.
-The new renderer works in full colour (32 bits), and draws the sky as a smooth
-gradient instead of the game's 16 flat bands ([display] full_colour and
-smooth_sky).
+The new renderer works in full colour (32 bits): the sky is a smooth gradient
+instead of the game's 16 flat bands, and lit surfaces (buildings, trees,
+vehicles, tunnel walls) are shaded smoothly instead of a palette shade at a
+time ([display] full_colour, smooth_sky and smooth_shading).
 Windowed: pick it in the launcher (or [display]
 mode=windowed in BRRFIX.INI, and windowed=true in ddraw.ini): the game's own
 window with its 1996 menu bar (About, Modes, Language), as big as fits on your

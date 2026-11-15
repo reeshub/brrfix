@@ -289,10 +289,19 @@ static void fill32(uint32_t *o, uint32_t value, int count)
         *o++ = value;
 }
 
-/* As compose, in 32 bits: each game pixel through the palette, and the sky's marker pixels
- * (sky.c) coloured per final pixel, so a row with sky in it is worked out afresh each time. */
-static void compose32(const uint8_t *in, int w, int h, int in_pitch, uint32_t *out, int out_w, int out_h,
-                      int out_pitch, const struct layout *l, int sky)
+/* a + (b - a) x t / 256, per channel */
+static uint32_t blend256(uint32_t a, uint32_t b, uint32_t t)
+{
+    return (((a & 0xFF00FFu) * (256 - t) + (b & 0xFF00FFu) * t) >> 8 & 0xFF00FFu)
+         | (((a & 0x00FF00u) * (256 - t) + (b & 0x00FF00u) * t) >> 8 & 0x00FF00u);
+}
+
+/* As compose, in 32 bits: each game pixel through the palette, a smoothly shaded one (shade.c)
+ * blended between its shade and the next, and the sky's marker pixels (sky.c) coloured per
+ * final pixel, so a row with sky in it is worked out afresh each time. origin: where the
+ * picture is in the game's memory (in may be a copy of it). */
+static void compose32(const uint8_t *in, const uint8_t *origin, int w, int h, int in_pitch, uint32_t *out,
+                      int out_w, int out_h, int out_pitch, const struct layout *l, int sky)
 {
     int y, row = 0, cols = w, rows = h, view = -1, marked = 0;
     int left = l->x, width = w * l->sx;
@@ -317,6 +326,7 @@ static void compose32(const uint8_t *in, int w, int h, int in_pitch, uint32_t *o
             memcpy(o, o - out_pitch, (size_t)out_w * 4);
         } else {
             const uint8_t *p = in + (size_t)row * (size_t)in_pitch;
+            const uint16_t *side = brr_shade_row(origin + (size_t)row * (size_t)in_pitch, cols);
             uint32_t *q = o + left;
             int x, k;
             fill32(o, 0, left);
@@ -326,6 +336,9 @@ static void compose32(const uint8_t *in, int w, int h, int in_pitch, uint32_t *o
                     brr_sky_span(q, left + x * l->sx, y, l->sx, view);
                 } else {
                     uint32_t c = colours[v];
+                    if (side && (side[x] & 0xFF) && (side[x] >> 8) == v && v != 255
+                        && (!cfg.debug_shade_split || x < cols / 2))
+                        c = blend256(c, colours[v + 1], side[x] & 0xFF);
                     for (k = 0; k < l->sx; k++)
                         q[k] = c;
                 }
@@ -337,19 +350,46 @@ static void compose32(const uint8_t *in, int w, int h, int in_pitch, uint32_t *o
     }
 }
 
+/* The game picture last shown, kept for a fade's steps: an 8-bit screen keeps showing the
+ * last picture presented while the palette changes, even once the game has drawn the next
+ * screen's picture into its buffer (the screens' set-ups draw it, then fade the old palette
+ * out and the new one in). */
+static uint8_t *shown_pixels;
+static const uint8_t *shown_origin;
+static int shown_w, shown_h, replaying;
+
 /* The final picture in 32 bits at out_w x out_h into out (rows out_pitch pixels apart);
  * 0 when there's nothing to compose. */
 int brr_render_compose32(uint32_t *out, int out_w, int out_h, int out_pitch)
 {
-    const uint8_t *pixels;
+    const uint8_t *pixels, *origin;
     int w, h, pitch, sky;
     struct layout l;
-    if (!brr_full_colour || out_w <= 0 || out_h <= 0 || !game_picture(&pixels, &w, &h, &pitch))
+    if (!brr_full_colour || out_w <= 0 || out_h <= 0)
         return 0;
+    if (replaying && shown_origin) {
+        pixels = shown_pixels;
+        origin = shown_origin;
+        w = pitch = shown_w;
+        h = shown_h;
+    } else {
+        if (!game_picture(&origin, &w, &h, &pitch))
+            return 0;
+        pixels = origin;
+        if (!shown_pixels)
+            shown_pixels = (uint8_t *)HeapAlloc(GetProcessHeap(), 0, (size_t)RENDER_MAX_W * RENDER_MAX_H);
+        shown_origin = NULL;
+        if (shown_pixels && pitch == w) {
+            memcpy(shown_pixels, origin, (size_t)w * (size_t)h);
+            shown_origin = origin;
+            shown_w = w;
+            shown_h = h;
+        }
+    }
     fit(w, h, out_w, out_h, &l);
     palette_colours();
-    sky = brr_sky_begin(pixels, w, h, pitch, l.sx, l.sy, l.x, l.y) > 0;
-    compose32(pixels, w, h, pitch, out, out_w, out_h, out_pitch, &l, sky);
+    sky = brr_sky_begin(origin, w, h, pitch, l.sx, l.sy, l.x, l.y) > 0;
+    compose32(pixels, origin, w, h, pitch, out, out_w, out_h, out_pitch, &l, sky);
     final_w = out_w;
     final_h = out_h;
     log_layout(w, h, out_w, out_h, &l);
@@ -400,9 +440,13 @@ static int present_full_colour(void)
     pitch = *(int32_t *)(desc + 0x10);
     surface = *(uint8_t **)(desc + 0x24);
     bits = *(DWORD *)(desc + 0x54);  /* ddpfPixelFormat.dwRGBBitCount */
-    if (bits == 32 && surface && !brr_render_compose32((uint32_t *)surface, (int)width, (int)height, pitch / 4))
-        for (; height > 0; height--)
-            memset(surface + (size_t)(height - 1) * (size_t)pitch, 0, (size_t)width * 4);
+    if (bits == 32 && surface) {
+        if (brr_render_compose32((uint32_t *)surface, (int)width, (int)height, pitch / 4))
+            brr_debug_frame_shot((const uint32_t *)surface, (int)width, (int)height, pitch / 4);
+        else
+            for (; height > 0; height--)
+                memset(surface + (size_t)(height - 1) * (size_t)pitch, 0, (size_t)width * 4);
+    }
     ((unlock_fn)METHOD(back, 0x80))(back, NULL);
     if (bits != 32) {
         if (failures++ < 4)
@@ -428,8 +472,22 @@ void brr_render_palette_check(void)
         || !memcmp(shown_palette, (const void *)0x52D758, sizeof shown_palette))
         return;
     if (!fade_logged++)
-        brr_log("render: full colour: a palette fade, shown a step at a time");
+        brr_log("render: full colour: a palette fade, shown a step at a time (on the picture last shown)");
+    {
+        static int ahead_logged;
+        const uint8_t *now;
+        int w, h, pitch;
+        if (ahead_logged < 3 && shown_origin && game_picture(&now, &w, &h, &pitch)
+            && (now != shown_origin || w != shown_w || h != shown_h
+                || memcmp(now, shown_pixels, (size_t)w * (size_t)h))) {
+            ahead_logged++;
+            brr_log("render: full colour: a fade step while the game's buffer already holds a picture not yet "
+                    "shown (screen 0x%02X); the one on screen is used", (unsigned)*(volatile uint16_t *)0x4B13C0);
+        }
+    }
+    replaying = 1;
     present_full_colour();
+    replaying = 0;
 }
 
 /* ---- Max: races drawn bigger (experimental) ---- */
@@ -543,6 +601,8 @@ int __cdecl brr_render_before_present(void)
 {
     const uint8_t *out;
     game_source = NULL;
+    brr_shade_census_report();
+    brr_debug_every_frame();
     if (!brr_renderer_active || *GAME_WINDOWED || !mode_w)
         return 0;  /* in a window, display.c composes */
     if (brr_full_colour)

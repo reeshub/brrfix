@@ -61,6 +61,12 @@
         extrn   _brr_orig_screenshot_race:dword
         extrn   _brr_orig_screenshot_tape:dword
         extrn   _brr_orig_credit_lookup:dword
+        extrn   _brr_shade_lo:dword
+        extrn   _brr_shade_hi:dword
+        extrn   _brr_shade_side_off:dword
+        extrn   _brr_shade_delta:dword
+        extrn   _brr_shade_vertex_delta:dword
+        extrn   _brr_light_level_fn:dword
 
         public  _brr_TIMER_Init, _brr_TIMER_Shutdown, _brr_TIMER_Handler
         public  _brr_hook_clock_read, _brr_hook_retrace, _brr_hook_race_tick
@@ -75,6 +81,7 @@
         public  _brr_call_landscape_walk, _brr_call_landscape_tables, _brr_call_landscape_far_walk
         public  _brr_hook_credit_lookup, _brr_hook_set_view, _brr_call_set_view
         public  _brr_hook_screenshot_race, _brr_hook_screenshot_tape
+        public  _brr_span_gouraud, _brr_span_gouraud_z, _brr_poly_light_smooth
 
         .code
 
@@ -548,5 +555,227 @@ far_walk_entry:
         mov     ax, word ptr ds:[46BBDCh]
         mov     word ptr ds:[46BBD0h], ax
         jmp     dword ptr [_brr_landscape_walk_loop]
+
+; ---- Smooth shading (shade.c): copies of the 3D engine's Gouraud spans and smooth lighting ----
+; Each does exactly what the original does, instruction for instruction, plus one store. The
+; spans keep each drawn pixel's palette index and the bits 8-15 of its 16.16 shade (which the
+; original drops) as a word in shade.c's side buffer, at brr_shade_side_off + 2 x the pixel's
+; address; a polygon outside the memory the side buffer covers goes to the original.
+
+; span_gouraud_z (0x4438D0): ESI the left edge, EBP the right edge (0x34-byte records), EDI
+; the row, EAX the rows left (16.16); depth at [0x54203C] + 2 x the pixel's address.
+_brr_span_gouraud_z:
+        cmp     edi, _brr_shade_lo
+        jb      sgz_original
+        mov     ebx, eax
+        sar     ebx, 16
+        inc     ebx
+        imul    ebx, dword ptr ds:[542018h]
+        add     ebx, edi
+        cmp     ebx, _brr_shade_hi
+        ja      sgz_original
+        mov     ebx, _brr_shade_side_off
+        sub     ebx, dword ptr ds:[54203Ch]
+        mov     _brr_shade_delta, ebx           ; side word = depth pointer + delta
+sgz_row:
+        xor     ebx, ebx
+        xor     ecx, ecx
+        mov     bx, word ptr [esi + 1Ah]
+        push    edi
+        add     edi, ebx
+        mov     cx, word ptr [ebp + 1Ah]
+        sub     cx, bx
+        jle     sgz_next
+        push    eax
+        mov     ebx, dword ptr [ecx*4 + 54A384h]
+        push    esi
+        push    ebp
+        mov     dword ptr ds:[54A15Ch], ecx
+        mov     ecx, dword ptr [esi + 1Ch]
+        mov     eax, dword ptr [ebp + 1Ch]
+        push    ecx
+        sub     eax, ecx
+        imul    ebx
+        mov     eax, dword ptr [ebp + 20h]
+        mov     ebp, edx
+        mov     ecx, dword ptr [esi + 20h]
+        mov     esi, dword ptr ds:[54203Ch]
+        sub     eax, ecx
+        imul    ebx
+        lea     esi, [esi + edi*2]
+        pop     eax
+sgz_pixel:
+        shld    ebx, eax, 16
+        add     eax, ebp
+        cmp     bx, word ptr [esi]
+        jc      sgz_hidden
+        mov     word ptr [esi], bx
+        shld    ebx, ecx, 16
+        mov     byte ptr [edi], bl
+        mov     ebx, ecx                        ; ours: BH the index, BL the fraction
+        shr     ebx, 8
+        add     esi, _brr_shade_delta
+        mov     word ptr [esi], bx
+        sub     esi, _brr_shade_delta
+sgz_hidden:
+        add     ecx, edx
+        add     esi, 2
+        inc     edi
+        dec     dword ptr ds:[54A15Ch]
+        jnz     sgz_pixel
+        pop     ebp
+        pop     esi
+        pop     eax
+sgz_next:
+        mov     ebx, dword ptr [ebp]
+        mov     ecx, dword ptr [ebp + 4]
+        mov     edx, dword ptr [ebp + 8]
+        add     dword ptr [ebp + 18h], ebx
+        add     dword ptr [ebp + 1Ch], ecx
+        add     dword ptr [ebp + 20h], edx
+        pop     edi
+        mov     ebx, dword ptr [esi]
+        mov     ecx, dword ptr [esi + 4]
+        mov     edx, dword ptr [esi + 8]
+        add     dword ptr [esi + 18h], ebx
+        add     dword ptr [esi + 1Ch], ecx
+        add     dword ptr [esi + 20h], edx
+        add     edi, dword ptr ds:[542018h]
+        sub     eax, 10000h
+        js      sgz_done
+        cmp     eax, dword ptr [esi + 30h]
+        js      sgz_left
+        cmp     eax, dword ptr [ebp + 30h]
+        jns     sgz_row
+        add     ebp, 34h
+        jmp     sgz_row
+sgz_left:
+        add     esi, 34h
+        cmp     eax, dword ptr [ebp + 30h]
+        jns     sgz_row
+        add     ebp, 34h
+        jmp     sgz_row
+sgz_done:
+        inc     word ptr ds:[542B58h]
+        ret
+sgz_original:
+        push    4438D0h
+        ret
+
+; span_gouraud (0x443710): the same without depth; EAX is free in the pixel loop
+_brr_span_gouraud:
+        cmp     edi, _brr_shade_lo
+        jb      sg_original
+        mov     ebx, eax
+        sar     ebx, 16
+        inc     ebx
+        imul    ebx, dword ptr ds:[542018h]
+        add     ebx, edi
+        cmp     ebx, _brr_shade_hi
+        ja      sg_original
+sg_row:
+        mov     ebx, dword ptr [esi + 18h]
+        mov     ecx, dword ptr [ebp + 18h]
+        sar     ebx, 16
+        sar     ecx, 16
+        push    edi
+        add     edi, ebx
+        sub     ecx, ebx
+        jle     sg_next
+        mov     ebx, dword ptr [ecx*4 + 54A384h]
+        push    eax
+        push    ebp
+        mov     eax, dword ptr [ebp + 20h]
+        mov     ebp, dword ptr [esi + 20h]
+        sub     eax, ebp
+        imul    ebx
+        shld    ebx, ebp, 16
+        lea     eax, [edi + edi]                ; ours: the side word's address
+        add     eax, _brr_shade_side_off
+sg_pixel:
+        mov     byte ptr [edi], bl
+        mov     ebx, ebp                        ; ours: BH the index, BL the fraction
+        shr     ebx, 8
+        mov     word ptr [eax], bx
+        add     eax, 2
+        add     ebp, edx
+        mov     ebx, ebp
+        inc     edi
+        shr     ebx, 16
+        dec     ecx
+        jnz     sg_pixel
+        pop     ebp
+        pop     eax
+sg_next:
+        mov     ebx, dword ptr [ebp]
+        mov     edx, dword ptr [ebp + 8]
+        add     dword ptr [ebp + 18h], ebx
+        add     dword ptr [ebp + 20h], edx
+        pop     edi
+        mov     ebx, dword ptr [esi]
+        mov     edx, dword ptr [esi + 8]
+        add     dword ptr [esi + 18h], ebx
+        add     dword ptr [esi + 20h], edx
+        add     edi, dword ptr ds:[542018h]
+        sub     eax, 10000h
+        js      sg_done
+        cmp     eax, dword ptr [esi + 30h]
+        js      sg_left
+        cmp     eax, dword ptr [ebp + 30h]
+        jns     sg_row
+        add     ebp, 34h
+        jmp     sg_row
+sg_left:
+        add     esi, 34h
+        cmp     eax, dword ptr [ebp + 30h]
+        jns     sg_row
+        add     ebp, 34h
+        jmp     sg_row
+sg_done:
+        inc     word ptr ds:[542B58h]
+        ret
+sg_original:
+        push    443710h
+        ret
+
+; poly_light_smooth (0x446D70): for each corner of the polygon ring (0x542B70), light_level
+; (0x4468E0, EAX = 1) and the shade table's index for it and the colour (0x542B74); ours
+; writes the whole 16.16 shade at +18h, with shade.c's fraction, where the original wrote
+; only the index at +1Ah
+_brr_poly_light_smooth:
+        mov     eax, dword ptr ds:[54A1E4h]
+        mov     edi, dword ptr ds:[542B70h]
+        mov     dword ptr ds:[54A1E8h], eax
+pls_corner:
+        mov     ecx, dword ptr [edi + 8]
+        mov     eax, dword ptr [edi]
+        sar     ecx, 16
+        mov     ebx, dword ptr [edi + 4]
+        mov     dword ptr ds:[54B4A4h], eax
+        mov     dword ptr ds:[54B4A8h], ebx
+        mov     ebx, dword ptr [edi + 30h]
+        mov     dword ptr ds:[54B4ACh], ecx
+        mov     dword ptr ds:[54B4A0h], ebx
+        mov     eax, 1
+        call    dword ptr [_brr_light_level_fn]
+        mov     ebx, dword ptr ds:[542B74h]
+        shl     eax, 8
+        and     ebx, 0FFh
+        mov     ecx, dword ptr ds:[54A35Ch]
+        add     ebx, eax
+        movzx   eax, byte ptr [ecx + ebx]
+        push    edx                             ; ours: index x 65536 + the fraction
+        push    eax
+        mov     edx, _brr_shade_vertex_delta
+        movsx   edx, word ptr [edx + ebx*2]
+        shl     eax, 16
+        add     eax, edx
+        mov     dword ptr [edi + 18h], eax
+        pop     eax
+        pop     edx
+        mov     edi, dword ptr [edi + 28h]
+        cmp     edi, dword ptr ds:[542B70h]
+        jnz     pls_corner
+        ret
 
         end

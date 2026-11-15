@@ -179,7 +179,8 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "credits")) return 1;
     if (!strcmp(fix, "render_max")) return cfg.render_max && brr_renderer_active;  /* experimental */
     if (!strcmp(fix, "full_colour")) return brr_full_colour;
-    if (!strcmp(fix, "sky")) return brr_sky_active;
+    if (!strcmp(fix, "sky")) return brr_sky_active || brr_shade_active;  /* the 3D view's start, for both */
+    if (!strcmp(fix, "shading")) return brr_shade_active;
     if (!strcmp(fix, "screenshot")) return (cfg.render_max && brr_renderer_active) || brr_sky_active;
     if (!strcmp(fix, "draw_distance")) return cfg.max_draw_distance > 0;  /* experimental, off by default */
     if (!strcmp(fix, "draw_distance_far")) return cfg.max_draw_distance > DRAW_DISTANCE_GRID_MAX;
@@ -296,6 +297,19 @@ static int replacement(const struct site_info *s, uint8_t *out)
         out[1] = 0x35;
     } else if (!strcmp(n, "dd_mode_bpp") && s->length == 1) {
         out[0] = 32;  /* PUSH 0x20: SetDisplayMode's bits per pixel (full colour; render.c presents) */
+    } else if (!strncmp(n, "fill_", 5) && s->length % 4 == 0) {
+        /* fill descriptors (shade.c): the smooth lighting and Gouraud spans -> our copies */
+        uint32_t k;
+        memcpy(out, (const void *)s->address, s->length);
+        for (k = 0; k < s->length; k += 4) {
+            uint32_t *slot = (uint32_t *)(out + k);
+            if (*slot == 0x446D70u)
+                *slot = (uint32_t)brr_poly_light_smooth;
+            else if (*slot == 0x4438D0u)
+                *slot = (uint32_t)brr_span_gouraud_z;
+            else if (*slot == 0x443710u)
+                *slot = (uint32_t)brr_span_gouraud;
+        }
     } else if (!strcmp(n, "sky_draw_call") && s->length == 5) {
         out[0] = 0xE8;  /* CALL brr_hook_sky_draw: the sky's geometry recorded, its bands in the marker colour */
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_sky_draw);
@@ -412,10 +426,13 @@ void brr_patch_all(void)
     brr_renderer_active = brr_renderer_decide(brr_is_cnc_ddraw(brr_ddraw_module()));
     brr_full_colour = brr_renderer_active && cfg.full_colour;
     brr_sky_active = brr_full_colour && cfg.smooth_sky;
+    brr_shade_active = brr_full_colour && cfg.smooth_shading;
+    brr_shade_setup();  /* may turn it off (memory) */
     if (brr_renderer_active)
-        brr_log("render: %s%s", brr_full_colour ? "full colour (32-bit pictures from the game's palette)"
-                                                 : "256 colours, as the game ([display] full_colour=0)",
-                brr_sky_active ? "; the sky as a smooth gradient" : "");
+        brr_log("render: %s%s%s", brr_full_colour ? "full colour (32-bit pictures from the game's palette)"
+                                                   : "256 colours, as the game ([display] full_colour=0)",
+                brr_sky_active ? "; the sky as a smooth gradient" : "",
+                brr_shade_active ? "; lit polygons shaded smoothly" : "");
     int applied = 0;
     for (size_t i = 0; i < count; i++) {
         const struct site_info *s = &SITES[i];

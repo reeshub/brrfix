@@ -31,6 +31,7 @@ struct brr_config {
                               * 1008x756 (render.c; the new renderer only) */
     int full_colour;         /* [display] full_colour: the new renderer presents 32-bit pictures */
     int smooth_sky;          /* [display] smooth_sky: the sky as a smooth gradient (sky.c; full colour) */
+    int smooth_shading;      /* [display] smooth_shading: lit polygons shaded smoothly (shade.c; full colour) */
     int language;            /* [display] language: 1-7 (ENG, USA, FRE, GER, ITA, SPA, JAP) */
     int clock_original;      /* emulate the original 14 ms callback timer instead */
     uint32_t rate_milli;     /* ticks per 1000 s: 70000 = 70.0 Hz */
@@ -68,6 +69,11 @@ struct brr_config {
     int fine_angles;                /* [camera] fine_angles: draw with angles finer than 64 units */
     int debug_prove_fine_angles;    /* run the proof against the original routine at the first race draw */
     int debug_log_keys;             /* log keyboard events, the key table and menu key hotspots */
+    int debug_span_census;          /* log which span routines (polygon fills) are called */
+    char debug_level[16];           /* tests: race this level (e.g. CITY1) whatever the menus chose */
+    int debug_shade_split;          /* tests: smooth shading on the picture's left half only */
+    int debug_shot_tick;            /* tests: save the full-colour picture at this race tick */
+    int debug_shade_no_corners;     /* tests: smooth shading without the corners' fractions */
 };
 
 extern struct brr_config cfg;
@@ -126,6 +132,17 @@ const uint8_t *brr_render_compose(int out_w, int out_h, int out_pitch);
 extern int brr_full_colour;
 int brr_render_compose32(uint32_t *out, int out_w, int out_h, int out_pitch);
 void brr_render_palette_check(void);
+void brr_shade_census_setup(void);
+void brr_shade_setup(void);
+void brr_shade_view_begin(void);
+const uint16_t *brr_shade_row(const uint8_t *pixel, int count);
+extern int brr_shade_active;
+void __cdecl brr_span_gouraud(void);
+void __cdecl brr_span_gouraud_z(void);
+void __cdecl brr_poly_light_smooth(void);
+void brr_shade_census_report(void);
+void brr_debug_every_frame(void);
+void brr_debug_frame_shot(const uint32_t *picture, int width, int height, int pitch);
 /* sky.c */
 #define SKY_MARKER 255       /* the colour the game's sky bands are drawn in, with smooth_sky */
 extern int brr_sky_active, brr_screenshot_drawing;

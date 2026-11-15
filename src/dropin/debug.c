@@ -15,6 +15,13 @@
  *    byte how often it changed between draws on frames that ran a tick, between draws on
  *    frames that didn't, and during the draw. Written to BRRFIX-WRITESET.CSV as address
  *    ranges. Memory the game allocates at run time isn't covered.
+ *  - level=NAME (for example CITY4, Italy): races are on that level whatever the menus
+ *    chose (level_name 0x44AF5A, written every frame until the race starts).
+ *  - shot_tick=N: the first full-colour picture presented at or after race tick N, as it
+ *    went to the screen, to BRRFIX-SHOT.BMP ("dropin-run" makes it a PNG). With
+ *    [fixes] interpolation=0 and a pause (input=k72:T-T), the same frame in every run.
+ *  - span_census=1, shade_split=1, shade_no_corners=1: the 3D engine's fills and smooth
+ *    shading (shade.c, render.c).
  * None of this changes how the game runs: input is what a player would press. */
 #include "brrfix.h"
 #include <stdio.h>
@@ -279,4 +286,54 @@ void brr_debug_after_draw(void)
         capture_done = 1;
         write_capture();
     }
+}
+
+/* Once a frame, every screen: [debug] level writes the level's name (level_name 0x44AF5A,
+ * which the race screen's set-up loads) until the race starts. */
+void brr_debug_every_frame(void)
+{
+    static int logged;
+    if (!cfg.debug_level[0] || *(volatile uint16_t *)0x4B13C0 == 0x80)
+        return;
+    lstrcpynA((char *)0x44AF5A, cfg.debug_level, 9);
+    if (!logged++)
+        brr_log("debug level: races will be on %s", cfg.debug_level);
+}
+
+/* [debug] shot_tick=N (tests): the first full-colour picture presented at or after race tick
+ * N, as it went to the screen, to BRRFIX-SHOT.BMP beside the DLL (32 bits, top-down) */
+void brr_debug_frame_shot(const uint32_t *picture, int width, int height, int pitch)
+{
+    static int done;
+    char path[MAX_PATH];
+    BITMAPFILEHEADER file_header;
+    BITMAPINFOHEADER header;
+    DWORD written;
+    HANDLE file;
+    int row;
+    if (cfg.debug_shot_tick <= 0 || done || *(volatile uint16_t *)0x4B13C0 != 0x80
+        || *GAME_TICK_COUNT < cfg.debug_shot_tick || width <= 0 || height <= 0)
+        return;
+    done = 1;
+    brr_path_beside_dll(path, sizeof path, "BRRFIX-SHOT.BMP");
+    file = CreateFileA(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+    if (file == INVALID_HANDLE_VALUE)
+        return;
+    memset(&file_header, 0, sizeof file_header);
+    memset(&header, 0, sizeof header);
+    file_header.bfType = 0x4D42;
+    file_header.bfOffBits = sizeof file_header + sizeof header;
+    file_header.bfSize = file_header.bfOffBits + (DWORD)width * (DWORD)height * 4;
+    header.biSize = sizeof header;
+    header.biWidth = width;
+    header.biHeight = -height;
+    header.biPlanes = 1;
+    header.biBitCount = 32;
+    header.biCompression = BI_RGB;
+    WriteFile(file, &file_header, sizeof file_header, &written, NULL);
+    WriteFile(file, &header, sizeof header, &written, NULL);
+    for (row = 0; row < height; row++)
+        WriteFile(file, picture + (size_t)row * (size_t)pitch, (DWORD)width * 4, &written, NULL);
+    CloseHandle(file);
+    brr_log("debug shot: race tick %ld, %dx%d, BRRFIX-SHOT.BMP", (long)*GAME_TICK_COUNT, width, height);
 }

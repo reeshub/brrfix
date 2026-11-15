@@ -47,8 +47,9 @@ Period defaults on Windows 95, 98 and ME, Modern defaults on anything newer.
   full screen it needs cnc-ddraw (CNCDD.DLL, next to Big Red Racing.exe), as
   the game does on modern Windows; without it, the original is used. It works
   in full colour, so the sky is a smooth gradient instead of the game's
-  16 flat bands (BRRFIX.INI's [display] full_colour and smooth_sky turn these
-  off).
+  16 flat bands, and lit surfaces are shaded smoothly instead of a palette
+  shade at a time (BRRFIX.INI's [display] full_colour, smooth_sky and
+  smooth_shading turn these off).
 - **Original:** the game's own drawing. In full screen cnc-ddraw enlarges it
   (see "Full screen" below); the menus are 320x200 pictures doubled into the
   middle of a 640x480 picture, with black bands above and below.

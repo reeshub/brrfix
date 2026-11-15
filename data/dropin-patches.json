@@ -315,8 +315,32 @@
    "fix": "sky",
    "address": "0x4176F6",
    "length": 5,
-   "patch": "render_view: CALL sky_draw (0x41A4D0) -> CALL brr_hook_sky_draw: the view's camera and projection recorded, the bands drawn in the marker colour 255, and coloured as a smooth gradient when the frame is presented (sky.c)",
+   "patch": "render_view: CALL sky_draw (0x41A4D0) -> CALL brr_hook_sky_draw: the view's camera and projection recorded, the bands drawn in the marker colour 255, and coloured as a smooth gradient when the frame is presented (sky.c); also where smooth shading (shade.c) starts each view",
    "sha256": "013df2c085750453d9535f6459bfd0e7ed9cb3966d18696f9c746d3a0e6b7512"
+  },
+  {
+   "name": "fill_flat_smooth",
+   "fix": "shading",
+   "address": "0x543120",
+   "length": 32,
+   "patch": "fill_descriptors' smoothly lit flat-colour polygons (render flags 0x40, with and without depth): lighting set-up poly_light_smooth (0x446D70) -> brr_poly_light_smooth and spans span_gouraud_z (0x4438D0) / span_gouraud (0x443710) -> brr_span_gouraud_z / brr_span_gouraud (thunks.asm): the same pixels, plus each corner's shade fraction and each pixel's index and fraction for the full-colour picture (shade.c). Data, not code: the 3D engine reads the routines from here for every polygon",
+   "sha256": "6c264034bd93aae22b9d4a6ba695074c094184e685731c9f99466f8ac43672ea"
+  },
+  {
+   "name": "fill_seethrough_smooth",
+   "fix": "shading",
+   "address": "0x543180",
+   "length": 32,
+   "patch": "fill_descriptors' see-through (checkerboard) polygons with smooth lighting: poly_light_smooth -> brr_poly_light_smooth; their stipple spans stay the game's",
+   "sha256": "c3929cc81adcb875f206fbd4c122f5727bdbdbae50a5c2ac4cc27c4e57690843"
+  },
+  {
+   "name": "fill_gouraud",
+   "fix": "shading",
+   "address": "0x5431A0",
+   "length": 64,
+   "patch": "fill_descriptors' Gouraud polygons (shades from the model): span_gouraud_z / span_gouraud -> our copies, as fill_flat_smooth; their lighting set-ups stay the game's",
+   "sha256": "d7936b036ab621c9b97f2c0c8b6de0a0f96680fc2a40c36069bbb5f2b361993a"
   },
   {
    "name": "render_view_entry",
