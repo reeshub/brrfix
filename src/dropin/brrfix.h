@@ -27,8 +27,10 @@ struct brr_config {
     int fix_menu_keys;       /* one menu action per key press (keys.c) */
     int resolution_high;     /* [display] resolution=high: the game's 640x480 mode (keypad +) */
     int renderer_new;        /* [display] renderer=new: Phase 3c's renderer (render.c); original = the game's */
-    int render_max;          /* [display] render_resolution=max: experimental, races drawn at up to
-                              * 1008x756 (render.c; the new renderer only) */
+    int render_max;          /* [display] render_resolution=max: experimental, races drawn at the
+                              * screen's (or window's) own height, 4:3 (render.c; the new renderer only) */
+    int render_max_rows;     /* [display] render_max_height: Max's rows at most (1080 by default; 0 = the
+                              * screen's height): the game draws in software, so rows cost frame rate */
     int full_colour;         /* [display] full_colour: the new renderer presents 32-bit pictures */
     int smooth_sky;          /* [display] smooth_sky: the sky as a smooth gradient (sky.c; full colour) */
     int smooth_shading;      /* [display] smooth_shading: lit polygons shaded smoothly (shade.c; full colour) */
@@ -187,8 +189,18 @@ void __cdecl brr_screenshot_begin(void);
 void __cdecl brr_screenshot_end(void);
 void brr_hook_screenshot_race(void);
 void brr_hook_screenshot_tape(void);
-#define RENDER_MAX_W 1008   /* the engine's reciprocal table covers spans up to 1,022 pixels; rows */
-#define RENDER_MAX_H 756    /* must be a multiple of 16 wide (its row stride and the 2D code's agree) */
+/* The 3D engine's reciprocal table (2^32 / n, 0x54A380) has 1,024 entries: spans up to 1,022
+ * pixels, edges up to 1,023 rows. Ours has RECIPROCALS, and every reader is pointed at it (the
+ * recip_* sites), so Max views can be up to RENDER_LIMIT_W x RENDER_LIMIT_H; a multiple of 16
+ * wide (the engine's row stride and the 2D code's agree). */
+#define RECIPROCALS 8192
+#define RENDER_LIMIT_W 8176
+#define RENDER_LIMIT_H 6132
+extern uint32_t brr_reciprocals[RECIPROCALS];
+extern int brr_view_max_w, brr_view_max_h;  /* the engine's buffers: 640x480, or Max's view */
+void brr_reciprocals_fill(void);
+void brr_hook_sprite_rows(void);     /* thunks.asm: sites sprite_scale_rows and _columns */
+void brr_hook_sprite_columns(void);
 int __cdecl brr_render_before_present(void);  /* 1: it presented the frame itself */
 void __cdecl brr_render_after_present(void);
 uint32_t __cdecl brr_menu_mouse(void);

@@ -26,7 +26,7 @@ BEGIN
     PUSHBUTTON      "Period defaults", IDC_PERIOD, 20, 134, 64, 14, WS_TABSTOP
     LTEXT           "For a 1990s PC with Windows 95, 98 or ME: full screen at the game's low resolution (320x200), drawn as the 1996 game drew it.", IDC_PAGE_GENERAL, 90, 133, 216, 24
     PUSHBUTTON      "Modern defaults", IDC_MODERN, 20, 162, 64, 14, WS_TABSTOP
-    LTEXT           "For today's Windows, Linux and Steam Deck: full screen at high resolution (640x480), drawn sharp in full colour by the Modern renderer, with modern pads.", IDC_PAGE_GENERAL, 90, 161, 216, 24
+    LTEXT           "For today's Windows, Linux and Steam Deck: full screen, races drawn with up to 1080 rows (Max), sharp and in full colour by the Modern renderer, with modern pads.", IDC_PAGE_GENERAL, 90, 161, 216, 24
     LTEXT           "Each sets every setting; press Save or Play to keep them. Defaults, below, chooses the one for this PC.", IDC_PAGE_GENERAL, 20, 190, 286, 16
 
     /* Video (launcher.c, layout_video, shows each renderer's controls and moves the rows below
@@ -38,6 +38,8 @@ BEGIN
     COMBOBOX        IDC_MODE, 62, 50, 94, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
     LTEXT           "Resolutio&n:", IDC_PAGE_VIDEO, 18, 66, 44, 8
     COMBOBOX        IDC_RESOLUTION, 62, 64, 94, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Ma&x limit:", IDC_MAXLIMIT_LABEL, 18, 80, 44, 8
+    COMBOBOX        IDC_MAXLIMIT, 62, 78, 94, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
     LTEXT           "Scalin&g:", IDC_PRESET_LABEL, 18, 80, 44, 8
     COMBOBOX        IDC_PRESET, 62, 78, 94, 70, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
     LTEXT           "&Window size:", IDC_SCALE_LABEL, 18, 94, 44, 8

@@ -35,6 +35,8 @@
 #define IDC_COLOUR_ANIM  1223
 #define IDC_DISPLAY_GROUP 1224
 #define IDC_MISC_GROUP   1225
+#define IDC_MAXLIMIT     1226
+#define IDC_MAXLIMIT_LABEL 1227
 
 /* Audio */
 #define IDC_PAGE_AUDIO   1300

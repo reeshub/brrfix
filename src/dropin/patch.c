@@ -275,8 +275,20 @@ static int replacement(const struct site_info *s, uint8_t *out)
         out[0] = 0xE8;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_screenshot_tape);
     } else if (!strcmp(n, "view_max") && s->length == 4) {
-        static const uint16_t size[2] = {RENDER_MAX_W, RENDER_MAX_H};
+        uint16_t size[2];
+        size[0] = (uint16_t)brr_view_max_w;
+        size[1] = (uint16_t)brr_view_max_h;
         memcpy(out, size, 4);
+    } else if (!strcmp(n, "sprite_scale_rows") && s->length == 11) {
+        out[0] = 0xE8;  /* CALL brr_hook_sprite_rows: EAX = the rows' error start; NOPs after */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_sprite_rows);
+    } else if (!strcmp(n, "sprite_scale_columns") && s->length == 6) {
+        out[0] = 0xE8;  /* CALL brr_hook_sprite_columns: EAX = the columns' error start; a NOP after */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_sprite_columns);
+    } else if (!strncmp(n, "recip_", 6) && s->length == 4) {
+        /* the address in [reg*4 + 0x54A380] (edges, lines: entry n) or [reg*4 + 0x54A384]
+         * (spans: entry length + 1) -> the same entry of ours */
+        put_abs32(out, (uint8_t *)brr_reciprocals + (strncmp(n, "recip_span_", 11) ? 0 : 4));
     } else if (!strcmp(n, "credit_lookup_call") && s->length == 5) {
         out[0] = 0xE8;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_credit_lookup);
@@ -413,6 +425,7 @@ void brr_patch_all(void)
         }
         brr_log("debug: ignore_exe_checksum=1, so checking the patch sites anyway");
     }
+    brr_reciprocals_fill();
     for (size_t i = 0; i < count; i++) {
         const struct site_info *s = &SITES[i];
         if (!readable(s->address, s->length)) {

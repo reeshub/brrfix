@@ -16,6 +16,7 @@
         extrn   _brr_after_camera_update:near
         extrn   _brr_rotation_fine:near
         extrn   _brr_timer_count:dword
+        extrn   _brr_reciprocals:dword
         extrn   _brr_orig_race_tick:dword
         extrn   _brr_orig_race_draw:dword
         extrn   _brr_orig_playback_tick:dword
@@ -87,6 +88,7 @@
         public  _brr_call_palette_set
         public  _brr_hook_scn_commit, _brr_hook_scn_end
         public  _brr_call_dd_set_mode
+        public  _brr_hook_sprite_rows, _brr_hook_sprite_columns
 
         .code
 
@@ -448,6 +450,40 @@ _brr_hook_set_view:
         mov     esi, edx
         jmp     dword ptr [_brr_set_view_continue]
 
+; sprite_draw_scaled (0x426F90), the HUD's sprite routine, steps through the sprite with an
+; error term starting at half the drawn size; drawn more than twice as big, the last row and
+; column it reads are one past the sprite (bytes of whatever follows it), which Max's views
+; wider than 1,280 pixels show. Sites sprite_scale_rows (0x42717A) and sprite_scale_columns
+; (0x427199) call these instead: the start is max(drawn / 2, drawn - source), the game's own
+; value up to twice the size, and never past the sprite's last pixel above it. EDX is free.
+; Rows: drawn height in EBX, the sprite's height at [ESP+18h] in the caller (+4 here).
+_brr_hook_sprite_rows:
+        mov     eax, ebx
+        cdq
+        sub     eax, edx
+        sar     eax, 1
+        mov     edx, ebx
+        sub     edx, dword ptr [esp + 1Ch]
+        cmp     edx, eax
+        jle     ssr_done
+        mov     eax, edx
+ssr_done:
+        ret
+
+; Columns: drawn width in ESI, the sprite's width at [ESP+30h] in the caller (+4 here).
+_brr_hook_sprite_columns:
+        mov     eax, esi
+        cdq
+        sub     eax, edx
+        sar     eax, 1
+        mov     edx, esi
+        sub     edx, dword ptr [esp + 34h]
+        cmp     edx, eax
+        jle     ssc_done
+        mov     eax, edx
+ssc_done:
+        ret
+
 ; cdecl brr_call_set_view(width, height): the game's set_view (0x425F78, through site
 ; set_view_entry). It keeps EBX, ECX and ESI; EDI and EBP it doesn't touch.
 _brr_call_set_view:
@@ -643,7 +679,7 @@ sgz_row:
         sub     cx, bx
         jle     sgz_next
         push    eax
-        mov     ebx, dword ptr [ecx*4 + 54A384h]
+        mov     ebx, dword ptr [ecx*4 + _brr_reciprocals + 4]  ; the bigger table (recip_* sites)
         push    esi
         push    ebp
         mov     dword ptr ds:[54A15Ch], ecx
@@ -738,7 +774,7 @@ sg_row:
         add     edi, ebx
         sub     ecx, ebx
         jle     sg_next
-        mov     ebx, dword ptr [ecx*4 + 54A384h]
+        mov     ebx, dword ptr [ecx*4 + _brr_reciprocals + 4]  ; the bigger table (recip_* sites)
         push    eax
         push    ebp
         mov     eax, dword ptr [ebp + 20h]

@@ -295,6 +295,286 @@
    "sha256": "e2bc3113551e4f212c03e36fd7ab43f4e606a99dedcc2c428ae7fa92b33628b1"
   },
   {
+   "name": "recip_edge_scan",
+   "fix": "render_max",
+   "address": "0x442CFD",
+   "length": 4,
+   "patch": "Experimental, Max. edge_scan (0x442CE0): MOV EBX,[EBX*4+0x54A380], 2^32 / the edge's height -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "29ac93147b74bce02402ef1976c549704d19632b5ebd244491014f53e746452d"
+  },
+  {
+   "name": "recip_edge_scan_no_depth",
+   "fix": "render_max",
+   "address": "0x442E2D",
+   "length": 4,
+   "patch": "Experimental, Max. edge_scan_no_depth (0x442E10): the same, without depth -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "29ac93147b74bce02402ef1976c549704d19632b5ebd244491014f53e746452d"
+  },
+  {
+   "name": "recip_line_draw",
+   "fix": "render_max",
+   "address": "0x449362",
+   "length": 4,
+   "patch": "Experimental, Max. line_draw (0x4492E0): MOV EAX,[ECX*4+0x54A380], 2^32 / the line's longer side -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "29ac93147b74bce02402ef1976c549704d19632b5ebd244491014f53e746452d"
+  },
+  {
+   "name": "recip_span_depth_only",
+   "fix": "render_max",
+   "address": "0x4434C7",
+   "length": 4,
+   "patch": "Experimental, Max. span_depth_only: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_flat_z",
+   "fix": "render_max",
+   "address": "0x443657",
+   "length": 4,
+   "patch": "Experimental, Max. span_flat_z: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_gouraud",
+   "fix": "render_max",
+   "address": "0x443726",
+   "length": 4,
+   "patch": "Experimental, Max. span_gouraud: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_gouraud_lit",
+   "fix": "render_max",
+   "address": "0x4437DA",
+   "length": 4,
+   "patch": "Experimental, Max. span_gouraud_lit: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_gouraud_z",
+   "fix": "render_max",
+   "address": "0x4438E8",
+   "length": 4,
+   "patch": "Experimental, Max. span_gouraud_z: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_texture",
+   "fix": "render_max",
+   "address": "0x4439D7",
+   "length": 4,
+   "patch": "Experimental, Max. span_texture: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_texture_z",
+   "fix": "render_max",
+   "address": "0x443ACB",
+   "length": 4,
+   "patch": "Experimental, Max. span_texture_z: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_texture_lit",
+   "fix": "render_max",
+   "address": "0x443C1B",
+   "length": 4,
+   "patch": "Experimental, Max. span_texture_lit: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_texture_lit_z",
+   "fix": "render_max",
+   "address": "0x443D2B",
+   "length": 4,
+   "patch": "Experimental, Max. span_texture_lit_z: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_texture_gouraud",
+   "fix": "render_max",
+   "address": "0x443E8B",
+   "length": 4,
+   "patch": "Experimental, Max. span_texture_gouraud: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_texture_gouraud_z",
+   "fix": "render_max",
+   "address": "0x443FDB",
+   "length": 4,
+   "patch": "Experimental, Max. span_texture_gouraud_z: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_444157",
+   "fix": "render_max",
+   "address": "0x444157",
+   "length": 4,
+   "patch": "Experimental, Max. span code nothing calls (found by a byte search): MOV EBX,[ECX*4+0x54A384] -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_gouraud_lit_dither",
+   "fix": "render_max",
+   "address": "0x44423B",
+   "length": 4,
+   "patch": "Experimental, Max. span_gouraud_lit_dither: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_gouraud_stipple",
+   "fix": "render_max",
+   "address": "0x444383",
+   "length": 4,
+   "patch": "Experimental, Max. span_gouraud_stipple: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_gouraud_stipple_z",
+   "fix": "render_max",
+   "address": "0x444467",
+   "length": 4,
+   "patch": "Experimental, Max. span_gouraud_stipple_z: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_44456d",
+   "fix": "render_max",
+   "address": "0x44456D",
+   "length": 4,
+   "patch": "Experimental, Max. span code nothing calls (found by a byte search): MOV EBX,[ECX*4+0x54A384] -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_persp_z",
+   "fix": "render_max",
+   "address": "0x4446DB",
+   "length": 4,
+   "patch": "Experimental, Max. span_persp_z: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_persp",
+   "fix": "render_max",
+   "address": "0x44488B",
+   "length": 4,
+   "patch": "Experimental, Max. span_persp: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_persp_lit_z",
+   "fix": "render_max",
+   "address": "0x4449FB",
+   "length": 4,
+   "patch": "Experimental, Max. span_persp_lit_z: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_persp_lit",
+   "fix": "render_max",
+   "address": "0x444B8B",
+   "length": 4,
+   "patch": "Experimental, Max. span_persp_lit: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_persp_gouraud_z",
+   "fix": "render_max",
+   "address": "0x444CFB",
+   "length": 4,
+   "patch": "Experimental, Max. span_persp_gouraud_z: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_persp_gouraud",
+   "fix": "render_max",
+   "address": "0x444EBB",
+   "length": 4,
+   "patch": "Experimental, Max. span_persp_gouraud: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_44506b",
+   "fix": "render_max",
+   "address": "0x44506B",
+   "length": 4,
+   "patch": "Experimental, Max. span code nothing calls (found by a byte search): MOV EBX,[ECX*4+0x54A384] -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_4452af",
+   "fix": "render_max",
+   "address": "0x4452AF",
+   "length": 4,
+   "patch": "Experimental, Max. span code nothing calls (found by a byte search): MOV EBX,[ECX*4+0x54A384] -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_persp_gouraud_opaque",
+   "fix": "render_max",
+   "address": "0x44548A",
+   "length": 4,
+   "patch": "Experimental, Max. span_persp_gouraud_opaque: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_gouraud_remap",
+   "fix": "render_max",
+   "address": "0x445636",
+   "length": 4,
+   "patch": "Experimental, Max. span_gouraud_remap: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_table_2d",
+   "fix": "render_max",
+   "address": "0x4456FA",
+   "length": 4,
+   "patch": "Experimental, Max. span_table_2d: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_translucent_gouraud",
+   "fix": "render_max",
+   "address": "0x4458C6",
+   "length": 4,
+   "patch": "Experimental, Max. span_translucent_gouraud: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_texture_gouraud_opaque",
+   "fix": "render_max",
+   "address": "0x44598A",
+   "length": 4,
+   "patch": "Experimental, Max. span_texture_gouraud_opaque: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_gouraud_lit_blend",
+   "fix": "render_max",
+   "address": "0x445ACA",
+   "length": 4,
+   "patch": "Experimental, Max. span_gouraud_lit_blend: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "sprite_scale_rows",
+   "fix": "render_max",
+   "address": "0x42717A",
+   "length": 11,
+   "patch": "Experimental, Max. sprite_draw_scaled (0x426F90, the HUD's sprites): MOV EDX,EBX; MOV EAX,EBX; SAR EDX,31; SUB EAX,EDX; SAR EAX,1 (the rows' error start, drawn height / 2) -> CALL brr_hook_sprite_rows (thunks.asm): max(drawn / 2, drawn - sprite height). Drawn more than twice as big (views wider than 1,280 pixels), the game's start reads one row past the sprite (the next sprite's size bytes showed as green specks under the map); up to twice the size the value is the game's own",
+   "sha256": "cc99c0b19cac28356abe22fe0a9ef5c77c44e88f528fd243485f33977e3d37e6"
+  },
+  {
+   "name": "sprite_scale_columns",
+   "fix": "render_max",
+   "address": "0x427199",
+   "length": 6,
+   "patch": "Experimental, Max. sprite_draw_scaled: MOV EAX,ESI; SUB EAX,EDX; SAR EAX,1 (the columns' error start, drawn width / 2; EDX is the width's sign from 0x427190) -> CALL brr_hook_sprite_columns: max(drawn / 2, drawn - sprite width), as sprite_scale_rows",
+   "sha256": "6e8242f12ddc21b27e5d2716044aa5d8f85d1bd7c2add73b651d637f0b787d6c"
+  },
+  {
    "name": "set_view_entry",
    "fix": "render_max",
    "address": "0x425F78",

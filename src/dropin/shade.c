@@ -29,7 +29,7 @@
 #define VIEW_HEIGHT    (*(volatile int32_t *)0x542024)
 #define VIEW_STRIDE    (*(volatile int32_t *)0x542018)
 #define SHADE_TABLE    (*(const uint8_t *volatile *)0x54A35C)  /* [level x 256 + colour] */
-#define SIDE_PIXELS    ((uint32_t)RENDER_MAX_W * RENDER_MAX_H)
+#define SIDE_PIXELS    ((uint32_t)brr_view_max_w * (uint32_t)brr_view_max_h)  /* the engine's buffer */
 
 #define FILL_DESCRIPTORS 0x5430E0u
 #define FILL_COUNT       40

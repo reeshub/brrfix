@@ -165,9 +165,10 @@ smoothly instead of a palette shade at a time ([display] full_colour,
 smooth_sky, smooth_shading).
 Windowed, it's a plain window drawn by cnc-ddraw: Alt+Enter switches to full
 screen and back. Its options: scaling, window size, colour depth,
-"Resolution: Max (experimental)" (races with up to 1008x756 pixels, the most
-the game's 3D engine can draw, at the 4:3 size that fills the most of the
-screen when enlarged by a whole number), and "Draw distance": the in-game
+"Resolution: Max (experimental)" (the default: races drawn 4:3 as tall as the
+screen, up to "Max limit": 1080 rows by default, 1440, or the screen's own
+height; the game draws in software, so more rows cost frame rate), and
+"Draw distance": the in-game
 sliders, the engine's own maximum (25 squares, textured all the way), or
 "Max out" (44, experimental, extra passes for the ground beyond).
 

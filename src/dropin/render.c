@@ -15,11 +15,11 @@
  * or 640x480 display size. In a window the game runs full screen too, and cnc-ddraw shows it
  * in a window of the size the launcher writes into ddraw.ini (Alt+Enter: full screen).
  * Experimental, [display] render_resolution=max ("Max" in the launcher): single-view races
- * and the attract-mode demo drawn bigger than 640x480, up to RENDER_MAX_W x RENDER_MAX_H
- * (1008x756), the most the 3D engine's 1,024-entry reciprocal table allows without a bigger
- * one of ours: site view_max raises the view record's maximum before the engine allocates
- * its picture, depth buffer and row table from it, and site set_view_entry turns the game's
- * 640x480 race view into ours (race_view_size). The game's display stays 640x480 (menus,
+ * and the attract-mode demo drawn bigger than 640x480, at the screen's (or the window's) own
+ * height, 4:3 (race_view_size, worked out once at start-up): the recip_* sites point the 3D
+ * engine at a reciprocal table of ours, bigger than its own 1,024 entries; site view_max raises
+ * the view record's maximum before the engine allocates its picture, depth buffer and row
+ * table from it, and site set_view_entry turns the game's 640x480 race view into ours. The game's display stays 640x480 (menus,
  * the window, DirectDraw, split screen and the menu mouse are unchanged); the HUD is still
  * the game's own, scaled by its own code to the view's width.
  * Full colour ([display] full_colour, 2026-11-15): the final picture is made in 32 bits, each
@@ -67,6 +67,21 @@ static int view_held, screenshot_held; /* Max: a screenshot is being taken at 64
 uint32_t brr_orig_screenshot_race = 0x423B5C, brr_orig_screenshot_tape = 0x423C40;
 
 /* ---- deciding (at patch time) ---- */
+
+uint32_t brr_reciprocals[RECIPROCALS];       /* the 3D engine's reciprocal table, bigger (recip_* sites) */
+int brr_view_max_w = 640, brr_view_max_h = 480;  /* the engine's buffers' size (site view_max) */
+static void race_view_size(int out_w, int out_h, int *w, int *h);
+
+/* 2^32 / n, as the engine's own table at 0x54A380 (engine_init_core 0x447950: entry 1 is
+ * 0xFFFFFFFF, entry 0 is never written), for n up to RECIPROCALS - 1 instead of 1,023 */
+void brr_reciprocals_fill(void)
+{
+    uint32_t n;
+    brr_reciprocals[0] = 0;
+    brr_reciprocals[1] = 0xFFFFFFFFu;
+    for (n = 2; n < RECIPROCALS; n++)  /* floor(2^32 / n), from floor((2^32 - 1) / n) */
+        brr_reciprocals[n] = 0xFFFFFFFFu / n + (0xFFFFFFFFu % n == n - 1);
+}
 
 /* The screen's own resolution. cnc-ddraw replaces EnumDisplaySettingsA in our imports and
  * in GetProcAddress's answers (it reports the game's mode); the Ex version it leaves alone. */
@@ -116,6 +131,11 @@ int brr_renderer_decide(int cnc_ddraw)
             cfg.display_mode == DISPLAY_WINDOWED ? ", in cnc-ddraw's window (Alt+Enter: full screen)" : "");
     if (window_w > 0 && window_h > 0)
         brr_log("render: cnc-ddraw's window: %dx%d (ddraw.ini)", window_w, window_h);
+    if (cfg.render_max) {  /* Max's view, for the engine's buffers (it can't change later) */
+        int windowed = cfg.display_mode == DISPLAY_WINDOWED && window_w > 0 && window_h > 0;
+        race_view_size(windowed ? window_w : screen_w, windowed ? window_h : screen_h, &brr_view_max_w,
+                       &brr_view_max_h);
+    }
     return 1;
 }
 
@@ -173,7 +193,7 @@ static int game_picture(const uint8_t **pixels, int *w, int *h, int *pitch)
         *w = DISPLAY_W;
         *h = DISPLAY_H;
     }
-    if (*w <= 0 || *h <= 0 || *w > RENDER_MAX_W || *h > RENDER_MAX_H)
+    if (*w <= 0 || *h <= 0 || *w > brr_view_max_w || *h > brr_view_max_h)
         return 0;
     *pixels = source;
     *pitch = *w;
@@ -387,7 +407,7 @@ int brr_render_compose32(uint32_t *out, int out_w, int out_h, int out_pitch)
             return 0;
         pixels = origin;
         if (!shown_pixels)
-            shown_pixels = (uint8_t *)HeapAlloc(GetProcessHeap(), 0, (size_t)RENDER_MAX_W * RENDER_MAX_H);
+            shown_pixels = (uint8_t *)HeapAlloc(GetProcessHeap(), 0, (size_t)brr_view_max_w * brr_view_max_h);
         shown_origin = NULL;
         if (shown_pixels && pitch == w) {
             memcpy(shown_pixels, origin, (size_t)w * (size_t)h);
@@ -502,34 +522,29 @@ void brr_render_palette_check(void)
 
 /* ---- Max: races drawn bigger (experimental) ---- */
 
-/* The race view for a final picture of out_w x out_h: 4:3 (the game's own field of view, and
- * the shape its landscape grid is drawn for), a multiple of 16 wide, at most 1008x756 and never
- * smaller than the game's 640x480, enlarged d times; the d that fills the most rows of the final
- * picture, the smaller (the more detailed) on a tie. For example 1008x756 at 1x on 1280x800 or
- * 1600x900, 720x540 at 2x on 1920x1080, 960x720 at 2x on 2560x1440 and at 3x on 3840x2160. */
+/* The race view for a final picture of out_w x out_h, which cnc-ddraw enlarges to the screen:
+ * 4:3 (the game's own field of view, and the shape its landscape grid is drawn for), a multiple
+ * of 16 wide, as tall as the picture but at most [display] render_max_height rows (1080 by
+ * default; the game draws in software) and RENDER_LIMIT_W x RENDER_LIMIT_H, and never smaller
+ * than the game's 640x480. For example 1056x792 on 1280x800 and 1440x1080 on 1920x1080; on
+ * 2560x1440 and 3840x2160, 1440x1080, or 1920x1440 with a limit of 1440, and with none
+ * 2880x2160 on 3840x2160. */
 static void race_view_size(int out_w, int out_h, int *w, int *h)
 {
-    int d, best = 0;
-    *w = 640;
-    *h = 480;
-    for (d = 1; d <= 8; d++) {
-        int hh = out_h / d, ww = out_w / d;
-        if (hh > RENDER_MAX_H)
-            hh = RENDER_MAX_H;
-        if (ww > RENDER_MAX_W)
-            ww = RENDER_MAX_W;
-        if (ww > hh * 4 / 3)
-            ww = hh * 4 / 3;
-        ww &= ~15;
-        hh = ww * 3 / 4;
-        if (ww < 640 || hh < 480)
-            continue;
-        if (d * hh > best) {
-            best = d * hh;
-            *w = ww;
-            *h = hh;
-        }
-    }
+    int hh = out_h, ww;
+    if (cfg.render_max_rows > 0 && hh > cfg.render_max_rows)
+        hh = cfg.render_max_rows;
+    if (hh > RENDER_LIMIT_H)
+        hh = RENDER_LIMIT_H;
+    ww = hh * 4 / 3;
+    if (ww > out_w)
+        ww = out_w;
+    if (ww > RENDER_LIMIT_W)
+        ww = RENDER_LIMIT_W;
+    ww &= ~15;
+    hh = ww * 3 / 4;
+    *w = ww >= 640 && hh >= 480 ? ww : 640;
+    *h = ww >= 640 && hh >= 480 ? hh : 480;
 }
 
 /* Site set_view_entry: every call of the game's set_view (0x425F78; width in EAX, height in
@@ -548,6 +563,10 @@ uint32_t __cdecl brr_view_size(uint32_t width, uint32_t height)
     if ((width & 0xFFFF) != 640 || (height & 0xFFFF) != 480 || SPLIT_SCREEN || out_w <= 0 || view_held)
         return (height & 0xFFFF) << 16 | (width & 0xFFFF);
     race_view_size(out_w, out_h, &w, &h);
+    if (w > brr_view_max_w || h > brr_view_max_h) {  /* the engine's buffers were made for this */
+        w = brr_view_max_w;
+        h = brr_view_max_h;
+    }
     race_w = w;
     race_h = h;
     if (w != logged_w || h != logged_h) {
@@ -631,9 +650,13 @@ static int32_t game_frame_w, game_frame_h;
 
 /* Called on entry to the present (0x42CE78), before the game copies its frame. Returns 1
  * when it has presented the frame itself (full colour, full screen). */
+static int64_t present_mark;  /* for the clock log's presenting time */
+extern int64_t brr_prof_present;
+
 int __cdecl brr_render_before_present(void)
 {
     const uint8_t *out;
+    present_mark = brr_qpc();
     game_source = NULL;
     brr_shade_census_report();
     brr_debug_every_frame();
@@ -658,6 +681,7 @@ int __cdecl brr_render_before_present(void)
 
 void __cdecl brr_render_after_present(void)
 {
+    brr_prof_present += brr_qpc() - present_mark;
     if (game_source) {
         PRESENT_SOURCE = game_source;
         FRAME_W = game_frame_w;

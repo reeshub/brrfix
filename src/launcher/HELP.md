@@ -81,14 +81,25 @@ Tab) broke its window, so it's removed.
   pictures.
 - **Low (320x200):** as the game starts.
 - **Max (experimental)** (Modern renderer only, and its default): races and the attract-mode
-  demo drawn with up to 1008x756 pixels, the most the game's 3D engine can
-  draw. The size is the 4:3 picture that, enlarged by a whole number, fills
-  the most of your screen or window, and never less than 640x480: 1008x756
-  on 1280x800 (Steam Deck), 1366x768 or 1600x900; 720x540 on 1920x1080,
-  for cnc-ddraw to double; 960x720 on 2560x1440 and 3840x2160. The dashboard (position, laps, map) is the game's own, enlarged
-  by the game itself to match, so its edges may look a little uneven. Menus
+  demo drawn with as many pixels as your screen (or window) is tall, up to
+  the Max limit below, in the game's 4:3 shape, and never less than
+  640x480: 1056x792 on 1280x800 (Steam Deck), 1440x1080 on 1920x1080 and
+  bigger screens. cnc-ddraw then enlarges it as Scaling says. The dashboard (position, laps, map) is the game's own, enlarged
+  by the game itself to match. Menus
   and split-screen races stay as they are. If something looks wrong in a
   race, go back to High and tell us.
+
+**Max limit** (Modern renderer, with Max)
+
+How many rows Max draws races with at most:
+
+- **1080 (1440x1080)** (the default): smooth on any modern PC. A 4K screen
+  shows it doubled exactly.
+- **1440 (1920x1440):** sharper on 1440p and 4K screens; needs a fast PC.
+- **Screen height:** your screen's (or window's) own height, the sharpest.
+  The game draws in software, on the processor, so every extra row costs
+  frame rate: on a 4K screen (2880x2160) even a fast PC manages only about 25
+  frames a second.
 
 With the Original renderer, keypad + and - still switch between high and low
 resolution in the game, as in 1996. The Modern renderer keeps the one chosen

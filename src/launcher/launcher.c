@@ -69,6 +69,9 @@ static const struct choice presets[] = {
     {"Integer (sharp)", "integer"}, {"4:3 sharp", "43sharp"}, {"4:3 nearest", "43nearest"},
     {"Stretch", "stretch"}, {"Smooth", "smooth"}, {"Square sharp (full height)", "squaresharp"}, {0, 0}};
 #define PRESET_COUNT 6
+/* Max's limit (Modern renderer): the race picture's rows at most (4:3), or the screen's own height */
+static const struct choice max_limits[] = {
+    {"1080 (1440x1080)", "1080"}, {"1440 (1920x1440)", "1440"}, {"Screen height", "screen"}, {0, 0}};
 static const struct choice smoothings[] = {
     {"Off", "0"}, {"Light", "25"}, {"Medium", "50"}, {"Strong", "100"}, {0, 0}};
 static const struct choice frame_limits[] = {
@@ -255,6 +258,8 @@ static int hidden_by_choice(HWND dialog, int id)
     switch (id) {
     case IDC_SCALE:
     case IDC_SCALE_LABEL:
+    case IDC_MAXLIMIT:
+    case IDC_MAXLIMIT_LABEL:
     case IDC_COLOUR:
     case IDC_COLOUR_LABEL:
     case IDC_DRAWDIST:
@@ -280,11 +285,29 @@ static void place(HWND dialog, int id, int x, int y, int w, int h)
                  SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
-/* The Display group as tall as the rows shown, and Miscellaneous just below it (launcher.rc) */
+/* The Display group's rows below Resolution (the Modern renderer's Max limit first), the group
+ * as tall as the rows shown, and Miscellaneous just below it (launcher.rc) */
 static void layout_video(HWND dialog)
 {
-    int fresh = new_renderer(dialog), bottom, top;
-    bottom = !fresh ? 96 : full_colour(dialog) ? 146 : 120;
+    int fresh = new_renderer(dialog), bottom, top, y = 78;
+    if (fresh) {
+        place(dialog, IDC_MAXLIMIT_LABEL, 18, y + 2, 44, 8);
+        place(dialog, IDC_MAXLIMIT, 62, y, 94, 60);
+        y += 14;
+    }
+    place(dialog, IDC_PRESET_LABEL, 18, y + 2, 44, 8);
+    place(dialog, IDC_PRESET, 62, y, 94, 70);
+    if (fresh) {
+        y += 14;
+        place(dialog, IDC_SCALE_LABEL, 18, y + 2, 44, 8);
+        place(dialog, IDC_SCALE, 62, y, 94, 90);
+        y += 13;
+        place(dialog, IDC_COLOUR_LABEL, 18, y + 2, 44, 8);
+        place(dialog, IDC_COLOUR, 62, y, 94, 60);
+        place(dialog, IDC_SMOOTH_SKY, 18, y + 15, 140, 10);
+        place(dialog, IDC_SMOOTH_SHADING, 18, y + 27, 140, 10);
+    }
+    bottom = !fresh ? 96 : full_colour(dialog) ? y + 41 : y + 15;
     place(dialog, IDC_DISPLAY_GROUP, 12, 24, 150, bottom - 24);
     top = (bottom > 98 ? bottom : 98) + 4;
     place(dialog, IDC_MISC_GROUP, 12, top, 300, fresh ? 44 : 30);
@@ -315,6 +338,12 @@ static void update_enabled(HWND dialog)
     size_t i;
     if (offered != (fresh ? 3 : ORIGINAL_RESOLUTIONS))  /* the renderer has changed */
         fill_resolutions(dialog, chosen(dialog, IDC_RESOLUTION, resolutions));
+    /* Max's limit, for Max only */
+    {
+        int max = !lstrcmpiA(chosen(dialog, IDC_RESOLUTION, resolutions), "max");
+        enable(dialog, IDC_MAXLIMIT_LABEL, max);
+        enable(dialog, IDC_MAXLIMIT, max);
+    }
     /* the Modern renderer's window (cnc-ddraw's) */
     enable(dialog, IDC_SCALE_LABEL, window);
     enable(dialog, IDC_SCALE, window);
@@ -349,8 +378,10 @@ static const struct { int id; const char *text; } tips[] = {
                    "like. Original: the 1996 game's own drawing, as it was."},
     {IDC_MODE, "Full screen, or a window: Original, the game's own with its 1996 menu bar; Modern, Alt+Enter for "
                "full screen."},
-    {IDC_RESOLUTION, "High: 640x480. Low: 320x200, as the game starts. Max (Modern, experimental): races with up to "
-                     "1008x756 pixels. Original: keypad + and - switch in the game."},
+    {IDC_RESOLUTION, "High: 640x480. Low: 320x200, as the game starts. Max (Modern, experimental): races with as "
+                     "many pixels as Max limit allows. Original: keypad + and - switch in the game."},
+    {IDC_MAXLIMIT, "How many rows Max draws races with at most (4:3), or the screen's own height. The game draws "
+                   "in software, so more rows cost frame rate: 1080 is smooth on any modern PC."},
     {IDC_SCALE, "How big the Modern renderer's window is, in whole multiples of 640x480; the picture is "
                 "scaled into it as Scaling says."},
     {IDC_COLOUR, "256 colours, as the game drew them, or full colour, for the smoother gradients below."},
@@ -389,8 +420,8 @@ static const struct { int id; const char *text; } tips[] = {
                    "Modern defaults on anything newer (press Save or Play to keep them)."},
     {IDC_PERIOD, "Every setting for a 1990s PC: full screen at 320x200, the original renderer (press Save or Play "
                  "to keep them)."},
-    {IDC_MODERN, "Every setting for a modern PC: full screen at 640x480, the Modern renderer in full colour, modern pads (press Save "
-                 "or Play to keep them)."},
+    {IDC_MODERN, "Every setting for a modern PC: full screen, races with up to 1080 rows (Max), the Modern renderer in full colour, "
+                 "modern pads (press Save or Play to keep them)."},
     {IDC_SKIP, "Start the game straight away next time. Hold Shift while starting to see this window again."},
     {IDC_DOSPATCH, "Fixes the DOS version's RACING.EXE for DOS PCs and DOSBox, keeping the original as RACING.ORI."},
     {IDC_HELPFILE, "Opens the help file, which explains every setting (F1)."},
@@ -479,6 +510,7 @@ static void load(HWND dialog, int defaults)
     }
     fill(dialog, IDC_LANGUAGE, languages, GET(f, "display", "language", "ENG"));
     fill(dialog, IDC_SCALE, scales, GET(f, "display", "window_scale", "auto"));
+    fill(dialog, IDC_MAXLIMIT, max_limits, GET(f, "display", "render_max_height", "1080"));
     {   /* the full-screen preset: as saved in BRRFIX.INI, or else whichever ddraw.ini matches,
          * by its boxing, maintas, aspect_ratio and shader */
         char boxing[16], aspect[16], shader[MAX_PATH], maintas[16];
@@ -567,6 +599,7 @@ static void save(HWND dialog)
     if (!windows_9x)
         ini_set(brrfix_ini, "display", "modern_scaling", presets[preset_of[1]].value);
     ini_set(brrfix_ini, "display", "window_scale", chosen(dialog, IDC_SCALE, scales));
+    ini_set(brrfix_ini, "display", "render_max_height", chosen(dialog, IDC_MAXLIMIT, max_limits));
     ini_set(brrfix_ini, "fixes", "interpolation", checked(dialog, IDC_INTERP) ? "1" : "0");
     ini_set(brrfix_ini, "camera", "smoothing", chosen(dialog, IDC_SMOOTHING, smoothings));
     ini_set(brrfix_ini, "clock", "frame_limit", chosen(dialog, IDC_FRAMES, frame_limits));

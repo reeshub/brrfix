@@ -19,7 +19,9 @@ static int64_t stats_since, last_frame_qpc, pace_next;
 static uint32_t stats_frames, stats_ticks_run, stats_hist[5], frame_limit_hz;
 static uint32_t stats_cap_hits, stats_clock_advanced, last_count;
 /* where the last frame's time went (QPC counts), for diagnosing long frames */
-int64_t brr_prof_draw, brr_prof_ticks;
+int64_t brr_prof_draw, brr_prof_ticks, brr_prof_present;  /* presenting: inside the race draw */
+static int64_t stats_draw, stats_present;  /* race frames' drawing and presenting, for the report */
+static uint32_t stats_draw_frames;
 static int64_t prof_wait, prof_read_exit;
 static int64_t cb_last, cb_min = -1, cb_max, cb_sum;
 static uint32_t cb_count, cb_hist[4];
@@ -235,6 +237,15 @@ void brr_clock_report(int final)
                 (unsigned long)stats_hist[2], (unsigned long)stats_hist[3],
                 (unsigned long)stats_hist[4], (unsigned long)stats_cap_hits);
     }
+    if (stats_draw_frames) {
+        int64_t draw_us = stats_draw * 1000000 / freq / stats_draw_frames;
+        int64_t present_us = stats_present * 1000000 / freq / stats_draw_frames;
+        brr_log("clock: race frames took %ld.%01ld ms to draw on average, %ld.%01ld ms of it presenting "
+                "(our picture and cnc-ddraw)", (long)(draw_us / 1000), (long)(draw_us / 100 % 10),
+                (long)(present_us / 1000), (long)(present_us / 100 % 10));
+    }
+    stats_draw = stats_present = 0;
+    stats_draw_frames = 0;
     if (cfg.clock_original && cb_count) {
         int64_t mean_us = cb_sum * 1000000 / freq / cb_count;
         brr_log("original timer: %lu callbacks, interval mean %ld us, min %ld us, max %ld us; "
@@ -302,10 +313,10 @@ uint32_t __cdecl brr_clock_read(void)
         stats_clock_advanced += count - last_count;
         if (count - last_count > (uint32_t)(cfg.fix_cap ? cfg.cap : 35))
             brr_log("clock: long frame (screen 0x%02X; usually a screen loading): %lu ticks since the last frame (cap %d); last frame: "
-                    "pacing wait %ld us, race ticks %ld us, race draw %ld us, everything else %ld us",
+                    "pacing wait %ld us, race ticks %ld us, race draw %ld us (presenting %ld us), everything else %ld us",
                     *(volatile uint16_t *)0x4B13C0, (unsigned long)(count - last_count), cfg.fix_cap ? cfg.cap : 35,
                     (long)(prof_wait * 1000000 / freq), (long)(brr_prof_ticks * 1000000 / freq),
-                    (long)(brr_prof_draw * 1000000 / freq),
+                    (long)(brr_prof_draw * 1000000 / freq), (long)(brr_prof_present * 1000000 / freq),
                     (long)((now - prof_read_exit - prof_wait - brr_prof_ticks - brr_prof_draw) * 1000000 / freq));
     }
     if (started && last_count)
@@ -314,7 +325,12 @@ uint32_t __cdecl brr_clock_read(void)
     InterlockedExchange(&brr_timer_count, (LONG)count);
     last_frame_qpc = now;
     prof_wait = this_wait;
-    brr_prof_draw = brr_prof_ticks = 0;
+    if (brr_prof_draw > 0) {
+        stats_draw += brr_prof_draw;
+        stats_present += brr_prof_present;
+        stats_draw_frames++;
+    }
+    brr_prof_draw = brr_prof_ticks = brr_prof_present = 0;
     if (cfg.log_clock && (brr_qpc() - stats_since) >= freq * 10)
         brr_clock_report(0);
     prof_read_exit = qpc_raw();
