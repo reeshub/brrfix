@@ -112,6 +112,8 @@ void __cdecl brr_after_draw(void);
 extern int brr_renderer_active;
 extern uint32_t brr_dd_setup_continue;
 int brr_renderer_decide(int cnc_ddraw);
+HMODULE brr_ddraw_module(void);
+int brr_is_cnc_ddraw(HMODULE ddraw);
 const uint8_t *brr_render_compose(int out_w, int out_h, int out_pitch);
 uint32_t __cdecl brr_render_mode(uint32_t windowed);
 void brr_hook_dd_setup(void);

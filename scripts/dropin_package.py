@@ -3,7 +3,8 @@
 Writes work/release/big-red-launcher-<version>.zip containing our PATCH.DLL and launcher
 (Big Red Racing.exe, from work/build/dropin/ - run dropin-build first), BRRFIX.INI and
 ddraw.ini (defaults, with comments), README.txt, THIRD-PARTY.txt, LICENSE.txt once the
-project has a licence, and cnc-ddraw (ddraw.dll and the three shaders our presets use),
+project has a licence, and cnc-ddraw (its ddraw.dll, renamed CNCDD.DLL, which the launcher's
+WINRACEP.EXE imports by that name, and the three shaders our presets use),
 taken from its pinned official release zip, checked by SHA-256 (downloaded into
 tools/cnc-ddraw/ if missing), with its licence. THIRD-PARTY.txt (also written to the
 repository root) lists every third-party part with its version, source and licence. Text files get Windows line endings. Every file is checked against the game
@@ -21,6 +22,7 @@ import urllib.request
 import zipfile
 
 from common import DATA, ROOT, WORK
+from dropin_build import CNC_DDRAW_DLL
 from prepkit import rel
 
 HELP = "zip Big Red Launcher for players (our files only, checked against the game manifest)"
@@ -86,7 +88,8 @@ def third_party_text(cnc_licence, shaders):
              "====================================",
              "Everything else in this package is the project's own code. Each part below is",
              "pinned to a release or commit and checked by SHA-256 when the package is built.", ""]
-    parts += ["cnc-ddraw " + CNC_DDRAW["version"] + " (ddraw.dll, Shaders\\nearest-neighbor.glsl)",
+    parts += ["cnc-ddraw " + CNC_DDRAW["version"] + " (" + CNC_DDRAW_DLL + ", which is its ddraw.dll renamed, "
+              "and Shaders\\nearest-neighbor.glsl)",
               "  Source: https://github.com/FunkyFr3sh/cnc-ddraw (official release cnc-ddraw.zip,",
               "  SHA-256 " + CNC_DDRAW["zip_sha256"] + ")", "  Licence:", "",
               cnc_licence.strip(), ""]
@@ -127,7 +130,7 @@ def main(args):
              "DPLAY.DLL": (BUILD / "DPLAY.DLL").read_bytes(),
              "BRRFIX.INI": crlf((SOURCE / "BRRFIX.INI").read_text()),
              "ddraw.ini": crlf((SOURCE / "ddraw.ini").read_text()),
-             "ddraw.dll": cnc["ddraw.dll"],
+             CNC_DDRAW_DLL: cnc["ddraw.dll"],
              **shaders,
              "README.txt": crlf(readme),
              "THIRD-PARTY.txt": crlf(third_party)}

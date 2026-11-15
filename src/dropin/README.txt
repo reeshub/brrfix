@@ -54,8 +54,9 @@ What's in this zip
                       and 11 lack (the game won't start without it); it passes
                       network play on to a real DirectPlay if there is one
 - BRRFIX.INI          its settings (each one explained in the file)
-- ddraw.dll, Shaders  cnc-ddraw, the open-source DirectDraw (MIT licence), for
-                      modern Windows, Wine and Proton
+- CNCDD.DLL, Shaders  cnc-ddraw, the open-source DirectDraw (MIT licence), for
+                      modern Windows, Wine and Proton (its ddraw.dll, renamed
+                      so that no other DirectDraw can take its place)
 - ddraw.ini           our cnc-ddraw settings, with scaling presets
 - THIRD-PARTY.txt     the open-source parts and their licences
 
@@ -73,7 +74,7 @@ called Game inside it and the CD music in a folder called Music:
 
 1. Make a folder, for example C:\Games\Big Red Racing, and copy everything
    from this zip into it.
-   On Windows 95, 98 and ME you can leave out ddraw.dll, ddraw.ini, Shaders and
+   On Windows 95, 98 and ME you can leave out CNCDD.DLL, ddraw.ini, Shaders and
    DPLAY.DLL: their own DirectX draws the game properly and has DirectPlay.
 2. Make a folder called Game inside it, and copy your installed game into it:
    everything in the game's folder (for example C:\BIGRED). Or leave the game
@@ -83,11 +84,12 @@ called Game inside it and the CD music in a folder called Music:
    Music).
 4. Start Big Red Racing.exe (make a shortcut to it if you like).
    It makes WINRACEP.EXE ("P" for patched) beside itself: a copy of the game's
-   WINRACE.EXE with two small changes. Its file headers are corrected,
-   because the 1996 linker wrote them carelessly and Windows 10 and 11 refuse
-   to start the original; the copy works on every version of Windows. And it
-   uses our PATCH.DLL where the game used its own TIMER.DLL. The launcher
-   starts it in the Game folder. Nothing in the Game folder is changed.
+   WINRACE.EXE with small changes. Its file headers are corrected, because
+   the 1996 linker wrote them carelessly and Windows 10 and 11 refuse to start
+   the original; the copy works on every version of Windows. It uses our
+   PATCH.DLL where the game used its own TIMER.DLL, and, if CNCDD.DLL is
+   there, cnc-ddraw where it used Windows' DirectDraw. The launcher starts it
+   in the Game folder. Nothing in the Game folder is changed.
 To remove it: delete the folder (the Game folder in it is your copy of the
 game, so keep that if you need it).
 
@@ -106,9 +108,10 @@ Steam Deck and Linux (Proton)
    Big Red Racing.exe. Steam shows it as "Big Red Racing".
 3. Right-click it > Properties > Compatibility > "Force the use of a specific
    Steam Play compatibility tool", and pick a Proton version.
-4. Play. No launch options are needed: the launcher tells Proton to use
-   cnc-ddraw. Start Big Red Racing.exe, not WINRACEP.EXE: the game only finds
-   its files when the launcher starts it in the Game folder.
+4. Play. No launch options are needed: the game loads cnc-ddraw by its own
+   name, so Proton can't use its own DirectDraw instead. Start Big Red
+   Racing.exe, not WINRACEP.EXE: the game only finds its files when the
+   launcher starts it in the Game folder.
 On the Steam Deck the game fills the 1280x800 screen exactly (4x).
 
 The launcher
@@ -197,7 +200,8 @@ Troubleshooting
 - Something wrong? Look in BRRFIX.LOG next to Big Red Racing.exe: it says what
   was checked and changed. Set a fix to 0 in BRRFIX.INI to rule it out.
 - The picture is tiny in a corner of a black screen: cnc-ddraw isn't being
-  used. Start the game with Big Red Racing.exe.
+  used. Check CNCDD.DLL is next to Big Red Racing.exe, and start the game
+  with Big Red Racing.exe.
 - "This program requires 256 colour mode to run windowed": BRRFIX.INI has
   [display] mode=ask; set it to windowed or fullscreen.
 - No music: check the Music folder's file names (the launcher counts the

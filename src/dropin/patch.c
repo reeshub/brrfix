@@ -54,6 +54,21 @@ const char *__cdecl brr_credit_text(char *name)
     return NULL;
 }
 
+/* The DirectDraw the game loaded: cnc-ddraw by its own name (WINRACEP.EXE imports it as
+ * CNC_DDRAW_DLL when the launcher found it), or ddraw.dll (Windows' own, Wine's, or cnc-ddraw
+ * under that name, as before 2026-11-15). Static imports are loaded before our code runs. */
+HMODULE brr_ddraw_module(void)
+{
+    HMODULE ddraw = GetModuleHandleA(CNC_DDRAW_DLL);
+    return ddraw ? ddraw : GetModuleHandleA("ddraw.dll");
+}
+
+/* cnc-ddraw exports GameHandlesClose, which no real DirectDraw does */
+int brr_is_cnc_ddraw(HMODULE ddraw)
+{
+    return ddraw && GetProcAddress(ddraw, "GameHandlesClose") != NULL;
+}
+
 /* ---- checks ---- */
 static int exe_matches(void)
 {
@@ -78,8 +93,10 @@ static int exe_matches(void)
     }
     hash_hex(buffer, size, hex);
     HeapFree(GetProcessHeap(), 0, buffer);
-    if (strcmp(hex, EXPECTED_WINRACEP_SHA256) == 0) {
-        brr_log("check: %s is WINRACEP.EXE, made from the v2.25 WINRACE.EXE (SHA-256 matches)", path);
+    if (strcmp(hex, EXPECTED_WINRACEP_SHA256) == 0 || strcmp(hex, EXPECTED_WINRACEP_PLAIN_SHA256) == 0) {
+        brr_log("check: %s is WINRACEP.EXE, made from the v2.25 WINRACE.EXE, %s (SHA-256 matches)", path,
+                strcmp(hex, EXPECTED_WINRACEP_SHA256) == 0 ? "with cnc-ddraw (" CNC_DDRAW_DLL ")"
+                                                           : "with Windows' own DirectDraw");
         return 1;
     }
     if (strcmp(hex, EXPECTED_EXE_CORRECTED_SHA256) == 0) {
@@ -384,10 +401,7 @@ void brr_patch_all(void)
         brr_log("result: %d check(s) failed; no patches applied; only the game's timer (as its own TIMER.DLL)", bad);
         return;
     }
-    {   /* the loaded ddraw.dll is cnc-ddraw: it exports GameHandlesClose, which no real DirectDraw does */
-        HMODULE ddraw = GetModuleHandleA("ddraw.dll");
-        brr_renderer_active = brr_renderer_decide(ddraw && GetProcAddress(ddraw, "GameHandlesClose") != NULL);
-    }
+    brr_renderer_active = brr_renderer_decide(brr_is_cnc_ddraw(brr_ddraw_module()));
     int applied = 0;
     for (size_t i = 0; i < count; i++) {
         const struct site_info *s = &SITES[i];

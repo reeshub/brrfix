@@ -72,7 +72,7 @@ static int find_screen_size(void)
     return screen_w >= 640 && screen_h >= 480;
 }
 
-/* Whether the new renderer can run; logs why not. cnc_ddraw: the loaded ddraw.dll is cnc-ddraw. */
+/* Whether the new renderer can run; logs why not. cnc_ddraw: the loaded DirectDraw is cnc-ddraw. */
 int brr_renderer_decide(int cnc_ddraw)
 {
     if (!cfg.renderer_new) {
@@ -89,7 +89,7 @@ int brr_renderer_decide(int cnc_ddraw)
         return 0;
     }
     if (cfg.display_mode != DISPLAY_WINDOWED && !cnc_ddraw) {
-        brr_log("render: the new renderer's full screen needs cnc-ddraw (ddraw.dll beside the game); "
+        brr_log("render: the new renderer's full screen needs cnc-ddraw (CNCDD.DLL beside the launcher); "
                 "the original renderer instead");
         return 0;
     }

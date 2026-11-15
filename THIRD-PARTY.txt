@@ -3,7 +3,7 @@ Third-party code in Big Red Launcher
 Everything else in this package is the project's own code. Each part below is
 pinned to a release or commit and checked by SHA-256 when the package is built.
 
-cnc-ddraw v7.1.0.0 (ddraw.dll, Shaders\nearest-neighbor.glsl)
+cnc-ddraw v7.1.0.0 (CNCDD.DLL, which is its ddraw.dll renamed, and Shaders\nearest-neighbor.glsl)
   Source: https://github.com/FunkyFr3sh/cnc-ddraw (official release cnc-ddraw.zip,
   SHA-256 0b13ab89a64c9918189b1dadd449ef6ed3cb3b7b19cabd96d8adbd95505bb908)
   Licence:

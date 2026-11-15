@@ -44,8 +44,8 @@ Period defaults on Windows 95, 98 and ME, Modern defaults on anything newer.
   screen. The 320x200 menus are enlarged by the whole numbers across and
   down that come nearest to the 4:3 shape of a 1996 monitor (see "4:3"
   below); 640x480 races are enlarged by the same whole number both ways. In
-  full screen it needs cnc-ddraw (the ddraw.dll beside the game), as the game
-  does on modern Windows; without it, the original is used.
+  full screen it needs cnc-ddraw (CNCDD.DLL, next to Big Red Racing.exe), as
+  the game does on modern Windows; without it, the original is used.
 - **Original:** the game's own drawing. In full screen cnc-ddraw enlarges it
   (see "Full screen" below); the menus are 320x200 pictures doubled into the
   middle of a 640x480 picture, with black bands above and below.

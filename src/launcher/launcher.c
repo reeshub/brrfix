@@ -5,11 +5,12 @@
  * The layout: the launcher and our files at the top, the installed game in Game (BRRFIX.INI
  * [launcher] game: another folder name or a full path) and the ripped CD tracks in Music.
  * The game's files are left as they are: the launcher makes WINRACEP.EXE beside itself,
- * WINRACE.EXE with its section headers corrected and our PATCH.DLL imported instead of the
- * game's TIMER.DLL (winfix.c), and starts that in the game's folder. Windows looks for DLLs
- * beside the program first, so the game gets our PATCH.DLL, DPLAY.DLL and cnc-ddraw's
- * ddraw.dll, and its own KEY.DLL from the game's folder (the current folder, and added to
- * PATH).
+ * WINRACE.EXE with its section headers corrected, our PATCH.DLL imported instead of the
+ * game's TIMER.DLL and, if it's here, cnc-ddraw (CNCDD.DLL) instead of DirectDraw
+ * (winfix.c), and starts that in the game's folder. Windows looks for DLLs beside the
+ * program first, so the game gets ours (and DPLAY.DLL), and its own KEY.DLL from the game's
+ * folder (the current folder, and added to PATH). Under Wine and Proton cnc-ddraw's own
+ * name means no DLL override is needed.
  *
  * Settings live in BRRFIX.INI (the drop-in's) and ddraw.ini (cnc-ddraw's). They're
  * changed with WritePrivateProfileStringA, value by value, so comments, layout and keys
@@ -38,7 +39,7 @@
 #include "winfix.h"
 
 static char folder[MAX_PATH], game_folder[MAX_PATH], brrfix_ini[MAX_PATH], ddraw_ini[MAX_PATH];
-static int windows_9x, under_wine;
+static int windows_9x;
 
 /* made from HELP.md by dropin-build */
 #define HELP_FILE "Big Red Launcher Help.txt"
@@ -452,10 +453,11 @@ static void save(HWND dialog)
         ini_set(ddraw_ini, "ddraw", "windowed", lstrcmpiA(mode, "fullscreen") ? "true" : "false");
         /* In a window the drop-in draws and scales the picture and the mouse itself, so cnc-ddraw
          * mustn't lock the pointer to its 320x200 idea of the window, scale the mouse again, or
-         * hook the window; full screen is cnc-ddraw's job, with its defaults (hook=4). */
+         * hook the window. Full screen is cnc-ddraw's job, with hook=3: what it chose itself from
+         * its default hook=4 while WINRACEP.EXE imported it as ddraw.dll. */
         {
             int full = !lstrcmpiA(mode, "fullscreen");
-            ini_set(ddraw_ini, "ddraw", "hook", full ? "4" : "0");
+            ini_set(ddraw_ini, "ddraw", "hook", full ? "3" : "0");
             ini_set(ddraw_ini, "ddraw", "adjmouse", full ? "true" : "false");
             ini_set(ddraw_ini, "ddraw", "devmode", full ? "false" : "true");
             /* at the desktop's own resolution: otherwise Windows switches to the game's (blurry) */
@@ -668,7 +670,7 @@ static int file_contains(const char *path, const char *needle)
 static int checks_pass(void)
 {
     char path[MAX_PATH], setting[MAX_PATH], message[MAX_PATH + 300];
-    int state = brr_win_game_state(game_folder);
+    int state = brr_win_game_state(game_folder), cnc_ddraw;
     if (state == BRR_WIN_MISSING) {
         wsprintfA(path, "%s\\WINRACE.EXE", folder);
         if (GetFileAttributesA(path) != 0xFFFFFFFFu)  /* dropped into the game's folder, as earlier versions were */
@@ -685,8 +687,15 @@ static int checks_pass(void)
                                        "Big Red Launcher will leave the game unchanged.\n\nStart anyway?"))
         return 0;
     /* the copy the game runs as: the game's own files stay as they are */
+    /* cnc-ddraw: used when it's here; Windows 95-ME can do without it */
+    wsprintfA(path, "%s\\" CNC_DDRAW_DLL, folder);
+    cnc_ddraw = GetFileAttributesA(path) != 0xFFFFFFFFu;
+    if (!cnc_ddraw && !windows_9x
+        && !ask("cnc-ddraw (" CNC_DDRAW_DLL ") isn't next to Big Red Racing.exe. On modern Windows and Proton "
+                "the game needs it to fill the screen.\n\nStart anyway?"))
+        return 0;
     wsprintfA(path, "%s\\WINRACEP.EXE", folder);
-    if (brr_win_make_copy(game_folder, path, message, sizeof message) < 0) {
+    if (brr_win_make_copy(game_folder, path, cnc_ddraw, message, sizeof message) < 0) {
         MessageBoxA(NULL, message, "Big Red Racing", MB_OK | MB_ICONERROR);
         return 0;
     }
@@ -697,11 +706,6 @@ static int checks_pass(void)
                     MB_OK | MB_ICONERROR);
         return 0;
     }
-    wsprintfA(path, "%s\\ddraw.dll", folder);
-    if (!windows_9x && GetFileAttributesA(path) == 0xFFFFFFFFu
-        && !ask("cnc-ddraw (ddraw.dll) isn't next to Big Red Racing.exe. On modern Windows and Proton the "
-                "game needs it to fill the screen.\n\nStart anyway?"))
-        return 0;
     if (ini_flag("music", "music", 1)) {
         ini_get(brrfix_ini, "music", "folder", "Music", setting, sizeof setting);
         music_folder(setting, path);
@@ -718,15 +722,6 @@ static DWORD start_game(const char *arguments)
     STARTUPINFOA startup;
     PROCESS_INFORMATION process;
     DWORD code = 1, size;
-    if (under_wine) {  /* cnc-ddraw instead of Wine's own DirectDraw, without launch options */
-        char overrides[512];
-        size = GetEnvironmentVariableA("WINEDLLOVERRIDES", overrides, sizeof overrides);
-        if (size == 0 || size >= sizeof overrides)
-            lstrcpyA(overrides, "ddraw=n,b");
-        else if (!strstr(overrides, "ddraw"))
-            lstrcatA(overrides, ";ddraw=n,b");
-        SetEnvironmentVariableA("WINEDLLOVERRIDES", overrides);
-    }
     /* the game's KEY.DLL is found in the current folder; PATH as well, in case a PC leaves that out */
     size = GetEnvironmentVariableA("PATH", NULL, 0);
     path = (char *)HeapAlloc(GetProcessHeap(), 0, size + MAX_PATH + 2);
@@ -813,7 +808,6 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE previous, LPSTR command_line, i
         folder_from(setting, "Game", game_folder);
     }
     windows_9x = (GetVersion() & 0x80000000u) != 0;
-    under_wine = GetProcAddress(GetModuleHandleA("ntdll.dll"), "wine_get_version") != NULL;
     split_arguments(GetCommandLineA(), arguments, &play, &setup);
     InitCommonControls();
     show_window = !ini_flag("launcher", "skip", 0);

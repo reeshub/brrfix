@@ -140,7 +140,7 @@ static void *direct_draw;  /* our own IDirectDraw, only for WaitForVerticalBlank
 static void *create_direct_draw(void)
 {
     typedef HRESULT (WINAPI *create_fn)(GUID *, void **, void *);
-    create_fn create = (create_fn)GetProcAddress(GetModuleHandleA("ddraw.dll"), "DirectDrawCreate");
+    create_fn create = (create_fn)GetProcAddress(brr_ddraw_module(), "DirectDrawCreate");
     void *dd = NULL;
     if (!create || create(NULL, &dd, NULL) != 0)
         return NULL;
@@ -150,8 +150,7 @@ static void *create_direct_draw(void)
 static uint32_t refresh_rate(void);
 
 /* At the first frame (DirectDraw is loaded by then): who paces the frames. When the
- * loaded ddraw.dll is cnc-ddraw (it exports GameHandlesClose, which no real DirectDraw
- * does) and [clock] pacing=cnc-ddraw, it owns pacing (its maxgameticks and vsync).
+ * loaded DirectDraw is cnc-ddraw (brr_is_cnc_ddraw) and [clock] pacing=cnc-ddraw, it owns pacing (its maxgameticks and vsync).
  * By default the drop-in paces: frame_limit caps the frame rate (auto = the display's
  * refresh rate, or vsync's pace if vsync is on), and vsync waits for the vertical blank
  * before the windowed present (a full-screen Flip is synchronised by the hardware). With
@@ -161,8 +160,7 @@ static uint32_t refresh_rate(void);
  * ours holds the rate exactly. */
 static void choose_pacing(void)
 {
-    HMODULE ddraw = GetModuleHandleA("ddraw.dll");
-    brr_cnc_ddraw = ddraw && GetProcAddress(ddraw, "GameHandlesClose") != NULL;
+    brr_cnc_ddraw = brr_is_cnc_ddraw(brr_ddraw_module());
     if (brr_cnc_ddraw && !cfg.pacing_dropin) {
         frame_limit_hz = 0;
         brr_log("pacing: by cnc-ddraw ([clock] pacing=cnc-ddraw): its maxgameticks and vsync in ddraw.ini; "

@@ -4,7 +4,9 @@
  *   and gave the uninitialised data section a file size the file doesn't have; Windows 95
  *   and Wine accept that, Windows 10 refuses to start it (as "brr.py win-headers");
  * - its import of timer.dll renamed PATCH.DLL (the same length), so the game loads our
- *   PATCH.DLL, which stands in for the game's TIMER.DLL, and leaves its own alone.
+ *   PATCH.DLL, which stands in for the game's TIMER.DLL, and leaves its own alone;
+ * - with cnc-ddraw (cnc_ddraw set: CNCDD.DLL beside the launcher), its import of DDRAW.dll
+ *   renamed CNCDD.DLL, so Wine's and Proton's own DirectDraw can't take cnc-ddraw's place.
  * dropin_build.py's winracep() makes the same file. */
 #ifndef BRR_WINFIX_H
 #define BRR_WINFIX_H
@@ -18,6 +20,6 @@ int brr_win_game_state(const char *game_folder);
 /* Makes out (WINRACEP.EXE) from the game's WINRACE.EXE: changed as above if it's the v2.25
  * file, otherwise copied as it is (so it runs as the original, with the game's TIMER.DLL). An out that's already right is left alone. Returns what out
  * now is (BRR_WIN_CORRECTED or BRR_WIN_OTHER), or -1 with a message if it failed. */
-int brr_win_make_copy(const char *game_folder, const char *out, char *message, unsigned size);
+int brr_win_make_copy(const char *game_folder, const char *out, int cnc_ddraw, char *message, unsigned size);
 
 #endif

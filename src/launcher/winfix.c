@@ -143,7 +143,7 @@ static int same_file(const char *path, const uint8_t *data, size_t size)
     return same;
 }
 
-int brr_win_make_copy(const char *game_folder, const char *out, char *message, unsigned size)
+int brr_win_make_copy(const char *game_folder, const char *out, int cnc_ddraw, char *message, unsigned size)
 {
     char fresh[PATH_SIZE];
     size_t length = 0;
@@ -157,10 +157,13 @@ int brr_win_make_copy(const char *game_folder, const char *out, char *message, u
     }
     if (state != BRR_WIN_OTHER) {
         correct(data);
-        /* the game imports our PATCH.DLL instead of its own TIMER.DLL: the same length */
-        if (!memcmp(data + WINRACEP_IMPORT_OFFSET, "timer.dll", 10))
-            memcpy(data + WINRACEP_IMPORT_OFFSET, "PATCH.DLL", 9);
-        if (!hash_is(data, length, WINRACEP_SHA256)) {  /* can't happen: the hashes are checked */
+        /* the game imports our PATCH.DLL instead of its own TIMER.DLL, and cnc-ddraw by a name
+         * of its own, so no other DirectDraw can take its place: each the same length */
+        if (!memcmp(data + WINRACEP_TIMER_OFFSET, "timer.dll", 10))
+            memcpy(data + WINRACEP_TIMER_OFFSET, "PATCH.DLL", 9);
+        if (cnc_ddraw && !memcmp(data + WINRACEP_DDRAW_OFFSET, "DDRAW.dll", 10))
+            memcpy(data + WINRACEP_DDRAW_OFFSET, CNC_DDRAW_DLL, 9);
+        if (!hash_is(data, length, cnc_ddraw ? WINRACEP_SHA256 : WINRACEP_PLAIN_SHA256)) {  /* can't happen */
             free(data);
             say(message, size, "Couldn't make WINRACEP.EXE from WINRACE.EXE. Nothing was changed.");
             return -1;
@@ -199,7 +202,9 @@ int brr_win_make_copy(const char *game_folder, const char *out, char *message, u
             "running, or the file read-only?).");
         return -1;
     }
-    say(message, size, state == BRR_WIN_CORRECTED ? "WINRACEP.EXE is made: WINRACE.EXE with its headers corrected, "
-        "using PATCH.DLL." : "WINRACEP.EXE is made: a copy of WINRACE.EXE as it is (it isn't v2.25).");
+    say(message, size, state != BRR_WIN_CORRECTED
+        ? "WINRACEP.EXE is made: a copy of WINRACE.EXE as it is (it isn't v2.25)."
+        : cnc_ddraw ? "WINRACEP.EXE is made: WINRACE.EXE with its headers corrected, using PATCH.DLL and cnc-ddraw."
+        : "WINRACEP.EXE is made: WINRACE.EXE with its headers corrected, using PATCH.DLL.");
     return state;
 }
