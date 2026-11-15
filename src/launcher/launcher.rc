@@ -68,7 +68,7 @@ BEGIN
     LTEXT           "", IDC_TRACKS, 62, 84, 244, 8
 
     /* Controller */
-    GROUPBOX        "Controller", IDC_PAD_GROUP, 12, 24, 300, 112
+    GROUPBOX        "Controller", IDC_PAD_GROUP, 12, 24, 300, 82
     AUTOCHECKBOX    "Modern &pad (XInput)", IDC_PAD, 18, 36, 120, 10, WS_TABSTOP
     PUSHBUTTON      "Configure...", IDC_JOYCPL, 256, 34, 50, 14, WS_TABSTOP
     LTEXT           "&Deadzone:", IDC_PAD_L1, 18, 54, 44, 8
@@ -77,8 +77,11 @@ BEGIN
     COMBOBOX        IDC_SENSITIVITY, 64, 68, 50, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
     LTEXT           "Layo&ut:", IDC_PAD_L3, 18, 86, 44, 8
     COMBOBOX        IDC_LAYOUT, 64, 84, 70, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    AUTOCHECKBOX    "Vibrate when &your vehicle takes damage", IDC_VIBRATION, 18, 104, 200, 10, WS_TABSTOP
-    AUTOCHECKBOX    "Rumble while the nitro boost is on", IDC_NITRO_RUMBLE, 18, 118, 200, 10, WS_TABSTOP
+    GROUPBOX        "Vibration", IDC_VIB_GROUP, 12, 112, 300, 62
+    AUTOCHECKBOX    "Enable vehicle damage vibration", IDC_VIBRATION, 18, 124, 200, 10, WS_TABSTOP
+    AUTOCHECKBOX    "Enable nitro boost vibration", IDC_NITRO_RUMBLE, 18, 138, 200, 10, WS_TABSTOP
+    LTEXT           "Intensity:", IDC_INTENSITY_LABEL, 18, 156, 44, 8
+    COMBOBOX        IDC_INTENSITY, 64, 154, 50, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
     LTEXT           "Modern pads (XInput) need a newer version of Windows. Configure opens Windows' own joystick settings; choose the joystick in the game's controls menu.", IDC_PAD_NOTE, 18, 38, 230, 24
 
     /* Advanced */

@@ -55,6 +55,9 @@
 #define IDC_PAD_NOTE     1410
 #define IDC_VIBRATION    1411
 #define IDC_NITRO_RUMBLE 1412
+#define IDC_VIB_GROUP    1413
+#define IDC_INTENSITY_LABEL 1414
+#define IDC_INTENSITY    1415
 
 /* Advanced */
 #define IDC_PAGE_ADVANCED 1500

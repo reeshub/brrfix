@@ -8,6 +8,11 @@
  * (0x4546D0...) that the steering reads proportionally (0x41AA64, 0x41AAE8), using the
  * calibration at 0x44B9E4 (max, centre, min per axis, 6 bytes each).
  *
+ * The pad: XInput's four slots are read (an empty one now and then, as XInputGetState is
+ * slow on an empty slot on Windows), and the one in use drives player one, whichever slot it
+ * has: under Proton another device (Steam's own pad, the Steam Deck's controls) can take
+ * slot 0, and the real pad then only reached the game as Windows' joystick 2 (2026-11-15).
+ *
  * With [controller] enabled=1 and a pad connected, just before that call the pad's
  * state goes into those variables: left stick X steers (deadzone, sensitivity and a
  * response curve), the triggers (or stick Y) are the pedals, A and B are buttons 1 and
@@ -18,13 +23,15 @@
  * Vibration, read only, for player one's vehicle in a race, looked at the same moment each tick:
  * - [controller] vibration=1: when its damage points (+0x38D: only impacts over 1,499 add
  *   any, and only with the game's damage option on; -1 when wrecked) have gone up, a
- *   buzz of both motors at damage_strength for 0.2 s (0.45 s for the wreck);
- * - nitro_rumble=1: while its nitro boost runs (boost_ticks +0x342 above 0), a steady
- *   rumble at nitro_strength (the low-frequency motor; the high one at half).
+ *   buzz of both motors at vibration_intensity for 0.2 s (0.45 s for the wreck);
+ * - nitro_rumble=1: while its exhaust flames show (+0x34D: the boost, boost_ticks +0x342,
+ *   then up to 16 steps dying away), a steady rumble at half that (the low-frequency
+ *   motor; the high one at a quarter).
  * Each motor runs at the stronger of the two. A timer (every 50 ms) applies the end of a
- * buzz and turns the motors off once the race's ticks stop advancing or it's paused
- * (race_paused 0x44B744: Break; the tick count carries on), on Alt-Tab and at the end of the
- * race, so the pad never keeps rumbling on its own. */
+ * buzz, repeats a running command every 0.5 s (Wine and Proton end each one after 1 s), and
+ * turns the motors off once the race's ticks stop advancing or it's paused (race_paused
+ * 0x44B744: Break; the tick count carries on), on Alt-Tab and at the end of the race, so
+ * the pad never keeps rumbling on its own. */
 #include "brrfix.h"
 #include <string.h>
 
@@ -39,10 +46,11 @@
 #define V_MODEL       0x26   /* short: -1 an unused slot */
 #define V_STATE       0x30   /* short: 1 player one */
 #define V_DAMAGE      0x38D  /* int: damage points; -1 at the wreck, then counting down */
-#define V_BOOST       0x342  /* int: nitro boost steps left (vehicle_nitro, vehicle_physics) */
+#define V_FLAME       0x34D  /* byte: the exhaust flames, 1-0x20 boosting, then dying away; 0x80+ an empty puff */
 #define BUZZ_MS       200
 #define WRECK_MS      450
 #define STALL_MS      100    /* no race tick for this long: the motors stop */
+#define REFRESH_MS    500    /* Wine and Proton end each rumble after 1 s (winebus cutoff_time_ms) */
 
 typedef struct {
     WORD buttons;
@@ -58,11 +66,14 @@ uint32_t brr_orig_joystick_to_keys = 0x41A950;
 static void vibration_start(void);
 static xinput_get_state_fn get_state;
 static xinput_set_state_fn set_state;
-static int connected = -1;
+static int connected = -1;  /* the simulated pad's (tests) */
+#define SLOTS 4
+static int slot_connected[SLOTS], probe_slot, probe_wait, probed;
+static volatile int active_slot = -1;  /* the XInput slot driving player one (read by the timer) */
 static UINT vibration_timer;
 static CRITICAL_SECTION motor_lock;
-static int64_t buzz_until, last_tick_time;  /* QPC: the end of the damage buzz; the last race tick */
-static volatile int boosting;                /* player one's nitro boost, at the last race tick */
+static int64_t buzz_until, last_tick_time, last_send;  /* QPC: the buzz's end; the last race tick; the last command */
+static volatile int boosting;                /* player one's nitro flames, at the last race tick */
 static WORD motor_low, motor_high;          /* what the pad was last told */
 static DWORD motor_result;                  /* and its answer (0: done; else not connected) */
 static int damage_known;     /* damage_seen is player one's damage at the last tick */
@@ -112,14 +123,18 @@ static DWORD apply_motors(void)
                 high = rumble / 2;
         }
     }
-    if ((WORD)low != motor_low || (WORD)high != motor_high) {
+    if ((WORD)low != motor_low || (WORD)high != motor_high
+        || ((low || high) && now - last_send >= brr_qpc_freq() * REFRESH_MS / 1000)) {
+        int changed = (WORD)low != motor_low || (WORD)high != motor_high;
         v.left_motor = (WORD)low;
         v.right_motor = (WORD)high;
-        motor_result = set_state(0, &v);
+        motor_result = set_state(active_slot >= 0 ? (DWORD)active_slot : 0, &v);
         motor_low = (WORD)low;
         motor_high = (WORD)high;
-        brr_log("controller: motors %ld%% (low frequency), %ld%% (high)%s", low * 100 / 65535, high * 100 / 65535,
-                motor_result == 0 ? "" : "; no pad");
+        last_send = now;
+        if (changed)
+            brr_log("controller: motors %ld%% (low frequency), %ld%% (high)%s", low * 100 / 65535,
+                    high * 100 / 65535, motor_result == 0 ? "" : "; no pad");
     }
     result = motor_result;
     LeaveCriticalSection(&motor_lock);
@@ -148,14 +163,15 @@ void brr_controller_stop(void)
     timeKillEvent(vibration_timer);
     vibration_timer = 0;
     v.left_motor = v.right_motor = 0;
-    set_state(0, &v);
+    set_state(active_slot >= 0 ? (DWORD)active_slot : 0, &v);
 }
 
 /* Player one's damage and nitro this tick: a buzz when the damage has gone up */
 static void check_vehicle(void)
 {
     const uint8_t *player = NULL;
-    int32_t damage, boost, tick = *GAME_TICK_COUNT;
+    int32_t damage, tick = *GAME_TICK_COUNT;
+    uint8_t flame;
     int i, was_boosting = boosting;
     if (*SCREEN == 0x80)
         for (i = 0; i < GAME_VEHICLE_COUNT && !player; i++) {
@@ -177,11 +193,11 @@ static void check_vehicle(void)
         }
     }
     memcpy(&damage, player + V_DAMAGE, sizeof damage);
-    memcpy(&boost, player + V_BOOST, sizeof boost);
-    boosting = cfg.pad_nitro_rumble && boost > 0;
+    /* as long as the flames show: the boost (boost_ticks +0x342), then up to 16 steps dying away */
+    flame = player[V_FLAME];
+    boosting = cfg.pad_nitro_rumble && flame > 0 && flame < 0x80;
     if (boosting != was_boosting)
-        brr_log("controller: nitro boost %s (tick %ld, %ld steps)", boosting ? "on: rumble" : "over",
-                (long)tick, (long)boost);
+        brr_log("controller: nitro flames %s (tick %ld)", boosting ? "on: rumble" : "out", (long)tick);
     /* up, or wrecked (-1); not the wreck's countdown, or a new race's reset to 0 */
     if (cfg.pad_vibration && damage_known && damage_seen >= 0 && (damage > damage_seen || damage < 0)) {
         DWORD result;
@@ -219,6 +235,73 @@ static uint16_t to_axis(float v)  /* -1..1 -> 0..65535, 32767 at the centre */
     return (uint16_t)(n < 0 ? 0 : n > 65535 ? 65535 : n);
 }
 
+static int pad_in_use(const pad_state *p)
+{
+    return p->buttons || p->left_trigger > 30 || p->right_trigger > 30 || p->left_x > 16000 || p->left_x < -16000
+        || p->left_y > 16000 || p->left_y < -16000;
+}
+
+static void choose_slot(int slot, const char *why)
+{
+    xinput_vibration v;
+    int old = active_slot;
+    if (old >= 0 && set_state && vibration_timer) {  /* the old pad stops; the next command goes to the new one */
+        EnterCriticalSection(&motor_lock);
+        v.left_motor = v.right_motor = 0;
+        set_state((DWORD)old, &v);
+        motor_low = motor_high = 0;
+        active_slot = slot;
+        LeaveCriticalSection(&motor_lock);
+    } else
+        active_slot = slot;
+    if (slot >= 0)
+        brr_log("controller: player one's pad is XInput slot %d (%s)", slot, why);
+    else
+        brr_log("controller: no pad");
+}
+
+/* The pad driving player one, from XInput's four slots: 0, or -1 if there's none */
+static int read_pad(xinput_state *out)
+{
+    xinput_state states[SLOTS];
+    int i, used = -1;
+    if (--probe_wait <= 0) {  /* every slot at the start, then one empty slot every 18 ticks */
+        probe_wait = 18;
+        for (i = 0; i < SLOTS; i++) {
+            probe_slot = (probe_slot + 1) % SLOTS;
+            if (!slot_connected[probe_slot] && get_state((DWORD)probe_slot, &states[0]) == 0) {
+                slot_connected[probe_slot] = 1;
+                brr_log("controller: a pad in XInput slot %d", probe_slot);
+            }
+            if (probed)
+                break;
+        }
+        probed = 1;
+    }
+    for (i = 0; i < SLOTS; i++) {
+        if (!slot_connected[i])
+            continue;
+        if (get_state((DWORD)i, &states[i]) != 0) {
+            slot_connected[i] = 0;
+            brr_log("controller: the pad in XInput slot %d is gone", i);
+            continue;
+        }
+        if (used < 0 && pad_in_use(&states[i].pad))
+            used = i;
+    }
+    if (active_slot < 0 || !slot_connected[active_slot]) {
+        for (i = 0; i < SLOTS && !slot_connected[i]; i++)
+            ;
+        if (i < SLOTS || active_slot >= 0)
+            choose_slot(i < SLOTS ? (used >= 0 ? used : i) : -1, "the first connected");
+    } else if (used >= 0 && used != active_slot && !pad_in_use(&states[active_slot].pad))
+        choose_slot(used, "in use");
+    if (active_slot < 0)
+        return -1;
+    *out = states[active_slot];
+    return 0;
+}
+
 void __cdecl brr_before_joystick(void)
 {
     xinput_state state;
@@ -236,12 +319,8 @@ void __cdecl brr_before_joystick(void)
             state.pad.left_x = (SHORT)(cfg.debug_pad_test == 2 ? 32767 : 16384);
             state.pad.right_trigger = 255;
         }
-    } else if (!cfg.controller || !get_state || get_state(0, &state) != 0) {
-        if (connected == 1)
-            brr_log("controller: pad disconnected");
-        connected = get_state && cfg.controller ? 0 : connected;
+    } else if (!cfg.controller || !get_state || read_pad(&state) != 0)
         return;
-    }
     if (cfg.debug_pad_test && *GAME_TICK_COUNT == 400) {  /* what the game sees */
         const uint8_t *map = *(const uint8_t **)0x4546BC, *keys = *(const uint8_t **)0x56C648;
         char line[160];
@@ -252,8 +331,8 @@ void __cdecl brr_before_joystick(void)
                 keys[0x73], keys[0x74], keys[0x75], keys[0x76], keys[0x77], keys[0x78], keys[0x79], keys[0x7A],
                 keys[0x7B], keys[0x7C], keys[0x7D], keys[0x7E]);
     }
-    if (connected != 1) {
-        brr_log("controller: pad connected");
+    if (cfg.debug_pad_test && connected != 1) {
+        brr_log("controller: pad connected (simulated)");
         connected = 1;
     }
     if (vibration_timer)

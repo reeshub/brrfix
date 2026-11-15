@@ -185,8 +185,8 @@ game's joystick: left stick steers, right trigger accelerates, left trigger
 brakes and reverses, A and B are the joystick buttons. In the game's controls
 menu, choose the joystick. Deadzone, sensitivity, the response curve and the
 layout (triggers or stick) are in the launcher and in BRRFIX.INI. The pad
-buzzes when your vehicle takes damage and rumbles while its nitro boost is on
-(two choices in the launcher; their strengths in BRRFIX.INI).
+buzzes when your vehicle takes damage and rumbles while its nitro flames show
+(the launcher's Vibration settings: either can be off, and an intensity).
 No-code alternative: Steam Input can map the pad to keyboard keys instead
 (steering is then on or off, as with the keyboard).
 Not on Windows 95/98/ME (they have no XInput): use a joystick as in 1996.

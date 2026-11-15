@@ -68,6 +68,8 @@ static const struct choice smoothings[] = {
 static const struct choice frame_limits[] = {
     {"Display rate", "auto"}, {"Unlocked", "0"}, {"30 fps", "30"}, {"60 fps", "60"}, {"120 fps", "120"},
     {"144 fps", "144"}, {"240 fps", "240"}, {0, 0}};
+static const struct choice intensities[] = {
+    {"100%", "100"}, {"80%", "80"}, {"60%", "60"}, {"40%", "40"}, {"20%", "20"}, {0, 0}};
 static const struct choice volumes[] = {
     {"100%", "100"}, {"90%", "90"}, {"80%", "80"}, {"70%", "70"}, {"60%", "60"}, {"50%", "50"}, {"40%", "40"},
     {"30%", "30"}, {"20%", "20"}, {"10%", "10"}, {"0%", "0"}, {0, 0}};
@@ -138,7 +140,7 @@ static const char *const tab_names[] = {"General", "Video", "Audio", "Controller
 #define TAB_COUNT ((int)(sizeof tab_names / sizeof tab_names[0]))
 
 /* controls that this PC never shows (Windows 9x, Proton), whichever tab is chosen */
-static int never_shown[16], never_shown_count;
+static int never_shown[32], never_shown_count;
 static HFONT title_font;
 
 static int page_of(int id)
@@ -240,6 +242,12 @@ static void update_enabled(HWND dialog)
         enable(dialog, music_controls[i], checked(dialog, IDC_MUSIC));
     for (i = 0; i < sizeof pad_controls / sizeof pad_controls[0]; i++)
         enable(dialog, pad_controls[i], checked(dialog, IDC_PAD));
+    /* the intensity of whichever vibration is on */
+    {
+        int shaking = checked(dialog, IDC_PAD) && (checked(dialog, IDC_VIBRATION) || checked(dialog, IDC_NITRO_RUMBLE));
+        enable(dialog, IDC_INTENSITY_LABEL, shaking);
+        enable(dialog, IDC_INTENSITY, shaking);
+    }
 }
 
 /* One line on each setting, shown when the mouse rests on it */
@@ -268,7 +276,8 @@ static const struct { int id; const char *text; } tips[] = {
     {IDC_SENSITIVITY, "How much stick gives full lock: above 100% reaches it sooner."},
     {IDC_LAYOUT, "Triggers: right accelerates, left brakes. Stick: push up and down, as the original."},
     {IDC_VIBRATION, "A brief buzz from the pad when player one's vehicle is damaged (with the game's damage option on)."},
-    {IDC_NITRO_RUMBLE, "A steady rumble from the pad while player one's nitro boost lasts."},
+    {IDC_NITRO_RUMBLE, "A steady rumble from the pad while player one's nitro flames show."},
+    {IDC_INTENSITY, "How strong the damage buzz is; the nitro rumble is half as strong."},
     {IDC_RATE, "Game ticks a second: 70.0 as the DOS version (real time), or 71.43 as the 1996 Windows version ran (2% fast)."},
     {IDC_CAP, "After a pause, how much missed game time is caught up at once: 8 ticks, or 35 as the original (see Help)."},
     {IDC_LOG, "Writes BRRFIX.LOG next to the launcher: what was fixed, for bug reports."},
@@ -404,6 +413,7 @@ static void load(HWND dialog, int defaults)
     fill(dialog, IDC_LAYOUT, layouts, GET(f, "controller", "layout", "triggers"));
     check(dialog, IDC_VIBRATION, defaults ? 1 : ini_flag("controller", "vibration", 1));
     check(dialog, IDC_NITRO_RUMBLE, defaults ? 1 : ini_flag("controller", "nitro_rumble", 1));
+    fill(dialog, IDC_INTENSITY, intensities, GET(f, "controller", "vibration_intensity", "80"));
     fill(dialog, IDC_RATE, rates, GET(f, "clock", "tick_rate", "70.0"));
     fill(dialog, IDC_CAP, caps, GET(f, "clock", "catch_up_cap", "8"));
     check(dialog, IDC_LOG, defaults ? 0 : ini_flag("log", "log", 0));
@@ -448,6 +458,7 @@ static void save(HWND dialog)
     ini_set(brrfix_ini, "controller", "layout", chosen(dialog, IDC_LAYOUT, layouts));
     ini_set(brrfix_ini, "controller", "vibration", checked(dialog, IDC_VIBRATION) ? "1" : "0");
     ini_set(brrfix_ini, "controller", "nitro_rumble", checked(dialog, IDC_NITRO_RUMBLE) ? "1" : "0");
+    ini_set(brrfix_ini, "controller", "vibration_intensity", chosen(dialog, IDC_INTENSITY, intensities));
     ini_set(brrfix_ini, "log", "log", checked(dialog, IDC_LOG) ? "1" : "0");
     ini_set(brrfix_ini, "display", "max_draw_distance", chosen(dialog, IDC_DRAWDIST, distances));
     if (!windows_9x)
@@ -549,7 +560,8 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
     (void)lparam;
     if (message == WM_INITDIALOG) {
         static const int pad_controls[] = {IDC_PAD, IDC_DEADZONE, IDC_SENSITIVITY, IDC_LAYOUT,
-                                           IDC_PAD_L1, IDC_PAD_L2, IDC_PAD_L3, IDC_VIBRATION, IDC_NITRO_RUMBLE};
+                                           IDC_PAD_L1, IDC_PAD_L2, IDC_PAD_L3, IDC_VIBRATION, IDC_NITRO_RUMBLE,
+                                           IDC_VIB_GROUP, IDC_INTENSITY_LABEL, IDC_INTENSITY};
         char title[96], steam[8];
         size_t i;
         wsprintfA(title, "Big Red Launcher %s by ctrl-alt-rees", BRRFIX_VERSION);
@@ -605,6 +617,8 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
             return TRUE;
         case IDC_MUSIC:
         case IDC_PAD:
+        case IDC_VIBRATION:
+        case IDC_NITRO_RUMBLE:
             update_enabled(dialog);
             return TRUE;
         case IDC_HELPFILE:

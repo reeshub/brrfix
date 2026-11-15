@@ -219,20 +219,28 @@ end of the stick's travel; higher values reach it sooner.
 - **Stick:** push the stick up to accelerate and down to brake, as with the
   original joystick.
 
-**Vibrate when your vehicle takes damage**
+### Vibration
+
+For a pad that can vibrate. The pad goes still whenever the race does, for
+example when you pause.
+
+**Enable vehicle damage vibration**
 
 A short buzz from the pad whenever player one's vehicle is damaged in a crash
 or a hard landing, and a longer one when it's wrecked; scraping along a wall
 keeps it buzzing. It follows the game's own damage option, which is on unless
 you turn it off in the game's menus: with damage off, vehicles take none, so
-the pad stays still. Its strength is in BRRFIX.INI (damage_strength, in
-percent).
+the pad stays still.
 
-**Rumble while the nitro boost is on**
+**Enable nitro boost vibration**
 
-A steady, lighter rumble from the pad for as long as player one's nitro boost
-lasts. Its strength is in BRRFIX.INI (nitro_strength, in percent). The pad
-goes still whenever the race does, for example when you pause.
+A steady, lighter rumble from the pad for as long as player one's nitro flames
+show.
+
+**Intensity**
+
+How strong the damage buzz is, in percent of the pad's power (80% by
+default); the nitro rumble is half as strong.
 
 ## Advanced
 
