@@ -135,6 +135,10 @@ static void load_config(void)
     GetPrivateProfileStringA("controller", "layout", "triggers", text, sizeof text, path);
     cfg.pad_triggers = lstrcmpiA(text, "stick") != 0;
     cfg.pad_analogue = ini_int(path, "controller", "analogue", 1);
+    cfg.pad_vibration = ini_int(path, "controller", "vibration", 1);
+    cfg.pad_vibration_strength = ini_int(path, "controller", "vibration_strength", 50);
+    if (cfg.pad_vibration_strength < 0 || cfg.pad_vibration_strength > 100)
+        cfg.pad_vibration_strength = 50;
     cfg.debug_pad_test = ini_int(path, "debug", "pad_test", 0);
     cfg.music = ini_int(path, "music", "music", 1);
     cfg.music_volume = ini_int(path, "music", "volume", 100);
@@ -209,6 +213,7 @@ uint32_t __cdecl brr_timer_stop(void)
     if (timer_running) {
         timer_running = 0;
         brr_clock_stop();
+        brr_controller_stop();
         brr_clock_report(1);
         brr_log("TIMER_Shutdown_: count %ld", (long)brr_timer_count);
     }

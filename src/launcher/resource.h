@@ -53,6 +53,7 @@
 #define IDC_PAD_L3       1408
 #define IDC_JOYCPL       1409
 #define IDC_PAD_NOTE     1410
+#define IDC_VIBRATION    1411
 
 /* Advanced */
 #define IDC_PAGE_ADVANCED 1500

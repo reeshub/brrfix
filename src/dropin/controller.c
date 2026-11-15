@@ -13,7 +13,13 @@
  * response curve), the triggers (or stick Y) are the pedals, A and B are buttons 1 and
  * 2, and the calibration matches. With analogue=1 the game's per-axis analogue flags
  * (0x44B9D8) are set, so it steers in proportion (as with an analogue joystick set up in
- * its menus) instead of on/off at a quarter from either end. The game's code is unchanged: only what it's given. */
+ * its menus) instead of on/off at a quarter from either end. The game's code is unchanged: only what it's given.
+ *
+ * Vibration ([controller] vibration=1): in a race, player one's damage points (vehicle
+ * +0x38D: only impacts over 1,499 add any, and only with the game's damage option on;
+ * -1 when the vehicle is wrecked) are read at the same moment each tick; when they've
+ * gone up, the pad gives a brief, mild buzz (a longer one for the wreck). A one-shot
+ * timer stops the motors, so a pause or Alt-Tab can't leave it buzzing. Read only. */
 #include "brrfix.h"
 #include <string.h>
 
@@ -23,6 +29,12 @@
 #define JOY1_PRESENT  ((volatile uint8_t *)0x44B9C8)
 #define JOY_CALIBRATE ((volatile uint16_t *)0x44B9E4)  /* axis n: [3n] max, [3n+1] centre, [3n+2] min */
 #define JOY_ANALOGUE  ((volatile uint8_t *)0x44B9D8)   /* per axis: use the position, not just on/off */
+#define SCREEN        ((volatile uint16_t *)0x4B13C0)  /* screen_current: 0x80 a race */
+#define V_MODEL       0x26   /* short: -1 an unused slot */
+#define V_STATE       0x30   /* short: 1 player one */
+#define V_DAMAGE      0x38D  /* int: damage points; -1 at the wreck, then counting down */
+#define BUZZ_MS       120
+#define WRECK_MS      300
 
 typedef struct {
     WORD buttons;
@@ -31,10 +43,16 @@ typedef struct {
 } pad_state;
 typedef struct { DWORD packet; pad_state pad; } xinput_state;
 typedef DWORD (WINAPI *xinput_get_state_fn)(DWORD, xinput_state *);
+typedef struct { WORD left_motor, right_motor; } xinput_vibration;  /* low and high frequency */
+typedef DWORD (WINAPI *xinput_set_state_fn)(DWORD, xinput_vibration *);
 
 uint32_t brr_orig_joystick_to_keys = 0x41A950;
 static xinput_get_state_fn get_state;
+static xinput_set_state_fn set_state;
 static int connected = -1;
+static volatile LONG buzz_timer;
+static int damage_known;     /* damage_seen is player one's damage at the last tick */
+static int32_t damage_seen;
 
 void brr_controller_start(void)
 {
@@ -44,12 +62,84 @@ void brr_controller_start(void)
         return;
     for (i = 0; i < sizeof libraries / sizeof libraries[0] && !get_state; i++) {
         HMODULE x = LoadLibraryA(libraries[i]);
-        if (x)
+        if (x) {
             get_state = (xinput_get_state_fn)GetProcAddress(x, "XInputGetState");
+            set_state = (xinput_set_state_fn)GetProcAddress(x, "XInputSetState");
+        }
     }
-    brr_log("controller: %s (deadzone %d%%, sensitivity %d%%, curve %d, layout %s)",
+    brr_log("controller: %s (deadzone %d%%, sensitivity %d%%, curve %d, layout %s; vibration on damage %s, "
+            "strength %d%%)",
             get_state ? "XInput found; a pad drives the game's joystick" : "no XInput here (Windows 9x?): off",
-            cfg.pad_deadzone, cfg.pad_sensitivity, cfg.pad_curve, cfg.pad_triggers ? "triggers" : "stick");
+            cfg.pad_deadzone, cfg.pad_sensitivity, cfg.pad_curve, cfg.pad_triggers ? "triggers" : "stick",
+            cfg.pad_vibration && set_state ? "on" : "off", cfg.pad_vibration_strength);
+}
+
+static DWORD motors(WORD low, WORD high)
+{
+    xinput_vibration v;
+    v.left_motor = low;
+    v.right_motor = high;
+    return set_state(0, &v);
+}
+
+static void CALLBACK buzz_end(UINT id, UINT msg, DWORD_PTR user, DWORD_PTR a, DWORD_PTR b)
+{
+    (void)id; (void)msg; (void)user; (void)a; (void)b;
+    InterlockedExchange(&buzz_timer, 0);  /* first, so buzz() never kills a finished timer's reused id */
+    motors(0, 0);
+}
+
+/* A brief, mild buzz: the low-frequency motor at half the strength, the high one at the strength */
+static DWORD buzz(int ms)
+{
+    UINT old = (UINT)InterlockedExchange(&buzz_timer, 0);
+    DWORD result;
+    if (old)
+        timeKillEvent(old);
+    result = motors((WORD)(32767L * cfg.pad_vibration_strength / 100),
+                    (WORD)(65535L * cfg.pad_vibration_strength / 100));
+    InterlockedExchange(&buzz_timer, (LONG)timeSetEvent((UINT)ms, 10, buzz_end, 0, TIME_ONESHOT));
+    return result;
+}
+
+void brr_controller_stop(void)
+{
+    UINT old = (UINT)InterlockedExchange(&buzz_timer, 0);
+    if (old)
+        timeKillEvent(old);
+    if (set_state && cfg.pad_vibration)
+        motors(0, 0);
+}
+
+/* Player one's damage this tick, against the last: a buzz when it has gone up */
+static void check_damage(void)
+{
+    const uint8_t *player = NULL;
+    int32_t damage;
+    int i;
+    if (*SCREEN != 0x80) {
+        damage_known = 0;
+        return;
+    }
+    for (i = 0; i < GAME_VEHICLE_COUNT && !player; i++) {
+        const uint8_t *v = (const uint8_t *)(GAME_VEHICLES + (uint32_t)i * GAME_VEHICLE_SIZE);
+        if (*(const int16_t *)(v + V_MODEL) >= 0 && *(const int16_t *)(v + V_STATE) == 1)
+            player = v;
+    }
+    if (!player) {
+        damage_known = 0;
+        return;
+    }
+    memcpy(&damage, player + V_DAMAGE, sizeof damage);
+    /* up, or wrecked (-1); not the wreck's countdown, or a new race's reset to 0 */
+    if (damage_known && damage_seen >= 0 && (damage > damage_seen || damage < 0)) {
+        DWORD result = buzz(damage < 0 ? WRECK_MS : BUZZ_MS);
+        brr_log("controller: vibration: player one's damage %ld -> %ld%s (tick %ld; pad %s)", (long)damage_seen,
+                (long)damage, damage < 0 ? ", wrecked" : "", (long)*GAME_TICK_COUNT,
+                result == 0 ? "buzzed" : "not connected");
+    }
+    damage_seen = damage;
+    damage_known = 1;
 }
 
 /* -1..1 with deadzone (scaled so movement starts smoothly), curve and sensitivity */
@@ -110,6 +200,8 @@ void __cdecl brr_before_joystick(void)
         brr_log("controller: pad connected");
         connected = 1;
     }
+    if (cfg.pad_vibration && set_state)
+        check_damage();
     steer = shape((float)state.pad.left_x / 32767.0f, cfg.pad_deadzone, cfg.pad_curve, cfg.pad_sensitivity);
     if (cfg.pad_triggers)
         pedal = ((float)state.pad.left_trigger - (float)state.pad.right_trigger) / 255.0f;  /* up = accelerate */

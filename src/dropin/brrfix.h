@@ -41,6 +41,7 @@ struct brr_config {
     int debug_log_mouse;     /* log mouse positions in a window (tests) */
     int music, music_volume, music_follow_game;  /* [music] */
     int controller, pad_deadzone, pad_sensitivity, pad_curve, pad_triggers, pad_analogue;  /* [controller] */
+    int pad_vibration, pad_vibration_strength;  /* [controller] vibration (on damage), its strength in % */
     int debug_pad_test;      /* tests: a simulated pad (half right, full throttle) */
     char music_folder[MAX_PATH];
     int show_version;        /* the drop-in's version on the main menu */
@@ -155,6 +156,7 @@ void brr_hook_menu_mouse(void);
 /* controller.c */
 extern uint32_t brr_orig_joystick_to_keys;
 void brr_controller_start(void);
+void brr_controller_stop(void);
 void __cdecl brr_before_joystick(void);
 void brr_hook_joystick(void);
 

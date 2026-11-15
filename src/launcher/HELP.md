@@ -219,6 +219,14 @@ end of the stick's travel; higher values reach it sooner.
 - **Stick:** push the stick up to accelerate and down to brake, as with the
   original joystick.
 
+**Vibrate when your vehicle takes damage**
+
+A brief, mild buzz from the pad whenever player one's vehicle is damaged in a
+crash or a hard landing, and a longer one when it's wrecked. It follows the
+game's own damage option, which is on unless you turn it off in the game's
+menus: with damage off, vehicles take none, so the pad stays still. How strong
+the buzz is can be changed in BRRFIX.INI (vibration_strength, in percent).
+
 ## Advanced
 
 ### Game
