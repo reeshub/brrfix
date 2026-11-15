@@ -41,7 +41,8 @@ struct brr_config {
     int debug_log_mouse;     /* log mouse positions in a window (tests) */
     int music, music_volume, music_follow_game;  /* [music] */
     int controller, pad_deadzone, pad_sensitivity, pad_curve, pad_triggers, pad_analogue;  /* [controller] */
-    int pad_vibration, pad_vibration_strength;  /* [controller] vibration (on damage), its strength in % */
+    int pad_vibration, pad_damage_strength;     /* [controller] vibration (a buzz on damage), its strength in % */
+    int pad_nitro_rumble, pad_nitro_strength;   /* [controller] nitro_rumble (while boosting), its strength in % */
     int debug_pad_test;      /* tests: a simulated pad (half right, full throttle) */
     char music_folder[MAX_PATH];
     int show_version;        /* the drop-in's version on the main menu */

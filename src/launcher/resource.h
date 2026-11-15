@@ -54,6 +54,7 @@
 #define IDC_JOYCPL       1409
 #define IDC_PAD_NOTE     1410
 #define IDC_VIBRATION    1411
+#define IDC_NITRO_RUMBLE 1412
 
 /* Advanced */
 #define IDC_PAGE_ADVANCED 1500

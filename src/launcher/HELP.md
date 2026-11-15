@@ -221,11 +221,18 @@ end of the stick's travel; higher values reach it sooner.
 
 **Vibrate when your vehicle takes damage**
 
-A brief, mild buzz from the pad whenever player one's vehicle is damaged in a
-crash or a hard landing, and a longer one when it's wrecked. It follows the
-game's own damage option, which is on unless you turn it off in the game's
-menus: with damage off, vehicles take none, so the pad stays still. How strong
-the buzz is can be changed in BRRFIX.INI (vibration_strength, in percent).
+A short buzz from the pad whenever player one's vehicle is damaged in a crash
+or a hard landing, and a longer one when it's wrecked; scraping along a wall
+keeps it buzzing. It follows the game's own damage option, which is on unless
+you turn it off in the game's menus: with damage off, vehicles take none, so
+the pad stays still. Its strength is in BRRFIX.INI (damage_strength, in
+percent).
+
+**Rumble while the nitro boost is on**
+
+A steady, lighter rumble from the pad for as long as player one's nitro boost
+lasts. Its strength is in BRRFIX.INI (nitro_strength, in percent). The pad
+goes still whenever the race does, for example when you pause.
 
 ## Advanced
 

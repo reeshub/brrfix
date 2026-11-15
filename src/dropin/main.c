@@ -136,9 +136,13 @@ static void load_config(void)
     cfg.pad_triggers = lstrcmpiA(text, "stick") != 0;
     cfg.pad_analogue = ini_int(path, "controller", "analogue", 1);
     cfg.pad_vibration = ini_int(path, "controller", "vibration", 1);
-    cfg.pad_vibration_strength = ini_int(path, "controller", "vibration_strength", 50);
-    if (cfg.pad_vibration_strength < 0 || cfg.pad_vibration_strength > 100)
-        cfg.pad_vibration_strength = 50;
+    cfg.pad_damage_strength = ini_int(path, "controller", "damage_strength", 80);
+    if (cfg.pad_damage_strength < 0 || cfg.pad_damage_strength > 100)
+        cfg.pad_damage_strength = 80;
+    cfg.pad_nitro_rumble = ini_int(path, "controller", "nitro_rumble", 1);
+    cfg.pad_nitro_strength = ini_int(path, "controller", "nitro_strength", 40);
+    if (cfg.pad_nitro_strength < 0 || cfg.pad_nitro_strength > 100)
+        cfg.pad_nitro_strength = 40;
     cfg.debug_pad_test = ini_int(path, "debug", "pad_test", 0);
     cfg.music = ini_int(path, "music", "music", 1);
     cfg.music_volume = ini_int(path, "music", "volume", 100);

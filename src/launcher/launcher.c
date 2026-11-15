@@ -218,7 +218,7 @@ static void update_enabled(HWND dialog)
     static const int music_controls[] = {IDC_VOLUME_LABEL, IDC_VOLUME, IDC_FOLDER_LABEL, IDC_FOLDER, IDC_BROWSE,
                                          IDC_TRACKS};
     static const int pad_controls[] = {IDC_PAD_L1, IDC_DEADZONE, IDC_PAD_L2, IDC_SENSITIVITY, IDC_PAD_L3, IDC_LAYOUT,
-                                       IDC_VIBRATION};
+                                       IDC_VIBRATION, IDC_NITRO_RUMBLE};
     const char *mode = chosen(dialog, IDC_MODE, modes);
     int window = lstrcmpiA(mode, "fullscreen") != 0, full = lstrcmpiA(mode, "windowed") != 0;
     int low = !lstrcmpiA(chosen(dialog, IDC_RESOLUTION, resolutions), "low");
@@ -268,6 +268,7 @@ static const struct { int id; const char *text; } tips[] = {
     {IDC_SENSITIVITY, "How much stick gives full lock: above 100% reaches it sooner."},
     {IDC_LAYOUT, "Triggers: right accelerates, left brakes. Stick: push up and down, as the original."},
     {IDC_VIBRATION, "A brief buzz from the pad when player one's vehicle is damaged (with the game's damage option on)."},
+    {IDC_NITRO_RUMBLE, "A steady rumble from the pad while player one's nitro boost lasts."},
     {IDC_RATE, "Game ticks a second: 70.0 as the DOS version (real time), or 71.43 as the 1996 Windows version ran (2% fast)."},
     {IDC_CAP, "After a pause, how much missed game time is caught up at once: 8 ticks, or 35 as the original (see Help)."},
     {IDC_LOG, "Writes BRRFIX.LOG next to the launcher: what was fixed, for bug reports."},
@@ -402,6 +403,7 @@ static void load(HWND dialog, int defaults)
     fill(dialog, IDC_SENSITIVITY, sensitivities, GET(f, "controller", "sensitivity", "100"));
     fill(dialog, IDC_LAYOUT, layouts, GET(f, "controller", "layout", "triggers"));
     check(dialog, IDC_VIBRATION, defaults ? 1 : ini_flag("controller", "vibration", 1));
+    check(dialog, IDC_NITRO_RUMBLE, defaults ? 1 : ini_flag("controller", "nitro_rumble", 1));
     fill(dialog, IDC_RATE, rates, GET(f, "clock", "tick_rate", "70.0"));
     fill(dialog, IDC_CAP, caps, GET(f, "clock", "catch_up_cap", "8"));
     check(dialog, IDC_LOG, defaults ? 0 : ini_flag("log", "log", 0));
@@ -445,6 +447,7 @@ static void save(HWND dialog)
     ini_set(brrfix_ini, "controller", "sensitivity", chosen(dialog, IDC_SENSITIVITY, sensitivities));
     ini_set(brrfix_ini, "controller", "layout", chosen(dialog, IDC_LAYOUT, layouts));
     ini_set(brrfix_ini, "controller", "vibration", checked(dialog, IDC_VIBRATION) ? "1" : "0");
+    ini_set(brrfix_ini, "controller", "nitro_rumble", checked(dialog, IDC_NITRO_RUMBLE) ? "1" : "0");
     ini_set(brrfix_ini, "log", "log", checked(dialog, IDC_LOG) ? "1" : "0");
     ini_set(brrfix_ini, "display", "max_draw_distance", chosen(dialog, IDC_DRAWDIST, distances));
     if (!windows_9x)
@@ -546,7 +549,7 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
     (void)lparam;
     if (message == WM_INITDIALOG) {
         static const int pad_controls[] = {IDC_PAD, IDC_DEADZONE, IDC_SENSITIVITY, IDC_LAYOUT,
-                                           IDC_PAD_L1, IDC_PAD_L2, IDC_PAD_L3, IDC_VIBRATION};
+                                           IDC_PAD_L1, IDC_PAD_L2, IDC_PAD_L3, IDC_VIBRATION, IDC_NITRO_RUMBLE};
         char title[96], steam[8];
         size_t i;
         wsprintfA(title, "Big Red Launcher %s by ctrl-alt-rees", BRRFIX_VERSION);
