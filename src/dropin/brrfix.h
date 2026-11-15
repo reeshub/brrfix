@@ -33,6 +33,7 @@ struct brr_config {
     int smooth_sky;          /* [display] smooth_sky: the sky as a smooth gradient (sky.c; full colour) */
     int smooth_shading;      /* [display] smooth_shading: lit polygons shaded smoothly (shade.c; full colour) */
     int colour_animation;    /* [display] colour_animation: the levels' palette cycling, as in DOS (palanim.c) */
+    int menu_navigation;     /* [controller] menu_navigation: B, and the stick's left and right, in menus (keys.c) */
     int language;            /* [display] language: 1-7 (ENG, USA, FRE, GER, ITA, SPA, JAP) */
     int clock_original;      /* emulate the original 14 ms callback timer instead */
     uint32_t rate_milli;     /* ticks per 1000 s: 70000 = 70.0 Hz */
@@ -136,6 +137,8 @@ void brr_render_palette_check(void);
 void brr_shade_census_setup(void);
 void brr_shade_setup(void);
 void brr_colour_anim(uint32_t ticks);
+void __cdecl brr_hook_scn_commit(void);
+void __cdecl brr_hook_scn_end(void);
 extern int brr_modern_window;
 void brr_shade_view_begin(void);
 const uint16_t *brr_shade_row(const uint8_t *pixel, int count);

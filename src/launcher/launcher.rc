@@ -86,6 +86,8 @@ BEGIN
     AUTOCHECKBOX    "Enable nitro boost vibration", IDC_NITRO_RUMBLE, 18, 138, 200, 10, WS_TABSTOP
     LTEXT           "Intensity:", IDC_INTENSITY_LABEL, 18, 156, 44, 8
     COMBOBOX        IDC_INTENSITY, 64, 154, 50, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    GROUPBOX        "Menus", IDC_MENU_GROUP, 12, 178, 300, 30
+    AUTOCHECKBOX    "Controller &menu navigation", IDC_MENU_NAV, 18, 191, 200, 10, WS_TABSTOP
     LTEXT           "Modern pads (XInput) need a newer version of Windows. Configure opens Windows' own joystick settings; choose the joystick in the game's controls menu.", IDC_PAD_NOTE, 18, 38, 230, 24
 
     /* Advanced */

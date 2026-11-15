@@ -510,3 +510,64 @@ char *brr_credit_lookup(char *name)   /* name: "CRED_<n>", in the game's 20-byte
     }
     return game_text_lookup(name);
 }
+
+/* Joystick menu navigation (option menu_pad; the twin of the Windows fix, src/dropin/keys.c).
+ * The game reads the joystick on every screen (joystick_tick, from run_screen), and
+ * joystick_read sets key-table codes 0x73-0x7E: button 2 of joystick 1 is 0x74, its stick
+ * left and right 0x77 and 0x78. Every screen script with an OK lists 0x73 (button 1) beside
+ * Return, so button 1 already chooses. A key hotspot a script adds for Esc (0x01) gets a twin
+ * for button 2 (back, or quit where Esc quits), and one for the cursor or keypad left or
+ * right keys (0x4B, 0x6B; 0x4D, 0x6D) a twin for the stick. Not on the keys screen (0x0E),
+ * where joystick buttons and directions can be given to a control, nor the joystick screen
+ * (0x17), whose script lists no joystick key. scn_load's CALL menu_hotspot_commit (site
+ * scn_commit_call) notes them; its last call, menu_background_save (site scn_end_call),
+ * adds them after the script's own hotspots, as scripts refer to theirs by number. */
+#define HOTSPOT_SIZE 0x24
+#define HOTSPOT_MAX  100
+#define HOTSPOT_ROOM 90
+#define TWINS_MAX    16
+
+static u8 twins[TWINS_MAX][HOTSPOT_SIZE];
+static int twin_count;
+
+static void copy_hotspot(u8 *to, const u8 *from)
+{
+    int i;
+    for (i = 0; i < HOTSPOT_SIZE; i++)
+        to[i] = from[i];
+}
+
+void brr_scn_commit(void)
+{
+    s32 before = game_menu_hotspot_count;
+    const u8 *h;
+    s32 key, twin;
+    game_menu_hotspot_commit();
+    if (game_menu_hotspot_count != before + 1 || before < 0 || before >= HOTSPOT_MAX
+        || twin_count == TWINS_MAX || game_screen_current == 0x0E || game_screen_current == 0x17)
+        return;
+    h = game_menu_hotspots + before * HOTSPOT_SIZE;
+    if (*(const s16 *)(h + 2) != 6)
+        return;
+    key = *(const s16 *)(h + 4);
+    twin = key == 0x01 ? 0x74 : key == 0x4B || key == 0x6B ? 0x77 : key == 0x4D || key == 0x6D ? 0x78 : 0;
+    if (!twin)
+        return;
+    copy_hotspot(twins[twin_count], h);
+    *(s16 *)(twins[twin_count] + 4) = (s16)twin;
+    twin_count++;
+}
+
+void brr_scn_end(void)
+{
+    int i;
+    for (i = 0; i < twin_count; i++) {
+        s32 n = game_menu_hotspot_count;
+        if (n < 0 || n >= HOTSPOT_ROOM)
+            break;
+        copy_hotspot(game_menu_hotspots + n * HOTSPOT_SIZE, twins[i]);
+        game_menu_hotspot_count = (s16)(n + 1);
+    }
+    twin_count = 0;
+    game_menu_background_save();
+}

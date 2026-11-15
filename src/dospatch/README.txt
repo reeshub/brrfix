@@ -20,6 +20,9 @@ What it fixes
 - A shorter catch-up after a hiccup on fast machines: at most 8 ticks (about a
   tenth of a second) of game time in one frame, instead of 35.
 - Two camera calculations that depended on the frame rate.
+- Joystick menu navigation (partial): button 1 already chose in the menus, as
+  Return; now button 2 goes back, as Esc (where Esc quits, it quits), and the
+  stick's left and right change the race, logo or car, as the arrow keys.
 - The physics is left exactly as it was: the same game, bit for bit.
 
 "Fast machine" means one that draws a frame in 3 ticks (3/70 s) or less, on

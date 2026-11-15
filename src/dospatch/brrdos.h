@@ -48,6 +48,11 @@ extern const s16 game_sine_table[];          /* 1,280 entries; cosine = 256 entr
 extern volatile s32 game_rot_sin_a;          /* rotation_matrix's globals */
 extern volatile u32 game_rot_a, game_rot_b, game_rot_c;
 extern s32 game_credit_index;                /* the main menu's credits ticker: 0-27 */
+extern void game_menu_hotspot_commit(void);  /* keeps the hotspot just filled in (count + 1) */
+extern void game_menu_background_save(void); /* scn_load's last call */
+extern u8 game_menu_hotspots[];              /* 0x24 bytes each: +2 type, +4 key (type 6), +6 action */
+extern volatile s16 game_menu_hotspot_count;
+extern volatile u16 game_screen_current;     /* the screen being run (set before its set-up) */
 
 #define VEHICLE_SIZE  0x395u
 #define VEHICLE_COUNT 7
@@ -67,6 +72,7 @@ enum {
     OPT_CAPTURE_FRAMES,
     OPT_CAPTURE_TICK,
     OPT_PROVE,
+    OPT_MENU_PAD,
     OPT_COUNT
 };
 extern const volatile u32 brr_options[OPT_COUNT];
@@ -109,6 +115,8 @@ extern int brr_fast;          /* the machine draws a frame in 3 ticks or fewer, 
 extern u32 brr_frames_drawn;
 s32 sar(s32 x, int n);
 char *brr_credit_lookup(char *name);
+void brr_scn_commit(void);
+void brr_scn_end(void);
 
 /* ---- angles.c ---- */
 void brr_rotation_fine(struct rot_args *a);

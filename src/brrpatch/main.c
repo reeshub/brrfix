@@ -73,6 +73,7 @@ int main(int argc, char **argv)
                " - on fast PCs, vehicles drawn between physics steps: 70 pictures a second\n"
                " - on fast PCs, each picture shown at the screen's refresh: no tearing\n"
                " - on fast PCs, a shorter catch-up after a pause\n"
+               " - joystick menu navigation (partial)\n"
                "The physics is unchanged, and a 486 runs it exactly as before.\n\n");
     printf(undo ? "Putting the original back" : "Patching RACING.EXE");
     fflush(stdout);

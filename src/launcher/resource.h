@@ -64,6 +64,8 @@
 #define IDC_VIB_GROUP    1413
 #define IDC_INTENSITY_LABEL 1414
 #define IDC_INTENSITY    1415
+#define IDC_MENU_GROUP   1416
+#define IDC_MENU_NAV     1417
 
 /* Advanced */
 #define IDC_PAGE_ADVANCED 1500

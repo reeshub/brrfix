@@ -183,6 +183,7 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "full_colour")) return brr_full_colour;
     if (!strcmp(fix, "sky")) return brr_sky_active || brr_shade_active;  /* the 3D view's start, for both */
     if (!strcmp(fix, "shading")) return brr_shade_active;
+    if (!strcmp(fix, "menu_pad")) return cfg.menu_navigation;
     if (!strcmp(fix, "screenshot")) return (cfg.render_max && brr_renderer_active) || brr_sky_active;
     if (!strcmp(fix, "draw_distance")) return cfg.max_draw_distance > 0;  /* experimental, off by default */
     if (!strcmp(fix, "draw_distance_far")) return cfg.max_draw_distance > DRAW_DISTANCE_GRID_MAX;
@@ -235,6 +236,12 @@ static int replacement(const struct site_info *s, uint8_t *out)
         put_abs32(out, (void *)version_number);
     } else if ((!strcmp(n, "window_command_66") || !strcmp(n, "window_command_67")) && s->length == 4) {
         put_rel32(out, s->address + 4, (void *)0x402619);  /* WndProc's default: DefWindowProcA */
+    } else if (!strcmp(n, "scn_commit_call") && s->length == 5) {
+        out[0] = 0xE8;  /* CALL brr_hook_scn_commit: the commit, then the joystick twins noted */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_scn_commit);
+    } else if (!strcmp(n, "scn_end_call") && s->length == 5) {
+        out[0] = 0xE8;  /* CALL brr_hook_scn_end: the twins added, then menu_background_save */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_scn_end);
     } else if (!strcmp(n, "class_menu") && s->length == 1) {
         out[0] = 0x74;  /* MOV [ESP+0x24],ESI: the window class has no menu */
     } else if (!strcmp(n, "window_command_resolution") && s->length == 7) {

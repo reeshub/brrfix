@@ -191,7 +191,9 @@ game's two joysticks: the first pad you use is joystick 1, the next one you
 use joystick 2 (two players). Left stick steers, right trigger accelerates,
 left trigger brakes and reverses, A and B are the joystick buttons. In a
 race, Start pauses (and carries on) and Back (View) ends it, as Pause and Esc
-do. In the game's controls menu, choose the joystick (JS1 or JS2). Deadzone, sensitivity, the response curve and the
+do. In the menus A chooses (the 1996 game's own joystick
+support), B goes back, as Esc, and left and right (stick or D-pad) change the
+race, logo or car ([controller] menu_navigation). In the game's controls menu, choose the joystick (JS1 or JS2). Deadzone, sensitivity, the response curve and the
 layout (triggers or stick) are in the launcher and in BRRFIX.INI. The pad
 buzzes when your vehicle takes damage and rumbles while its nitro flames show
 (the launcher's Vibration settings: either can be off, and an intensity).

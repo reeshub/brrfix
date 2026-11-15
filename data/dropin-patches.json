@@ -151,6 +151,22 @@
    "sha256": "ad257f70d412e5eb38930189b508c0e3acc2562e3a3a32f59332b511558a679e"
   },
   {
+   "name": "scn_commit_call",
+   "fix": "menu_pad",
+   "address": "0x4206C3",
+   "length": 5,
+   "patch": "scn_load (0x4200F0, a screen's .SCN script): CALL menu_hotspot_commit (0x427FAC) -> CALL brr_hook_scn_commit: the commit as before, then a key hotspot for Esc (0x01) or left or right (0x4B/0x6B, 0x4D/0x6D) is noted for a twin on joystick 1's button 2 (0x74) or stick (0x77, 0x78) (keys.c; not on the keys screen 0x0E or the joystick screen 0x17)",
+   "sha256": "dec4115a8fd0ba47e8b889d0ddc8e62e732139bbc44cfc06d22665a4ca90dac7"
+  },
+  {
+   "name": "scn_end_call",
+   "fix": "menu_pad",
+   "address": "0x4206E9",
+   "length": 5,
+   "patch": "scn_load's last call, CALL menu_background_save (0x412EAC) -> CALL brr_hook_scn_end: the noted twins added after the script's own hotspots (scripts refer to theirs by number), then menu_background_save",
+   "sha256": "6a84de3713796a461511080ab62ea92d569f03b91098ea5b3f396b59a3553049"
+  },
+  {
    "name": "version_date",
    "fix": "version",
    "address": "0x406365",

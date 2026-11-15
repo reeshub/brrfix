@@ -33,6 +33,7 @@
  * and on each tick the key table's changes, _KEY_down, any hotspot action and each
  * screen's key hotspots. Diagnostics only. */
 #include "brrfix.h"
+#include <string.h>
 
 #define KEY_GENERATE_IMPORT 0x56C640u  /* WINRACE.EXE's import slots for KEY.DLL's data */
 #define KEY_DOWN_IMPORT     0x56C644u
@@ -225,4 +226,68 @@ void __cdecl brr_after_menu_hotspots(void)
     if (cfg.debug_log_keys && *HOTSPOT_ACTION != -1)
         brr_log("keys: tick %ld fired action %d (latch 0x%02X)", (long)*GAME_TICK_COUNT, *HOTSPOT_ACTION,
                 (unsigned)(uint16_t)latch);
+}
+
+/* ---- Controller menu navigation ([controller] menu_navigation; both renderers) ----
+ * The game's own joystick support reaches the menus through the same key hotspots: its
+ * joystick code sets key-table entries 0x73-0x7E (buttons 1 and 2 of joystick 1 are 0x73
+ * and 0x74, its stick left and right 0x77 and 0x78), and every screen script that has an
+ * OK lists 0x73 beside Return, so A (button 1) already chooses. Here every key hotspot a
+ * script adds for Esc (0x01) gets a twin for button 2 (B: back, or quit where Esc quits),
+ * and every one for the cursor or keypad left and right keys (0x4B, 0x6B; 0x4D, 0x6D) a
+ * twin for the stick (left and right on the race, logo and car screens). Not on the keys
+ * screen (0x0E), where the joystick's buttons and directions can be given to a control,
+ * nor on the joystick screen (0x17), whose script lists no joystick key at all.
+ * Site scn_commit_call (scn_load's CALL menu_hotspot_commit) notes the twins; they're
+ * added at the script's end (site scn_end_call), after its own hotspots, as scripts refer
+ * to their hotspots by number (stext chains). */
+#define HOTSPOT_SIZE 0x24
+#define HOTSPOT_MAX  100
+#define HOTSPOT_ROOM 90      /* leave the rest for the screens' own code (the credits ticker) */
+#define TWINS_MAX    16
+
+static uint8_t twins[TWINS_MAX][HOTSPOT_SIZE];
+static int twin_count;
+
+static int twin_key(int key)
+{
+    if (key == 0x01) return 0x74;
+    if (key == 0x4B || key == 0x6B) return 0x77;
+    if (key == 0x4D || key == 0x6D) return 0x78;
+    return 0;
+}
+
+/* After scn_load's menu_hotspot_commit; before = the count of hotspots before it */
+void __cdecl brr_menu_pad_commit(int before)
+{
+    const uint8_t *h;
+    int twin;
+    if (*HOTSPOT_COUNT != before + 1 || before < 0 || before >= HOTSPOT_MAX || twin_count == TWINS_MAX
+        || *SCREEN == 0x0E || *SCREEN == 0x17)
+        return;
+    h = (const uint8_t *)HOTSPOTS + before * HOTSPOT_SIZE;
+    if (*(const int16_t *)(h + 2) != 6 || !(twin = twin_key(*(const int16_t *)(h + 4))))
+        return;
+    memcpy(twins[twin_count], h, HOTSPOT_SIZE);
+    *(int16_t *)(twins[twin_count] + 4) = (int16_t)twin;
+    twin_count++;
+}
+
+/* At scn_load's end: the twins after the script's own hotspots */
+void __cdecl brr_menu_pad_append(void)
+{
+    static int logged;
+    int i, added = 0;
+    for (i = 0; i < twin_count; i++) {
+        int n = *HOTSPOT_COUNT;
+        if (n < 0 || n >= HOTSPOT_ROOM)
+            break;
+        memcpy((uint8_t *)HOTSPOTS + n * HOTSPOT_SIZE, twins[i], HOTSPOT_SIZE);
+        *HOTSPOT_COUNT = (int16_t)(n + 1);
+        added++;
+    }
+    if (added && logged++ < 40)
+        brr_log("menu pad: screen 0x%02X: %d joystick key(s) added (B for Esc, the stick for left and right)",
+                (unsigned)*SCREEN, added);
+    twin_count = 0;
 }

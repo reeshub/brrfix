@@ -365,6 +365,8 @@ static const struct { int id; const char *text; } tips[] = {
     {IDC_VIBRATION, "A brief buzz from the pad when player one's vehicle is damaged (with the game's damage option on)."},
     {IDC_NITRO_RUMBLE, "A steady rumble from the pad while player one's nitro flames show."},
     {IDC_INTENSITY, "How strong the damage buzz is; the nitro rumble is half as strong."},
+    {IDC_MENU_NAV, "In the menus, B (joystick button 2) goes back, as Esc, and left and right change the race, "
+                   "logo or car, as the arrow keys. A already chooses, as in 1996."},
     {IDC_RATE, "Game ticks a second: 70.0 as the DOS version (real time), or 71.43 as the 1996 Windows version ran (2% fast)."},
     {IDC_CAP, "After a pause, how much missed game time is caught up at once: 8 ticks, or 35 as the original (see Help)."},
     {IDC_LOG, "Writes BRRFIX.LOG next to the launcher: what was fixed, for bug reports."},
@@ -503,6 +505,7 @@ static void load(HWND dialog, int defaults)
     fill(dialog, IDC_LAYOUT, layouts, GET(f, "controller", "layout", "triggers"));
     check(dialog, IDC_VIBRATION, defaults ? 1 : ini_flag("controller", "vibration", 1));
     check(dialog, IDC_NITRO_RUMBLE, defaults ? 1 : ini_flag("controller", "nitro_rumble", 1));
+    check(dialog, IDC_MENU_NAV, defaults ? 1 : ini_flag("controller", "menu_navigation", 1));
     fill(dialog, IDC_INTENSITY, intensities, GET(f, "controller", "vibration_intensity", "80"));
     fill(dialog, IDC_RATE, rates, GET(f, "clock", "tick_rate", "70.0"));
     fill(dialog, IDC_CAP, caps, GET(f, "clock", "catch_up_cap", "8"));
@@ -557,6 +560,7 @@ static void save(HWND dialog)
     ini_set(brrfix_ini, "controller", "layout", chosen(dialog, IDC_LAYOUT, layouts));
     ini_set(brrfix_ini, "controller", "vibration", checked(dialog, IDC_VIBRATION) ? "1" : "0");
     ini_set(brrfix_ini, "controller", "nitro_rumble", checked(dialog, IDC_NITRO_RUMBLE) ? "1" : "0");
+    ini_set(brrfix_ini, "controller", "menu_navigation", checked(dialog, IDC_MENU_NAV) ? "1" : "0");
     ini_set(brrfix_ini, "controller", "vibration_intensity", chosen(dialog, IDC_INTENSITY, intensities));
     ini_set(brrfix_ini, "log", "log", checked(dialog, IDC_LOG) ? "1" : "0");
     ini_set(brrfix_ini, "display", "max_draw_distance", chosen(dialog, IDC_DRAWDIST, distances));
@@ -685,6 +689,9 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
             hide_for_good(dialog, IDC_PRESET_LABEL);
             for (i = 0; i < sizeof pad_controls / sizeof pad_controls[0]; i++)
                 hide_for_good(dialog, pad_controls[i]);
+            /* menu navigation works with a 1996 joystick too: up where Vibration would be */
+            place(dialog, IDC_MENU_GROUP, 12, 112, 300, 30);
+            place(dialog, IDC_MENU_NAV, 18, 125, 200, 10);
         } else
             hide_for_good(dialog, IDC_PAD_NOTE);
         /* under Proton, Steam Input sets up controllers */

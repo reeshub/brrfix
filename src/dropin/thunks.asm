@@ -67,6 +67,8 @@
         extrn   _brr_shade_delta:dword
         extrn   _brr_shade_vertex_delta:dword
         extrn   _brr_light_level_fn:dword
+        extrn   _brr_menu_pad_commit:near
+        extrn   _brr_menu_pad_append:near
 
         public  _brr_TIMER_Init, _brr_TIMER_Shutdown, _brr_TIMER_Handler
         public  _brr_hook_clock_read, _brr_hook_retrace, _brr_hook_race_tick
@@ -83,6 +85,7 @@
         public  _brr_hook_screenshot_race, _brr_hook_screenshot_tape
         public  _brr_span_gouraud, _brr_span_gouraud_z, _brr_poly_light_smooth
         public  _brr_call_palette_set
+        public  _brr_hook_scn_commit, _brr_hook_scn_end
 
         .code
 
@@ -324,6 +327,32 @@ _brr_hook_sky_draw:
         pop     edx
         pop     ecx
         ret     8
+
+; Site scn_commit_call: scn_load's CALL menu_hotspot_commit (0x427FAC, which keeps EBX, ECX
+; and EDX): the game's commit, then brr_menu_pad_commit(the count before it)
+_brr_hook_scn_commit:
+        push    ecx
+        push    edx
+        movsx   eax, word ptr ds:[44BF38h]
+        push    eax
+        mov     eax, 427FACh
+        call    eax
+        call    _brr_menu_pad_commit
+        add     esp, 4
+        pop     edx
+        pop     ecx
+        ret
+
+; Site scn_end_call: scn_load's last call, menu_background_save (0x412EAC): our twins are
+; added first, then the game's routine runs as before (a tail jump)
+_brr_hook_scn_end:
+        push    ecx
+        push    edx
+        call    _brr_menu_pad_append
+        pop     edx
+        pop     ecx
+        mov     eax, 412EACh
+        jmp     eax
 
 ; brr_call_palette_set(rgb, first, count), cdecl: the game's palette_set (0x42D1E8; EAX the
 ; 6-bit entries, EDX the first, EBX the count; it keeps every register but EAX)

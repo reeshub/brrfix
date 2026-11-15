@@ -280,6 +280,18 @@ show.
 How strong the damage buzz is, in percent of the pad's power (80% by
 default); the nitro rumble is half as strong.
 
+### Menus
+
+**Controller menu navigation** (on by default; both renderers, any joystick)
+
+The 1996 game already lets joystick button 1 (A on a pad) choose in its menus,
+as Return does. With this ticked, button 2 (B) goes back, as Esc does (on the
+first screens, as with Esc, it quits the game), and the stick's left and right
+(and a pad's D-pad) change the choice where the menus have arrows, as the arrow
+keys do: the race, the logo, the car. Not on the keys screen, where a
+joystick's buttons and directions can be given to controls, nor the joystick
+screen. Moving up and down through a menu's options is still to come.
+
 ## Advanced
 
 ### Game
