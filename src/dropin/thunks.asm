@@ -86,6 +86,7 @@
         public  _brr_span_gouraud, _brr_span_gouraud_z, _brr_poly_light_smooth
         public  _brr_call_palette_set
         public  _brr_hook_scn_commit, _brr_hook_scn_end
+        public  _brr_call_dd_set_mode
 
         .code
 
@@ -353,6 +354,19 @@ _brr_hook_scn_end:
         pop     ecx
         mov     eax, 412EACh
         jmp     eax
+
+; brr_call_dd_set_mode(width, height), cdecl: the game's dd_set_mode (0x42D044; EAX the
+; width, EDX the height, BL 0: no swap between window and full screen; it keeps ECX, ESI,
+; EDI and EBP): DirectDraw re-created at that size, through dd_setup (site dd_setup_entry)
+_brr_call_dd_set_mode:
+        push    ebx
+        mov     eax, [esp + 8]
+        mov     edx, [esp + 12]
+        xor     ebx, ebx
+        mov     ecx, 42D044h
+        call    ecx
+        pop     ebx
+        ret
 
 ; brr_call_palette_set(rgb, first, count), cdecl: the game's palette_set (0x42D1E8; EAX the
 ; 6-bit entries, EDX the first, EBX the count; it keeps every register but EAX)

@@ -477,6 +477,22 @@ static void log_joysticks(void)
     }
 }
 
+/* A joystick that Windows doesn't deliver (its captured byte 0: joySetCapture found none) and
+ * no pad drives reads 0,0 in the game, which joystick_to_keys (0x41A950) turns into the stick
+ * held left and up (key-table 0x77, 0x79) on every tick: unnoticed in 1996, as no menu used
+ * them, but the menu navigation's left (keys.c) would fire with every key press. Centred. */
+static void centre_absent_joysticks(void)
+{
+    int j;
+    if (windows_off == 1)  /* pads connected: their joysticks are driven, the others centred */
+        return;
+    for (j = 0; j < JOYSTICKS; j++)
+        if (!JOY_CAPTURED[j]) {
+            *JOY_X(j) = 32767;
+            *JOY_Y(j) = 32767;
+        }
+}
+
 void __cdecl brr_before_joystick(void)
 {
     xinput_state states[SLOTS];
@@ -517,8 +533,11 @@ void __cdecl brr_before_joystick(void)
         }
         drive_joystick(0, &states[0].pad);
     } else {
-        if (!cfg.controller || !get_state)
+        if (!cfg.controller || !get_state) {
+            if (cfg.menu_navigation)
+                centre_absent_joysticks();
             return;
+        }
         read_pads(states, ok);
         race_buttons(states, ok);
         for (j = 0; j < JOYSTICKS; j++)
@@ -526,6 +545,7 @@ void __cdecl brr_before_joystick(void)
                 drive_joystick(j, &states[joystick_slot[j]].pad);
             else if (windows_off == 1)  /* no pad yet: a centred joystick, not Windows' last message */
                 drive_joystick(j, &centred);
+        centre_absent_joysticks();
     }
     if (vibration_timer)
         check_vehicles();

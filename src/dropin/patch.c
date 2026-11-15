@@ -157,8 +157,8 @@ static int enabled(const char *fix)
             || cfg.fine_angles;
     if (!strcmp(fix, "version"))
         return cfg.show_version;
-    if (!strcmp(fix, "controller"))
-        return cfg.controller || cfg.debug_pad_test;
+    if (!strcmp(fix, "controller"))  /* also centres absent joysticks for the menu navigation */
+        return cfg.controller || cfg.debug_pad_test || cfg.menu_navigation;
     if (!strcmp(fix, "keys"))
         return cfg.fix_menu_keys || cfg.debug_log_keys;
     if (!strcmp(fix, "display"))
@@ -449,6 +449,7 @@ void brr_patch_all(void)
                 "the game's draw distance sliders");
     }
     brr_modern_window = brr_renderer_active && cfg.display_mode == DISPLAY_WINDOWED;
+    cfg.window_aspect43 = 0;  /* the 4:3 shape is cnc-ddraw's scaling preset's now (Modern), or square (Original) */
     brr_full_colour = brr_renderer_active && cfg.full_colour;
     brr_sky_active = brr_full_colour && cfg.smooth_sky;
     brr_shade_active = brr_full_colour && cfg.smooth_shading;

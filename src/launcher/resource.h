@@ -16,7 +16,6 @@
 #define IDC_PAGE_VIDEO   1200
 #define IDC_MODE         1201
 #define IDC_SCALE        1202
-#define IDC_ASPECT       1203
 #define IDC_PRESET       1204
 #define IDC_PRESET_LABEL 1205
 #define IDC_SCALE_LABEL  1206

@@ -46,15 +46,14 @@ setting below). Each renderer has its own:
 
 **Renderer** (not on Windows 95, 98 or ME, which always use the original)
 
-- **Modern** (the default): the picture is made once, at your screen's own
-  resolution (full screen) or your window's size (windowed), as a whole-
-  number enlargement of the game's picture centred on black, and shown with
-  no scaling after that. Nothing is scaled twice, so it stays sharp on any
-  screen. The 320x200 menus are enlarged by the whole numbers across and
-  down that come nearest to the 4:3 shape of a 1996 monitor (see "4:3"
-  below); 640x480 races are enlarged by the same whole number both ways. It
-  needs cnc-ddraw (CNCDD.DLL, next to Big Red Racing.exe), as the game does
-  on modern Windows; without it, the original is used.
+- **Modern** (the default): each picture goes to cnc-ddraw at its own size,
+  crisp and with no black borders of its own: the menus as their 320x200
+  pictures, races as 640x480 (or bigger, with Max). cnc-ddraw then enlarges
+  it to the screen or the window, as Scaling (below) says, 4:3 sharp by
+  default, so the menus fill the same space as the races. Starting and
+  leaving a race changes the picture's size, which cnc-ddraw may show as a
+  brief jump. It needs cnc-ddraw (CNCDD.DLL, next to Big Red Racing.exe), as
+  the game does on modern Windows; without it, the original is used.
 - **Original:** the game's own drawing, exactly as in 1996. In full screen
   cnc-ddraw enlarges it (see "Full screen" below); the menus are 320x200
   pictures doubled into the middle of a 640x480 picture, with black bands
@@ -85,9 +84,8 @@ Tab) broke its window, so it's removed.
   demo drawn with up to 1008x756 pixels, the most the game's 3D engine can
   draw. The size is the 4:3 picture that, enlarged by a whole number, fills
   the most of your screen or window, and never less than 640x480: 1008x756
-  shown as it is on 1280x800 (Steam Deck), 1366x768 or 1600x900; 720x540
-  doubled on 1920x1080; 960x720 doubled on 2560x1440 and tripled on
-  3840x2160. The dashboard (position, laps, map) is the game's own, enlarged
+  on 1280x800 (Steam Deck), 1366x768 or 1600x900; 720x540 on 1920x1080,
+  for cnc-ddraw to double; 960x720 on 2560x1440 and 3840x2160. The dashboard (position, laps, map) is the game's own, enlarged
   by the game itself to match, so its edges may look a little uneven. Menus
   and split-screen races stay as they are. If something looks wrong in a
   race, go back to High and tell us.
@@ -96,16 +94,19 @@ With the Original renderer, keypad + and - still switch between high and low
 resolution in the game, as in 1996. The Modern renderer keeps the one chosen
 here.
 
-**Full screen** (Original renderer, in full screen only; not on Windows 95, 98 or ME)
+**Scaling** (not on Windows 95, 98 or ME)
 
-How cnc-ddraw fills the screen:
+How cnc-ddraw enlarges the picture: the Original renderer's in full screen,
+the Modern renderer's in full screen and in its window. Each renderer keeps
+its own choice: Integer for the Original, 4:3 sharp for the Modern one.
 
 - **Integer (sharp):** the largest whole-number size that fits, with square
   pixels and black borders. 4x on the Steam Deck, which fills its screen.
-  At high resolution (640x480) a screen needs to be at least 960 pixels tall
-  for 2x; on smaller screens the picture is shown at 1x, so 4:3 sharp may
-  suit them better.
-- **4:3 sharp:** the 1996 monitor shape, as big as fits, kept sharp.
+  At 640x480 a screen needs to be at least 960 pixels tall for 2x; on
+  smaller screens the picture is shown at 1x, so 4:3 sharp may suit them
+  better.
+- **4:3 sharp:** the 1996 monitor shape, as big as fits, kept sharp (the
+  menus' 320x200 pictures a little taller, as 1996 monitors showed them).
 - **4:3 nearest:** the same shape with plain pixels; some rows and columns are
   one screen pixel wider than others.
 - **Stretch:** fills the whole screen, whatever its shape.
@@ -113,17 +114,9 @@ How cnc-ddraw fills the screen:
 
 **Window size** (Modern renderer, in a window only)
 
-How big the window is, in whole multiples of the game's picture (320x200 or
-640x480). "Largest that fits" picks the biggest that fits on your screen.
-
-**4:3 (non-square pixels)** (Modern renderer; on by default)
-
-The game's 320x200 pictures (the menus, and everything at low resolution) were
-made for 1996 monitors, which showed them at 4:3, so everything looked a
-little taller. Ticked, they are shown at about that shape, by the whole
-numbers across and down that come nearest (on a 1920x1080 screen, 4 across by
-5 down, which is 1280x1000). Unticked, pixels are square. At 640x480 the
-picture already has the 4:3 shape.
+How big the window is, in whole multiples of 640x480. "Largest that fits"
+picks the biggest that fits on your screen. The picture is enlarged into it
+as Scaling says.
 
 **Colour depth** (Modern renderer)
 

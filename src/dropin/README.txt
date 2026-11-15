@@ -156,14 +156,15 @@ Display and scaling
 Two renderers ("Renderer" in the launcher, [display] renderer in BRRFIX.INI):
 
 Modern (renderer=new, the default; Windows 2000 onwards, Wine and Proton, with
-cnc-ddraw): the picture is made once, at the screen's own resolution (full
-screen) or the window's size, enlarging the game's picture by whole numbers on
-black, so nothing is scaled twice. In full colour (32 bits) the sky is a
-smooth gradient instead of the game's 16 flat bands, and lit surfaces
-(buildings, trees, vehicles, tunnel walls) are shaded smoothly instead of a
-palette shade at a time ([display] full_colour, smooth_sky, smooth_shading).
+cnc-ddraw): each picture goes to cnc-ddraw at its own size, crisp and with no
+black borders (the menus' 320x200, races' 640x480 or bigger), and cnc-ddraw
+enlarges it with the launcher's Scaling choice (4:3 sharp by default). In full
+colour (32 bits) the sky is a smooth gradient instead of the game's 16 flat
+bands, and lit surfaces (buildings, trees, vehicles, tunnel walls) are shaded
+smoothly instead of a palette shade at a time ([display] full_colour,
+smooth_sky, smooth_shading).
 Windowed, it's a plain window drawn by cnc-ddraw: Alt+Enter switches to full
-screen and back. Its options: window size and the 4:3 shape, colour depth,
+screen and back. Its options: scaling, window size, colour depth,
 "Resolution: Max (experimental)" (races with up to 1008x756 pixels, the most
 the game's 3D engine can draw, at the 4:3 size that fills the most of the
 screen when enlarged by a whole number), and "Draw distance": the in-game

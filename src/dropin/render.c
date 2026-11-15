@@ -1,21 +1,19 @@
-/* Phase 3c, the new renderer (SPEC Phase 3c, milestone 3). The golden rule (director,
- * 2026-11-12): nothing is scaled twice, and integer scaling is the gold standard. So the
- * final picture is composed here, at the screen's own resolution (full screen) or the
- * window's (in a window), and shown 1:1:
- *   - full screen: the game's DirectDraw set-up (0x42C590) asks cnc-ddraw for a mode of the
- *     screen's own size (site dd_setup_entry; site dd_mode_check lets that size through the
- *     game's 320x200-or-640x480 check), and cnc-ddraw, rendering at the desktop's size,
- *     shows it 1:1. Each present, our picture of that size takes the place of the game's
- *     buffer, and the frame size the copy uses (0x44BFB8) is the mode's, both only for the
- *     present (WndProc sets the frame size back to the game's display size every frame);
- *   - in a window: display.c draws our picture of the window's size with GDI, 1:1.
- * The game itself still runs at its own 320x200 or 640x480, so nothing else changes.
- * Its picture is enlarged once, by whole numbers, and centred on black (palette index 0,
- * as the game's own bands): the 320x200 menus (the doubling into 640x480, 0x4262B4, is
- * removed: site menu_double_call) at the 4:3 shape a 1996 monitor gave them, or with
- * square pixels ([display] aspect); 640x480 pictures (races in high resolution) with
- * square pixels, as the game drew them. The menu's mouse is mapped back the same way
- * (site menu_mouse). Races at the screen's resolution are milestone 4.
+/* Phase 3c, the Modern renderer (SPEC Phase 3c). Since 2026-11-15 (the director: no black
+ * borders, "everything handed to cnc-ddraw super crisp and ready for scaling", a deliberate
+ * relaxation of the golden rule) DirectDraw's mode is always the size of the game's picture,
+ * and cnc-ddraw enlarges it with the launcher's scaling preset (4:3 sharp by default):
+ *   - the menus: their own 320x200 (the doubling into 640x480, 0x4262B4, is removed: site
+ *     menu_double_call), with the menu's mouse 1:1 (site menu_mouse);
+ *   - races: the game's 640x480 (or 320x200 at low resolution), or with Max the bigger view
+ *     below, chosen for the screen's height.
+ * The game's set-up (0x42C590) gets the size through site dd_setup_entry (site dd_mode_check
+ * lets any size through its 320x200-or-640x480 check). When the picture's size changes (a race
+ * starts or ends), the present re-creates DirectDraw at the new size through the game's own
+ * dd_set_mode (0x42D044), as its high and low resolution commands do. Each present, our copy
+ * of the picture takes the place of the game's buffer, with the frame size the copy uses
+ * (0x44BFB8) set to it, only for the present. The game itself still runs at its own 320x200
+ * or 640x480 display size. In a window the game runs full screen too, and cnc-ddraw shows it
+ * in a window of the size the launcher writes into ddraw.ini (Alt+Enter: full screen).
  * Experimental, [display] render_resolution=max ("Max" in the launcher): single-view races
  * and the attract-mode demo drawn bigger than 640x480, up to RENDER_MAX_W x RENDER_MAX_H
  * (1008x756), the most the 3D engine's 1,024-entry reciprocal table allows without a bigger
@@ -57,7 +55,11 @@ int brr_renderer_active;               /* the new renderer's sites are patched *
 int brr_full_colour;                   /* it presents 32-bit pictures */
 uint32_t brr_dd_setup_continue = 0x42C599;
 static int screen_w, screen_h;         /* the screen's own resolution */
-static int mode_w, mode_h;             /* full screen: the mode we gave DirectDraw (0 in a window) */
+static int mode_w, mode_h;             /* the mode we gave DirectDraw (0: the game's own window) */
+static int want_w, want_h;             /* the size the next set-up is for (0: the menus') */
+static int switching;                  /* re-creating DirectDraw, from the present */
+static int mode_switches;
+static int window_w, window_h;         /* cnc-ddraw's window (ddraw.ini width, height; 0: the game's size) */
 static int final_w, final_h;           /* the last final picture's size, for the mouse */
 uint32_t brr_set_view_continue = 0x425F7D;  /* set_view after the 5 bytes site set_view_entry replaces */
 static int race_w, race_h;             /* Max: the race view we last gave the game (0: none) */
@@ -103,10 +105,17 @@ int brr_renderer_decide(int cnc_ddraw)
                 "the original renderer instead");
         return 0;
     }
-    brr_log("render: the Modern renderer: the picture composed at %s and shown 1:1; menus %s",
-            cfg.display_mode == DISPLAY_WINDOWED ? "the window's size (cnc-ddraw's window; Alt+Enter: full screen)"
-                                                 : "the screen's resolution",
-            cfg.window_aspect43 ? "at the 4:3 shape of a 1996 monitor" : "with square pixels");
+    if (cfg.display_mode == DISPLAY_WINDOWED) {
+        char path[MAX_PATH];
+        brr_path_beside_dll(path, sizeof path, "ddraw.ini");
+        window_w = (int)GetPrivateProfileIntA("ddraw", "width", 0, path);
+        window_h = (int)GetPrivateProfileIntA("ddraw", "height", 0, path);
+    }
+    brr_log("render: the Modern renderer: DirectDraw at the picture's own size (menus 320x200, races "
+            "their own), enlarged by cnc-ddraw's scaling preset%s",
+            cfg.display_mode == DISPLAY_WINDOWED ? ", in cnc-ddraw's window (Alt+Enter: full screen)" : "");
+    if (window_w > 0 && window_h > 0)
+        brr_log("render: cnc-ddraw's window: %dx%d (ddraw.ini)", window_w, window_h);
     return 1;
 }
 
@@ -531,7 +540,11 @@ static void race_view_size(int out_w, int out_h, int *w, int *h)
 uint32_t __cdecl brr_view_size(uint32_t width, uint32_t height)
 {
     static int logged_w, logged_h;
-    int out_w = mode_w ? mode_w : final_w, out_h = mode_w ? mode_h : final_h, w, h;
+    int out_w = screen_w, out_h = screen_h, w, h;  /* races chosen for the screen's height */
+    if (brr_modern_window && window_w > 0 && window_h > 0) {  /* or the window's: cnc-ddraw only enlarges */
+        out_w = window_w;
+        out_h = window_h;
+    }
     if ((width & 0xFFFF) != 640 || (height & 0xFFFF) != 480 || SPLIT_SCREEN || out_w <= 0 || view_held)
         return (height & 0xFFFF) << 16 | (width & 0xFFFF);
     race_view_size(out_w, out_h, &w, &h);
@@ -540,8 +553,8 @@ uint32_t __cdecl brr_view_size(uint32_t width, uint32_t height)
     if (w != logged_w || h != logged_h) {
         logged_w = w;
         logged_h = h;
-        brr_log("render: Max: races drawn at %dx%d instead of 640x480, for the %dx%d final picture", w, h,
-                out_w, out_h);
+        brr_log("render: Max: races drawn at %dx%d instead of 640x480, for the %dx%d %s", w, h,
+                out_w, out_h, out_w == screen_w && out_h == screen_h ? "screen" : "window");
     }
     return (uint32_t)h << 16 | (uint32_t)w;
 }
@@ -574,38 +587,14 @@ void __cdecl brr_screenshot_end(void)
     }
 }
 
-/* ---- full screen: DirectDraw at the screen's resolution ---- */
+/* ---- DirectDraw at the picture's own size ---- */
 
-/* The Modern renderer in a window: the game runs full screen and cnc-ddraw shows its picture
- * in a window (Alt+Enter for full screen), so the mode is the window's size: the game's
- * picture (640x480, or 320x200 a fifth taller with 4:3) times window_scale, or with auto the
- * largest whole number that fits 85% of the desktop's work area, as the game's own window. */
-static void window_mode_size(int *w, int *h)
-{
-    RECT work;
-    int frame_w = DISPLAY_W, frame_h = DISPLAY_H, scale = cfg.window_scale, stretch;
-    if (frame_w <= 0 || frame_h <= 0) {
-        frame_w = 640;
-        frame_h = 480;
-    }
-    stretch = cfg.window_aspect43 && frame_w * 3 != frame_h * 4;
-    if (scale <= 0) {
-        SystemParametersInfoA(SPI_GETWORKAREA, 0, &work, 0);
-        for (scale = 8; scale > 1; scale--)
-            if (frame_w * scale <= (work.right - work.left) * 85 / 100
-                && frame_h * scale * (stretch ? 6 : 5) / 5 <= (work.bottom - work.top) * 85 / 100)
-                break;
-    }
-    *w = frame_w * scale;
-    *h = stretch ? frame_h * scale * 6 / 5 : frame_h * scale;
-    if (*w > screen_w || *h > screen_h) {
-        *w = screen_w;
-        *h = screen_h;
-    }
-}
+/* the game's dd_set_mode (0x42D044; EAX width, EDX height, BL 0: no window swap), thunks.asm */
+void __cdecl brr_call_dd_set_mode(int width, int height);
 
 /* Site dd_setup_entry: the DirectDraw set-up's mode, given its windowed flag. Returns the
- * mode for full screen as height << 16 | width, or 0 to keep the game's. */
+ * mode as height << 16 | width, or 0 to keep the game's (its own window: the original
+ * renderer). The first set-up is for the menus' 320x200 (the first screen is a menu). */
 uint32_t __cdecl brr_render_mode(uint32_t windowed)
 {
     static int logged;
@@ -613,15 +602,28 @@ uint32_t __cdecl brr_render_mode(uint32_t windowed)
         mode_w = mode_h = 0;
         return 0;
     }
-    mode_w = screen_w;
-    mode_h = screen_h;
-    if (brr_modern_window)
-        window_mode_size(&mode_w, &mode_h);
-    if (logged++ < 4)
-        brr_log("render: %s: DirectDraw at %dx%d, shown 1:1; the game runs at %ldx%ld",
-                brr_modern_window ? "in cnc-ddraw's window" : "full screen (the screen's own size)",
-                mode_w, mode_h, (long)DISPLAY_W, (long)DISPLAY_H);
+    mode_w = want_w > 0 ? want_w : MENU_W;
+    mode_h = want_h > 0 ? want_h : MENU_H;
+    if (logged++ < 12)
+        brr_log("render: DirectDraw at %dx%d, the picture's own size%s (screen 0x%02X; the game's display %ldx%ld)",
+                mode_w, mode_h, brr_modern_window ? ", in cnc-ddraw's window" : "",
+                (unsigned)*(volatile uint16_t *)0x4B13C0, (long)DISPLAY_W, (long)DISPLAY_H);
     return (uint32_t)mode_h << 16 | (uint32_t)mode_w;
+}
+
+/* Before a present: DirectDraw re-created at the picture's size when it has changed */
+static void follow_picture_size(void)
+{
+    const uint8_t *pixels;
+    int w, h, pitch;
+    if (switching || !game_picture(&pixels, &w, &h, &pitch) || (w == mode_w && h == mode_h))
+        return;
+    switching = 1;
+    want_w = w;
+    want_h = h;
+    mode_switches++;
+    brr_call_dd_set_mode(w, h);
+    switching = 0;
 }
 
 static uint8_t *game_source;
@@ -635,8 +637,11 @@ int __cdecl brr_render_before_present(void)
     game_source = NULL;
     brr_shade_census_report();
     brr_debug_every_frame();
-    if (!brr_renderer_active || *GAME_WINDOWED || !mode_w)
-        return 0;  /* in a window, display.c composes */
+    if (!brr_renderer_active || *GAME_WINDOWED || !mode_w || switching)
+        return 0;  /* the game's own window: display.c */
+    follow_picture_size();
+    if (!DD_READY || !mode_w)
+        return 0;
     if (brr_full_colour)
         return present_full_colour();
     out = brr_render_compose(mode_w, mode_h, mode_w);
