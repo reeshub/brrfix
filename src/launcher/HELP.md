@@ -10,7 +10,30 @@ Start the game with **Big Red Racing.exe**. To see the settings window again
 after ticking "Skip this window next time", hold **Shift** while starting it,
 or start it with **-setup**.
 
-## Display
+The settings are on five tabs: General, Video, Audio, Controller and Advanced.
+Click a tab, or use the arrow keys while the tabs are selected (as they are
+when the window opens). This file follows the same order.
+
+## General
+
+Who made Big Red Launcher, what it does, and two sets of settings to start
+from:
+
+- **Period defaults:** for a 1990s PC with Windows 95, 98 or ME, where the
+  game's 640x480 3D is heavy work: full screen at the game's low resolution
+  (320x200), drawn by the original renderer, with interpolation on and the
+  frame limit at the display rate.
+- **Modern defaults:** for today's Windows, Linux and Steam Deck: full screen
+  at high resolution (640x480), drawn sharp by the new renderer, with modern
+  pads on.
+
+Each button sets every setting on every tab. Press Save or Play to keep them.
+The Defaults button at the bottom of the window chooses the set for your PC:
+Period defaults on Windows 95, 98 and ME, Modern defaults on anything newer.
+
+## Video
+
+### Display
 
 **Renderer** (not on Windows 95, 98 or ME, which always use the original)
 
@@ -77,7 +100,7 @@ and cnc-ddraw adds nothing.
 - **Stretch:** fills the whole screen, whatever its shape.
 - **Smooth:** slightly blurred, as cnc-ddraw does by default.
 
-## Smoothness
+### Smoothness
 
 **Interpolation (smooth motion)**
 
@@ -103,16 +126,46 @@ Waits for the screen to finish each refresh before showing the next picture,
 so there are no horizontal tears when the camera turns. It can add a little
 input lag.
 
-## Game
+### Races
 
-**Language**
+**Draw distance (experimental)**
 
-The game's language, as in its window's Language menu: English (the default),
-USA, French, German, Italian, Spanish or Japanese. It applies from the first
-screen, "Enter your name". The window's Language menu still works, but only
-until the game is closed: next time, this setting is used again.
+How far races and replays are drawn:
 
-## Music
+- **The game's own** (the default): the in-game vision and texture distance
+  sliders, as in 1996.
+- **Furthest in one pass (25):** as far as the game's engine allows on its
+  own: 25 landscape squares instead of the slider's 22, with textures all the
+  way out instead of stopping at 14.
+- **Double (44, experimental):** the ground goes on to 44 squares, drawn in
+  extra passes beyond the engine's own limit. Trees, buildings and other
+  scenery still appear at 25.
+
+With either of the last two, the in-game sliders are ignored, and your own
+settings are kept for when you go back. If something looks wrong (missing
+patches of ground, cracks, flicker in the distance), go back to the game's own
+and tell us.
+
+**In-game render resolution** (new renderer only; not on Windows 95, 98 or ME)
+
+How many pixels races and the attract-mode demo are drawn with:
+
+- **Original** (the default): the game's own 640x480.
+- **Max (experimental):** up to 1008x756, the most the game's 3D engine can
+  draw. The size is the 4:3 picture that, enlarged by a whole number, fills
+  the most of your screen or window, and never less than 640x480: 1008x756
+  shown as it is on 1280x800 (Steam Deck), 1366x768 or 1600x900; 720x540
+  doubled on 1920x1080; 960x720 doubled on 2560x1440 and tripled on
+  3840x2160. The picture keeps the game's own view, with more detail. The
+  dashboard (position, laps, map) is the game's own, enlarged by the game
+  itself to match, so its edges may look a little uneven. Menus and
+  split-screen races stay as they are.
+
+If something looks wrong in a race, go back to Original and tell us.
+
+## Audio
+
+### Music
 
 **CD music from ripped tracks**
 
@@ -168,6 +221,17 @@ end of the stick's travel; higher values reach it sooner.
 
 ## Advanced
 
+### Game
+
+**Language**
+
+The game's language, as in its window's Language menu: English (the default),
+USA, French, German, Italian, Spanish or Japanese. It applies from the first
+screen, "Enter your name". The window's Language menu still works, but only
+until the game is closed: next time, this setting is used again.
+
+### Clock
+
 **Tick rate**
 
 The game's clock "ticks" a fixed number of times a second, and everything in
@@ -196,46 +260,13 @@ Catch-up sets how many ticks it will run at once:
 
 The physics is the same either way; only how a pause is made up changes. If in doubt, pick 8 on modern systems as it will make the game feel smoother.
 
+### Troubleshooting
+
 **Log**
 
 Writes BRRFIX.LOG next to the game: what was fixed and how the clock ran. It's
 off by default; turn it on if you're reporting a problem, and send the file
 with your report.
-
-**Draw distance (experimental)**
-
-How far races and replays are drawn:
-
-- **The game's own** (the default): the in-game vision and texture distance
-  sliders, as in 1996.
-- **Furthest in one pass (25):** as far as the game's engine allows on its
-  own: 25 landscape squares instead of the slider's 22, with textures all the
-  way out instead of stopping at 14.
-- **Double (44, experimental):** the ground goes on to 44 squares, drawn in
-  extra passes beyond the engine's own limit. Trees, buildings and other
-  scenery still appear at 25.
-
-With either of the last two, the in-game sliders are ignored, and your own
-settings are kept for when you go back. If something looks wrong (missing
-patches of ground, cracks, flicker in the distance), go back to the game's own
-and tell us.
-
-**In-game render resolution** (new renderer only; not on Windows 95, 98 or ME)
-
-How many pixels races and the attract-mode demo are drawn with:
-
-- **Original** (the default): the game's own 640x480.
-- **Max (experimental):** up to 1008x756, the most the game's 3D engine can
-  draw. The size is the 4:3 picture that, enlarged by a whole number, fills
-  the most of your screen or window, and never less than 640x480: 1008x756
-  shown as it is on 1280x800 (Steam Deck), 1366x768 or 1600x900; 720x540
-  doubled on 1920x1080; 960x720 doubled on 2560x1440 and tripled on
-  3840x2160. The picture keeps the game's own view, with more detail. The
-  dashboard (position, laps, map) is the game's own, enlarged by the game
-  itself to match, so its edges may look a little uneven. Menus and
-  split-screen races stay as they are.
-
-If something looks wrong in a race, go back to Original and tell us.
 
 ## The buttons
 
@@ -245,8 +276,9 @@ If something looks wrong in a race, go back to Original and tell us.
   fixes, for DOS PCs and DOSBox), keeping the original as RACING.ORI. Press it
   again on a patched file to put the original back.
 - **Help:** opens this file (or press F1).
-- **Defaults:** puts every setting back to its default. Press Save or Play to
-  keep them.
+- **Defaults:** puts every setting back to the defaults for your PC: Period
+  defaults on Windows 95, 98 and ME, Modern defaults on anything newer (see
+  General). Press Save or Play to keep them.
 - **Play:** saves the settings and starts the game.
 - **Save:** saves the settings without starting the game.
 - **Quit:** closes the window without saving.

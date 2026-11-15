@@ -7,66 +7,91 @@
 IDI_APP ICON "launcher.ico"
 
 /* 324x276 dialog units: about 486x449 pixels with its 8-point font at 96 dpi, about 473
- * with Windows 95's title bar and frame, so it fits a 640x480 screen (director, 2026-11-10) */
+ * with Windows 95's title bar and frame, so it fits a 640x480 screen (director, 2026-11-10).
+ * The settings are on five tabs (director, 2026-11-15): one dialog, its controls shown and
+ * hidden by tab (launcher.c, show_page). The tab control comes last, at the bottom of the
+ * z-order, so the clicks reach the controls drawn over it; WS_CLIPSIBLINGS stops it painting
+ * over them. */
 IDD_SETTINGS DIALOG 0, 0, 324, 276
 STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX
 CAPTION "Big Red Launcher"
 FONT 8, "MS Sans Serif"
 BEGIN
-    GROUPBOX        "Display", -1, 6, 4, 154, 96
-    LTEXT           "&Renderer:", IDC_RENDERER_LABEL, 12, 18, 40, 8
-    COMBOBOX        IDC_RENDERER, 56, 16, 98, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    LTEXT           "&Mode:", -1, 12, 32, 40, 8
-    COMBOBOX        IDC_MODE, 56, 30, 98, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    LTEXT           "Resolutio&n:", -1, 12, 46, 44, 8
-    COMBOBOX        IDC_RESOLUTION, 56, 44, 98, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    LTEXT           "&Window size:", IDC_SCALE_LABEL, 12, 60, 44, 8
-    COMBOBOX        IDC_SCALE, 56, 58, 98, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    AUTOCHECKBOX    "4:3 (non-&square pixels)", IDC_ASPECT, 12, 72, 140, 10, WS_TABSTOP
-    LTEXT           "&Full screen:", IDC_PRESET_LABEL, 12, 85, 44, 8
-    COMBOBOX        IDC_PRESET, 56, 83, 98, 70, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    /* General */
+    LTEXT           "", IDC_TITLE, 14, 26, 296, 10
+    LTEXT           "ctrl-alt-rees.com", IDC_PAGE_GENERAL, 14, 37, 296, 8
+    LTEXT           "Big Red Launcher starts the Windows version of Big Red Racing (Big Red Software, 1996) on Windows 95 to today's Windows, and on Linux and Steam Deck through Proton, and makes it run smoothly: a steady clock, smooth motion at any refresh rate, no camera stutter, and a sharp picture on today's screens. It also plays the CD music from ripped tracks and adds modern pads. The physics is left exactly as it was.", IDC_PAGE_GENERAL, 14, 52, 296, 42
+    LTEXT           "Choose your settings on these tabs, then press Play. Rest the mouse on a setting for a one-line reminder; Help (or F1) explains every setting.", IDC_PAGE_GENERAL, 14, 98, 296, 16
+    GROUPBOX        "Defaults for your PC", IDC_PAGE_GENERAL, 12, 120, 300, 90
+    PUSHBUTTON      "Period defaults", IDC_PERIOD, 20, 134, 64, 14, WS_TABSTOP
+    LTEXT           "For a 1990s PC with Windows 95, 98 or ME: full screen at the game's low resolution (320x200), drawn as the 1996 game drew it.", IDC_PAGE_GENERAL, 90, 133, 216, 24
+    PUSHBUTTON      "Modern defaults", IDC_MODERN, 20, 162, 64, 14, WS_TABSTOP
+    LTEXT           "For today's Windows, Linux and Steam Deck: full screen at high resolution (640x480), drawn sharp by the new renderer, with modern pads.", IDC_PAGE_GENERAL, 90, 161, 216, 24
+    LTEXT           "Each sets every setting; press Save or Play to keep them. Defaults, below, chooses the one for this PC.", IDC_PAGE_GENERAL, 20, 190, 286, 16
 
-    GROUPBOX        "Smoothness", -1, 166, 4, 152, 70
-    AUTOCHECKBOX    "&Interpolation (smooth motion)", IDC_INTERP, 172, 16, 140, 10, WS_TABSTOP
-    LTEXT           "Camera smoot&hing:", -1, 172, 30, 62, 8
-    COMBOBOX        IDC_SMOOTHING, 236, 28, 76, 70, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    LTEXT           "Frame &limit:", -1, 172, 45, 62, 8
-    COMBOBOX        IDC_FRAMES, 236, 43, 76, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    AUTOCHECKBOX    "&Vsync", IDC_VSYNC, 172, 59, 140, 10, WS_TABSTOP
+    /* Video */
+    GROUPBOX        "Display", IDC_PAGE_VIDEO, 12, 24, 150, 98
+    LTEXT           "&Renderer:", IDC_RENDERER_LABEL, 18, 38, 40, 8
+    COMBOBOX        IDC_RENDERER, 62, 36, 94, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "&Mode:", IDC_PAGE_VIDEO, 18, 52, 40, 8
+    COMBOBOX        IDC_MODE, 62, 50, 94, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Resolutio&n:", IDC_PAGE_VIDEO, 18, 66, 44, 8
+    COMBOBOX        IDC_RESOLUTION, 62, 64, 94, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "&Window size:", IDC_SCALE_LABEL, 18, 80, 44, 8
+    COMBOBOX        IDC_SCALE, 62, 78, 94, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    AUTOCHECKBOX    "4:3 (non-&square pixels)", IDC_ASPECT, 18, 92, 140, 10, WS_TABSTOP
+    LTEXT           "&Full screen:", IDC_PRESET_LABEL, 18, 105, 44, 8
+    COMBOBOX        IDC_PRESET, 62, 103, 94, 70, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
 
-    GROUPBOX        "Game", -1, 166, 76, 152, 24
-    LTEXT           "L&anguage:", -1, 172, 87, 40, 8
-    COMBOBOX        IDC_LANGUAGE, 236, 85, 76, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    GROUPBOX        "Smoothness", IDC_PAGE_VIDEO, 168, 24, 144, 74
+    AUTOCHECKBOX    "&Interpolation (smooth motion)", IDC_INTERP, 174, 36, 134, 10, WS_TABSTOP
+    LTEXT           "Camera smoot&hing:", IDC_PAGE_VIDEO, 174, 50, 60, 8
+    COMBOBOX        IDC_SMOOTHING, 236, 48, 70, 70, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Frame &limit:", IDC_PAGE_VIDEO, 174, 65, 60, 8
+    COMBOBOX        IDC_FRAMES, 236, 63, 70, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    AUTOCHECKBOX    "&Vsync", IDC_VSYNC, 174, 79, 134, 10, WS_TABSTOP
 
-    GROUPBOX        "Music", -1, 6, 104, 154, 66
-    AUTOCHECKBOX    "CD &music from ripped tracks", IDC_MUSIC, 12, 116, 140, 10, WS_TABSTOP
-    LTEXT           "V&olume:", IDC_VOLUME_LABEL, 12, 132, 40, 8
-    COMBOBOX        IDC_VOLUME, 56, 130, 50, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    EDITTEXT        IDC_FOLDER, 12, 146, 102, 12, ES_AUTOHSCROLL | WS_TABSTOP
-    PUSHBUTTON      "&Browse...", IDC_BROWSE, 116, 145, 38, 14, WS_TABSTOP
-    LTEXT           "", IDC_TRACKS, 12, 160, 142, 8
+    GROUPBOX        "Races", IDC_PAGE_VIDEO, 12, 126, 300, 48
+    LTEXT           "Draw distance:", IDC_PAGE_VIDEO, 18, 140, 96, 8
+    COMBOBOX        IDC_DRAWDIST, 116, 138, 136, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "In-game render resolution:", IDC_RENDERRES_LABEL, 18, 156, 96, 8
+    COMBOBOX        IDC_RENDERRES, 116, 154, 136, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
 
-    GROUPBOX        "Controller", IDC_PAD_GROUP, 166, 104, 152, 66
-    AUTOCHECKBOX    "Modern &pad (XInput)", IDC_PAD, 172, 116, 84, 10, WS_TABSTOP
-    PUSHBUTTON      "Configure...", IDC_JOYCPL, 262, 114, 50, 14, WS_TABSTOP
-    LTEXT           "&Deadzone:", IDC_PAD_L1, 172, 132, 40, 8
-    COMBOBOX        IDC_DEADZONE, 214, 130, 40, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    LTEXT           "Sensiti&vity:", IDC_PAD_L2, 172, 148, 40, 8
-    COMBOBOX        IDC_SENSITIVITY, 214, 146, 40, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    LTEXT           "Layo&ut:", IDC_PAD_L3, 262, 132, 30, 8
-    COMBOBOX        IDC_LAYOUT, 262, 146, 50, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    /* Audio */
+    GROUPBOX        "Music", IDC_PAGE_AUDIO, 12, 24, 300, 78
+    AUTOCHECKBOX    "CD &music from ripped tracks", IDC_MUSIC, 18, 36, 200, 10, WS_TABSTOP
+    LTEXT           "V&olume:", IDC_VOLUME_LABEL, 18, 52, 40, 8
+    COMBOBOX        IDC_VOLUME, 62, 50, 50, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Folder:", IDC_FOLDER_LABEL, 18, 68, 40, 8
+    EDITTEXT        IDC_FOLDER, 62, 66, 198, 12, ES_AUTOHSCROLL | WS_TABSTOP
+    PUSHBUTTON      "&Browse...", IDC_BROWSE, 264, 65, 42, 14, WS_TABSTOP
+    LTEXT           "", IDC_TRACKS, 62, 84, 244, 8
 
-    GROUPBOX        "Advanced", -1, 6, 174, 312, 58
-    LTEXT           "&Tick rate:", -1, 12, 188, 34, 8
-    COMBOBOX        IDC_RATE, 48, 186, 100, 50, CBS_DROPDOWNLIST | WS_TABSTOP
-    LTEXT           "&Catch-up:", -1, 156, 188, 34, 8
-    COMBOBOX        IDC_CAP, 192, 186, 64, 50, CBS_DROPDOWNLIST | WS_TABSTOP
-    AUTOCHECKBOX    "Lo&g", IDC_LOG, 266, 187, 40, 10, WS_TABSTOP
-    LTEXT           "Draw distance:", -1, 12, 202, 96, 8
-    COMBOBOX        IDC_DRAWDIST, 110, 200, 136, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    LTEXT           "In-game render resolution:", IDC_RENDERRES_LABEL, 12, 216, 96, 8
-    COMBOBOX        IDC_RENDERRES, 110, 214, 100, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    /* Controller */
+    GROUPBOX        "Controller", IDC_PAD_GROUP, 12, 24, 300, 82
+    AUTOCHECKBOX    "Modern &pad (XInput)", IDC_PAD, 18, 36, 120, 10, WS_TABSTOP
+    PUSHBUTTON      "Configure...", IDC_JOYCPL, 256, 34, 50, 14, WS_TABSTOP
+    LTEXT           "&Deadzone:", IDC_PAD_L1, 18, 54, 44, 8
+    COMBOBOX        IDC_DEADZONE, 64, 52, 50, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Sensiti&vity:", IDC_PAD_L2, 18, 70, 44, 8
+    COMBOBOX        IDC_SENSITIVITY, 64, 68, 50, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Layo&ut:", IDC_PAD_L3, 18, 86, 44, 8
+    COMBOBOX        IDC_LAYOUT, 64, 84, 70, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Modern pads (XInput) need a newer version of Windows. Configure opens Windows' own joystick settings; choose the joystick in the game's controls menu.", IDC_PAD_NOTE, 18, 38, 230, 24
 
+    /* Advanced */
+    GROUPBOX        "Game", IDC_PAGE_ADVANCED, 12, 24, 300, 30
+    LTEXT           "L&anguage:", IDC_PAGE_ADVANCED, 18, 38, 44, 8
+    COMBOBOX        IDC_LANGUAGE, 64, 36, 90, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    GROUPBOX        "Clock", IDC_PAGE_ADVANCED, 12, 58, 300, 46
+    LTEXT           "&Tick rate:", IDC_PAGE_ADVANCED, 18, 72, 44, 8
+    COMBOBOX        IDC_RATE, 64, 70, 100, 50, CBS_DROPDOWNLIST | WS_TABSTOP
+    LTEXT           "&Catch-up:", IDC_PAGE_ADVANCED, 18, 88, 44, 8
+    COMBOBOX        IDC_CAP, 64, 86, 64, 50, CBS_DROPDOWNLIST | WS_TABSTOP
+    GROUPBOX        "Troubleshooting", IDC_PAGE_ADVANCED, 12, 108, 300, 28
+    AUTOCHECKBOX    "Lo&g (writes BRRFIX.LOG next to the game)", IDC_LOG, 18, 120, 200, 10, WS_TABSTOP
+
+    /* under the tabs */
     AUTOCHECKBOX    "S&kip this window next time (to see it again, hold Shift while starting, or use -setup)", IDC_SKIP, 8, 238, 310, 10, WS_TABSTOP
     PUSHBUTTON      "Patch the DOS ve&rsion...", IDC_DOSPATCH, 8, 256, 96, 14, WS_TABSTOP
     PUSHBUTTON      "Help", IDC_HELPFILE, 108, 256, 40, 14, WS_TABSTOP
@@ -74,6 +99,8 @@ BEGIN
     DEFPUSHBUTTON   "&Play", IDOK, 214, 254, 34, 16, WS_TABSTOP
     PUSHBUTTON      "&Save", IDC_SAVE, 250, 254, 34, 16, WS_TABSTOP
     PUSHBUTTON      "&Quit", IDCANCEL, 286, 254, 32, 16, WS_TABSTOP
+
+    CONTROL         "", IDC_TABS, "SysTabControl32", WS_TABSTOP | WS_CLIPSIBLINGS, 6, 4, 312, 228
 END
 
 1 VERSIONINFO

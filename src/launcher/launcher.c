@@ -10,6 +10,9 @@
  * Command line: -play starts the game straight away; -setup always shows the window;
  * holding Shift while starting also shows it. Anything else goes to WINRACE.EXE.
  *
+ * The window's settings are on five tabs (General, Video, Audio, Controller, Advanced),
+ * with the buttons below them; General has the Period and Modern defaults.
+ *
  * The "Patch the DOS version" button patches (or restores) the DOS version's RACING.EXE
  * on disk, with the same code as BRRPATCH.EXE, for players on modern Windows. On modern
  * Windows it also corrects WINRACE.EXE's section headers (winfix.c), keeping WINRACE.ORI. */
@@ -119,6 +122,81 @@ static void check(HWND dialog, int id, int on) { CheckDlgButton(dialog, id, on ?
 static int checked(HWND dialog, int id) { return IsDlgButtonChecked(dialog, id) == BST_CHECKED; }
 static void enable(HWND dialog, int id, int on) { EnableWindow(GetDlgItem(dialog, id), on); }
 
+/* ---- the tabs ---- */
+/* All the settings are in one dialog; a tab shows its own controls and hides the rest.
+ * resource.h numbers each tab's controls in its own hundred, from 1100. */
+static const char *const tab_names[] = {"General", "Video", "Audio", "Controller", "Advanced"};
+#define TAB_COUNT ((int)(sizeof tab_names / sizeof tab_names[0]))
+
+/* controls that this PC never shows (Windows 9x, Proton), whichever tab is chosen */
+static int never_shown[16], never_shown_count;
+static HFONT title_font;
+
+static int page_of(int id)
+{
+    return id >= IDC_PAGE_GENERAL && id < IDC_PAGE_GENERAL + TAB_COUNT * 100 ? (id - IDC_PAGE_GENERAL) / 100 : -1;
+}
+
+static void hide_for_good(HWND dialog, int id)
+{
+    if (never_shown_count < (int)(sizeof never_shown / sizeof never_shown[0]))
+        never_shown[never_shown_count++] = id;
+    ShowWindow(GetDlgItem(dialog, id), SW_HIDE);
+}
+
+static void show_page(HWND dialog, int page)
+{
+    HWND child;
+    /* not before the window first appears: turning redrawing back on would show it early */
+    int visible = IsWindowVisible(dialog);
+    if (visible)
+        SendMessageA(dialog, WM_SETREDRAW, FALSE, 0);
+    for (child = GetWindow(dialog, GW_CHILD); child; child = GetWindow(child, GW_HWNDNEXT)) {
+        int id = GetDlgCtrlID(child), i, show = page_of(id) == page;
+        if (page_of(id) < 0)
+            continue;
+        for (i = 0; i < never_shown_count; i++)
+            if (never_shown[i] == id)
+                show = 0;
+        ShowWindow(child, show ? SW_SHOWNA : SW_HIDE);
+    }
+    if (visible) {
+        SendMessageA(dialog, WM_SETREDRAW, TRUE, 0);
+        RedrawWindow(dialog, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
+    }
+}
+
+static void add_tabs(HWND dialog)
+{
+    HWND tabs = GetDlgItem(dialog, IDC_TABS);
+    TCITEMA item;
+    int i;
+    for (i = 0; i < TAB_COUNT; i++) {
+        memset(&item, 0, sizeof item);
+        item.mask = TCIF_TEXT;
+        item.pszText = (LPSTR)tab_names[i];
+        SendMessageA(tabs, TCM_INSERTITEMA, (WPARAM)i, (LPARAM)&item);
+    }
+    SendMessageA(tabs, TCM_SETCURSEL, 0, 0);
+    show_page(dialog, 0);
+}
+
+/* the title on the General tab, in bold */
+static void set_title(HWND dialog)
+{
+    char text[96];
+    LOGFONTA font;
+    HFONT normal = (HFONT)SendMessageA(dialog, WM_GETFONT, 0, 0);
+    wsprintfA(text, "Big Red Launcher %s by ctrl-alt-rees", BRRFIX_VERSION);
+    SetDlgItemTextA(dialog, IDC_TITLE, text);
+    if (normal && GetObjectA(normal, sizeof font, &font)) {
+        font.lfWeight = FW_BOLD;
+        title_font = CreateFontIndirectA(&font);
+        if (title_font)
+            SendDlgItemMessageA(dialog, IDC_TITLE, WM_SETFONT, (WPARAM)title_font, FALSE);
+    }
+}
+
 /* Whether the new renderer is chosen (Windows 95, 98 and ME have only the original) */
 static int new_renderer(HWND dialog)
 {
@@ -128,7 +206,8 @@ static int new_renderer(HWND dialog)
 /* Grey out what the other choices make irrelevant */
 static void update_enabled(HWND dialog)
 {
-    static const int music_controls[] = {IDC_VOLUME_LABEL, IDC_VOLUME, IDC_FOLDER, IDC_BROWSE, IDC_TRACKS};
+    static const int music_controls[] = {IDC_VOLUME_LABEL, IDC_VOLUME, IDC_FOLDER_LABEL, IDC_FOLDER, IDC_BROWSE,
+                                         IDC_TRACKS};
     static const int pad_controls[] = {IDC_PAD_L1, IDC_DEADZONE, IDC_PAD_L2, IDC_SENSITIVITY, IDC_PAD_L3, IDC_LAYOUT};
     const char *mode = chosen(dialog, IDC_MODE, modes);
     int window = lstrcmpiA(mode, "fullscreen") != 0, full = lstrcmpiA(mode, "windowed") != 0;
@@ -186,7 +265,12 @@ static const struct { int id; const char *text; } tips[] = {
                    "extra passes. The in-game sliders are ignored unless it's the game's own."},
     {IDC_RENDERRES, "Experimental, new renderer only: races drawn with more pixels, up to 1008x756 (the most the "
                     "game's 3D engine can draw), enlarged by whole numbers to fill the screen. The HUD stays the game's own."},
-    {IDC_DEFAULTS, "Puts every setting back to its default (press Save or Play to keep them)."},
+    {IDC_DEFAULTS, "Puts every setting back to the defaults for this PC: Period defaults on Windows 95, 98 and ME, "
+                   "Modern defaults on anything newer (press Save or Play to keep them)."},
+    {IDC_PERIOD, "Every setting for a 1990s PC: full screen at 320x200, the original renderer (press Save or Play "
+                 "to keep them)."},
+    {IDC_MODERN, "Every setting for a modern PC: full screen at 640x480, the new renderer, modern pads (press Save "
+                 "or Play to keep them)."},
     {IDC_SKIP, "Start the game straight away next time. Hold Shift while starting to see this window again."},
     {IDC_DOSPATCH, "Fixes the DOS version's RACING.EXE for DOS PCs and DOSBox, keeping the original as RACING.ORI."},
     {IDC_HELPFILE, "Opens the help file, which explains every setting (F1)."},
@@ -249,15 +333,19 @@ static void show_track_count(HWND dialog)
     SetDlgItemTextA(dialog, IDC_TRACKS, text);
 }
 
-/* Put the settings into the window: from the files, or the defaults */
+/* Put the settings into the window: from the files, or one of the two sets of defaults (SPEC:
+ * period for 1990s PCs, which can't draw the 640x480 3D quickly, and modern for the rest) */
+enum { FROM_FILES, MODERN_DEFAULTS, PERIOD_DEFAULTS };
+
 static void load(HWND dialog, int defaults)
 {
     char v[MAX_PATH];
     const char *f = defaults ? NULL : brrfix_ini, *d = defaults ? NULL : ddraw_ini;
+    int period = defaults == PERIOD_DEFAULTS;
 #define GET(file, section, key, fallback) (ini_get(file, section, key, fallback, v, sizeof v), v)
     fill(dialog, IDC_MODE, modes, GET(f, "display", "mode", "fullscreen"));
-    fill(dialog, IDC_RENDERER, renderers, GET(f, "display", "renderer", "new"));
-    fill(dialog, IDC_RESOLUTION, resolutions, GET(f, "display", "resolution", "high"));
+    fill(dialog, IDC_RENDERER, renderers, GET(f, "display", "renderer", period ? "original" : "new"));
+    fill(dialog, IDC_RESOLUTION, resolutions, GET(f, "display", "resolution", period ? "low" : "high"));
     fill(dialog, IDC_LANGUAGE, languages, GET(f, "display", "language", "ENG"));
     fill(dialog, IDC_SCALE, scales, GET(f, "display", "window_scale", "auto"));
     check(dialog, IDC_ASPECT, !lstrcmpiA(GET(f, "display", "aspect", "4:3"), "4:3"));
@@ -447,22 +535,41 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
         wsprintfA(title, "Big Red Launcher %s by ctrl-alt-rees", BRRFIX_VERSION);
         SetWindowTextA(dialog, title);
         SendMessageA(dialog, WM_SETICON, ICON_BIG, (LPARAM)LoadIconA(GetModuleHandleA(NULL), MAKEINTRESOURCEA(IDI_APP)));
-        load(dialog, 0);
+        set_title(dialog);
+        load(dialog, FROM_FILES);
         add_tips(dialog);
         if (windows_9x) {  /* no cnc-ddraw (DirectDraw does full screen itself), no XInput, no new renderer */
-            ShowWindow(GetDlgItem(dialog, IDC_RENDERER), SW_HIDE);
-            ShowWindow(GetDlgItem(dialog, IDC_RENDERER_LABEL), SW_HIDE);
-            ShowWindow(GetDlgItem(dialog, IDC_RENDERRES), SW_HIDE);
-            ShowWindow(GetDlgItem(dialog, IDC_RENDERRES_LABEL), SW_HIDE);
-            ShowWindow(GetDlgItem(dialog, IDC_PRESET), SW_HIDE);
-            ShowWindow(GetDlgItem(dialog, IDC_PRESET_LABEL), SW_HIDE);
+            hide_for_good(dialog, IDC_RENDERER);
+            hide_for_good(dialog, IDC_RENDERER_LABEL);
+            hide_for_good(dialog, IDC_RENDERRES);
+            hide_for_good(dialog, IDC_RENDERRES_LABEL);
+            hide_for_good(dialog, IDC_PRESET);
+            hide_for_good(dialog, IDC_PRESET_LABEL);
             for (i = 0; i < sizeof pad_controls / sizeof pad_controls[0]; i++)
-                ShowWindow(GetDlgItem(dialog, pad_controls[i]), SW_HIDE);
-        }
+                hide_for_good(dialog, pad_controls[i]);
+        } else
+            hide_for_good(dialog, IDC_PAD_NOTE);
         /* under Proton, Steam Input sets up controllers */
         if (GetEnvironmentVariableA("STEAM_COMPAT_DATA_PATH", steam, sizeof steam))
-            ShowWindow(GetDlgItem(dialog, IDC_JOYCPL), SW_HIDE);
-        return TRUE;
+            hide_for_good(dialog, IDC_JOYCPL);
+        add_tabs(dialog);
+        /* the tabs have the focus, so the arrow keys change tab and Return still plays */
+        SetFocus(GetDlgItem(dialog, IDC_TABS));
+        return FALSE;
+    }
+    if (message == WM_NOTIFY) {
+        const NMHDR *header = (const NMHDR *)lparam;
+        if (header->idFrom == IDC_TABS && header->code == TCN_SELCHANGE) {
+            show_page(dialog, (int)SendDlgItemMessageA(dialog, IDC_TABS, TCM_GETCURSEL, 0, 0));
+            return TRUE;
+        }
+        return FALSE;
+    }
+    if (message == WM_DESTROY) {
+        if (title_font)
+            DeleteObject(title_font);
+        title_font = NULL;
+        return FALSE;
     }
     if (message == WM_HELP) {
         open_help(dialog);
@@ -494,7 +601,13 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
             save(dialog);
             return TRUE;
         case IDC_DEFAULTS:
-            load(dialog, 1);
+            load(dialog, windows_9x ? PERIOD_DEFAULTS : MODERN_DEFAULTS);
+            return TRUE;
+        case IDC_PERIOD:
+            load(dialog, PERIOD_DEFAULTS);
+            return TRUE;
+        case IDC_MODERN:
+            load(dialog, MODERN_DEFAULTS);
             return TRUE;
         case IDC_BROWSE:
             browse(dialog);
