@@ -1,4 +1,4 @@
-/* WINRACE.EXE's section headers (see winfix.h). Standard C file functions only. */
+/* WINRACEP.EXE, the header-corrected copy (see winfix.h). Standard C file functions only. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -63,25 +63,49 @@ static uint8_t *load(const char *path, size_t *size)
     return data;
 }
 
-static int state_of(const char *path)
+static int state_of_data(const uint8_t *data, size_t size)
 {
-    size_t size = 0;
-    uint8_t *data = load(path, &size);
-    int state = BRR_WIN_OTHER;
-    if (!data)
-        return BRR_WIN_MISSING;
-    if (size == GAME_EXE_SIZE)
-        state = hash_is(data, size, GAME_EXE_SHA256) ? BRR_WIN_ORIGINAL
-              : hash_is(data, size, GAME_EXE_CORRECTED_SHA256) ? BRR_WIN_CORRECTED : BRR_WIN_OTHER;
-    free(data);
-    return state;
+    if (size != GAME_EXE_SIZE)
+        return BRR_WIN_OTHER;
+    return hash_is(data, size, GAME_EXE_SHA256) ? BRR_WIN_ORIGINAL
+         : hash_is(data, size, GAME_EXE_CORRECTED_SHA256) ? BRR_WIN_CORRECTED : BRR_WIN_OTHER;
 }
 
-int brr_win_state(const char *folder)
+/* The game's WINRACE.EXE, or WINRACE.ORI if an earlier launcher (which corrected
+ * WINRACE.EXE in place) kept the original there and WINRACE.EXE isn't v2.25; NULL if
+ * there's no WINRACE.EXE. *state is what the returned file is. */
+static uint8_t *load_game(const char *game_folder, size_t *size, int *state)
 {
     char path[PATH_SIZE];
-    join(path, folder, "WINRACE.EXE");
-    return state_of(path);
+    uint8_t *data, *backup;
+    size_t backup_size = 0;
+    join(path, game_folder, "WINRACE.EXE");
+    data = load(path, size);
+    if (!data) {
+        *state = BRR_WIN_MISSING;
+        return NULL;
+    }
+    *state = state_of_data(data, *size);
+    if (*state != BRR_WIN_OTHER)
+        return data;
+    join(path, game_folder, "WINRACE.ORI");
+    backup = load(path, &backup_size);
+    if (backup && state_of_data(backup, backup_size) == BRR_WIN_ORIGINAL) {
+        free(data);
+        *size = backup_size;
+        *state = BRR_WIN_ORIGINAL;
+        return backup;
+    }
+    free(backup);
+    return data;
+}
+
+int brr_win_game_state(const char *game_folder)
+{
+    size_t size = 0;
+    int state;
+    free(load_game(game_folder, &size, &state));
+    return state;
 }
 
 static uint32_t get32(const uint8_t *p) { return p[0] | p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24; }
@@ -92,7 +116,8 @@ static void put32(uint8_t *p, uint32_t value)
 }
 
 /* Each section's VirtualSize reaches the next section (Windows NT refuses gaps between
- * sections, and VirtualSize 0); uninitialised sections get no file data */
+ * sections, and VirtualSize 0); uninitialised sections get no file data. Correcting a
+ * corrected file changes nothing. */
 static void correct(uint8_t *data)
 {
     uint32_t pe = get32(data + 0x3C), image_size = get32(data + pe + 24 + 56);
@@ -109,77 +134,69 @@ static void correct(uint8_t *data)
     }
 }
 
-int brr_win_backup_is_original(const char *folder)
+static int same_file(const char *path, const uint8_t *data, size_t size)
 {
-    char path[PATH_SIZE];
-    join(path, folder, "WINRACE.ORI");
-    return state_of(path) == BRR_WIN_ORIGINAL;
+    size_t found_size = 0;
+    uint8_t *found = load(path, &found_size);
+    int same = found && found_size == size && !memcmp(found, data, size);
+    free(found);
+    return same;
 }
 
-int brr_win_correct(const char *folder, char *message, unsigned size)
+int brr_win_make_copy(const char *game_folder, const char *out, char *message, unsigned size)
 {
-    char exe[PATH_SIZE], backup[PATH_SIZE], fresh[PATH_SIZE];
+    char fresh[PATH_SIZE];
     size_t length = 0;
     uint8_t *data;
-    int kept, ok, redo = 0;
+    int state, ok;
     FILE *f;
-    join(exe, folder, "WINRACE.EXE");
-    join(backup, folder, "WINRACE.ORI");
-    join(fresh, folder, "WINRACE.NEW");
-    kept = state_of(backup);
-    switch (state_of(exe)) {
-    case BRR_WIN_CORRECTED:
-        say(message, size, "WINRACE.EXE is already corrected. Nothing was changed.");
-        return 1;
-    case BRR_WIN_ORIGINAL:
-        break;
-    default:
-        /* for example corrected by an earlier version of the launcher: start again from the original */
-        if (kept != BRR_WIN_ORIGINAL) {
-            say(message, size, "WINRACE.EXE isn't the v2.25 file this correction is for. Nothing was changed.");
+    data = load_game(game_folder, &length, &state);
+    if (!data) {
+        say(message, size, "Couldn't read WINRACE.EXE in the game's folder.");
+        return -1;
+    }
+    if (state != BRR_WIN_OTHER) {
+        correct(data);
+        if (!hash_is(data, length, GAME_EXE_CORRECTED_SHA256)) {  /* can't happen: the hashes are checked */
+            free(data);
+            say(message, size, "Couldn't correct WINRACE.EXE's headers. Nothing was changed.");
             return -1;
         }
-        redo = 1;
+        state = BRR_WIN_CORRECTED;
     }
-    if (kept != BRR_WIN_MISSING && kept != BRR_WIN_ORIGINAL) {
-        say(message, size, "WINRACE.ORI is already there, and it isn't the original WINRACE.EXE. Move or "
-            "rename it, then try again. Nothing was changed.");
+    if (same_file(out, data, length)) {
+        free(data);
+        say(message, size, "WINRACEP.EXE is up to date. Nothing was changed.");
+        return state;
+    }
+    if (strlen(out) + 5 > PATH_SIZE) {
+        free(data);
+        say(message, size, "The game's path is too long. Nothing was changed.");
         return -1;
     }
-    data = load(redo ? backup : exe, &length);
-    if (!data) {
-        say(message, size, "Couldn't read WINRACE.EXE. Nothing was changed.");
-        return -1;
-    }
-    correct(data);
-    ok = hash_is(data, length, GAME_EXE_CORRECTED_SHA256);
-    if (ok) {
-        f = fopen(fresh, "wb");
-        ok = f && fwrite(data, 1, length, f) == length;
-        if (f && fclose(f) != 0)
-            ok = 0;
-    }
+    strcpy(fresh, out);
+    strcat(fresh, ".new");
+    f = fopen(fresh, "wb");
+    ok = f && fwrite(data, 1, length, f) == length;
+    if (f && fclose(f) != 0)
+        ok = 0;
+    ok = ok && same_file(fresh, data, length);
     free(data);
-    if (!ok || state_of(fresh) != BRR_WIN_CORRECTED) {
+    if (!ok) {
         remove(fresh);
-        say(message, size, "Couldn't write the corrected file (WINRACE.NEW). Is the disk full or the "
+        say(message, size, "Couldn't write WINRACEP.EXE next to Big Red Racing.exe. Is the disk full or the "
             "folder write-protected? Nothing was changed.");
         return -1;
     }
-    if (kept == BRR_WIN_ORIGINAL ? remove(exe) != 0 : rename(exe, backup) != 0) {
+    /* rename doesn't replace a file on Windows */
+    remove(out);
+    if (rename(fresh, out) != 0) {
         remove(fresh);
-        say(message, size, "Couldn't replace WINRACE.EXE (is it read-only?). Nothing was changed.");
+        say(message, size, "Couldn't replace WINRACEP.EXE next to Big Red Racing.exe (is the game still "
+            "running, or the file read-only?).");
         return -1;
     }
-    if (rename(fresh, exe) != 0) {
-        if (!redo)
-            rename(backup, exe);
-        remove(fresh);
-        say(message, size, redo ? "Couldn't rename WINRACE.NEW to WINRACE.EXE. The original is still "
-            "WINRACE.ORI: rename it to WINRACE.EXE." : "Couldn't rename WINRACE.NEW to WINRACE.EXE. The "
-            "original WINRACE.EXE is back in place.");
-        return -1;
-    }
-    say(message, size, "WINRACE.EXE is corrected. The original is saved as WINRACE.ORI.");
-    return 0;
+    say(message, size, state == BRR_WIN_CORRECTED ? "WINRACEP.EXE is made: WINRACE.EXE with its headers corrected."
+        : "WINRACEP.EXE is made: a copy of WINRACE.EXE as it is (it isn't v2.25).");
+    return state;
 }

@@ -1,6 +1,14 @@
-/* Big Red Racing.exe: Big Red Launcher by ctrl-alt-rees (round 2, item 8). Our own program, placed next to
- * WINRACE.EXE, so Steam shows a proper name. It shows a settings window (which can be
- * skipped), checks the game's files, then starts WINRACE.EXE and waits for it to exit.
+/* Big Red Racing.exe: Big Red Launcher by ctrl-alt-rees (round 2, item 8). Our own program, so Steam
+ * shows a proper name. It shows a settings window (which can be skipped), checks the
+ * game's files, then starts the game and waits for it to exit.
+ *
+ * The layout: the launcher and our files at the top, the installed game in Game (BRRFIX.INI
+ * [launcher] game: another folder name or a full path) and the ripped CD tracks in Music.
+ * The game's files are left as they are: the launcher makes WINRACEP.EXE beside itself,
+ * WINRACE.EXE with its section headers corrected (winfix.c), and starts that in the game's
+ * folder. Windows looks for DLLs beside the program first, so the game gets our TIMER.DLL
+ * (and DPLAY.DLL, cnc-ddraw's ddraw.dll) rather than its own, and its own KEY.DLL from the
+ * game's folder (the current folder, and added to PATH).
  *
  * Settings live in BRRFIX.INI (the drop-in's) and ddraw.ini (cnc-ddraw's). They're
  * changed with WritePrivateProfileStringA, value by value, so comments, layout and keys
@@ -8,14 +16,13 @@
  * Windows 95 has; anything newer is looked up at run time.
  *
  * Command line: -play starts the game straight away; -setup always shows the window;
- * holding Shift while starting also shows it. Anything else goes to WINRACE.EXE.
+ * holding Shift while starting also shows it. Anything else goes to the game.
  *
  * The window's settings are on five tabs (General, Video, Audio, Controller, Advanced),
  * with the buttons below them; General has the Period and Modern defaults.
  *
  * The "Patch the DOS version" button patches (or restores) the DOS version's RACING.EXE
- * on disk, with the same code as BRRPATCH.EXE, for players on modern Windows. On modern
- * Windows it also corrects WINRACE.EXE's section headers (winfix.c), keeping WINRACE.ORI. */
+ * on disk, with the same code as BRRPATCH.EXE, for players on modern Windows. */
 #include <windows.h>
 #include <commctrl.h>
 #include <shlobj.h>
@@ -29,7 +36,7 @@
 #include "brrpatch.h"
 #include "winfix.h"
 
-static char folder[MAX_PATH], brrfix_ini[MAX_PATH], ddraw_ini[MAX_PATH];
+static char folder[MAX_PATH], game_folder[MAX_PATH], brrfix_ini[MAX_PATH], ddraw_ini[MAX_PATH];
 static int windows_9x, under_wine;
 
 /* made from HELP.md by dropin-build */
@@ -249,7 +256,7 @@ static const struct { int id; const char *text; } tips[] = {
     {IDC_VSYNC, "Waits for the screen's refresh before each picture: no tearing, slightly more input lag."},
     {IDC_MUSIC, "Plays the CD music from ripped tracks (trackNN.flac, .ogg or .wav) instead of the CD."},
     {IDC_VOLUME, "Music volume, on top of the game's own CD volume option."},
-    {IDC_FOLDER, "The folder with the ripped tracks: MUSIC next to the game, or a full path."},
+    {IDC_FOLDER, "The folder with the ripped tracks: Music next to the launcher, or a full path."},
     {IDC_BROWSE, "Choose the folder with the ripped tracks."},
     {IDC_PAD, "Use an Xbox-style pad as the game's joystick (choose the joystick in the game's controls menu)."},
     {IDC_JOYCPL, "Opens Windows' game controller settings, to set up and calibrate a joystick or pad."},
@@ -259,7 +266,7 @@ static const struct { int id; const char *text; } tips[] = {
     {IDC_LAYOUT, "Triggers: right accelerates, left brakes. Stick: push up and down, as the original."},
     {IDC_RATE, "Game ticks a second: 70.0 as the DOS version (real time), or 71.43 as the 1996 Windows version ran (2% fast)."},
     {IDC_CAP, "After a pause, how much missed game time is caught up at once: 8 ticks, or 35 as the original (see Help)."},
-    {IDC_LOG, "Writes BRRFIX.LOG next to the game: what was fixed, for bug reports."},
+    {IDC_LOG, "Writes BRRFIX.LOG next to the launcher: what was fixed, for bug reports."},
     {IDC_DRAWDIST, "Experimental: how far races are drawn. Furthest in one pass: as far as the game's engine "
                    "allows (25 squares; its slider stops at 22), textured all the way. Double: 44 squares, with "
                    "extra passes. The in-game sliders are ignored unless it's the game's own."},
@@ -311,13 +318,16 @@ static void open_help(HWND dialog)
                     MB_OK | MB_ICONINFORMATION);
 }
 
-static void music_folder(const char *setting, char *out)
+/* a folder setting: a full path, or a folder next to the launcher */
+static void folder_from(const char *setting, const char *fallback, char *out)
 {
     if (setting[0] && (setting[1] == ':' || setting[0] == '\\'))
         lstrcpynA(out, setting, MAX_PATH);
     else
-        wsprintfA(out, "%s\\%s", folder, setting[0] ? setting : "MUSIC");
+        wsprintfA(out, "%s\\%s", folder, setting[0] ? setting : fallback);
 }
+
+static void music_folder(const char *setting, char *out) { folder_from(setting, "Music", out); }
 
 static void show_track_count(HWND dialog)
 {
@@ -382,7 +392,7 @@ static void load(HWND dialog, int defaults)
     }
     check(dialog, IDC_MUSIC, defaults ? 1 : ini_flag("music", "music", 1));
     fill(dialog, IDC_VOLUME, volumes, GET(f, "music", "volume", "100"));
-    SetDlgItemTextA(dialog, IDC_FOLDER, GET(f, "music", "folder", "MUSIC"));
+    SetDlgItemTextA(dialog, IDC_FOLDER, GET(f, "music", "folder", "Music"));
     check(dialog, IDC_PAD, defaults ? 1 : ini_flag("controller", "enabled", 1));
     fill(dialog, IDC_DEADZONE, deadzones, GET(f, "controller", "deadzone", "15"));
     fill(dialog, IDC_SENSITIVITY, sensitivities, GET(f, "controller", "sensitivity", "100"));
@@ -424,7 +434,7 @@ static void save(HWND dialog)
     ini_set(brrfix_ini, "music", "music", checked(dialog, IDC_MUSIC) ? "1" : "0");
     ini_set(brrfix_ini, "music", "volume", chosen(dialog, IDC_VOLUME, volumes));
     GetDlgItemTextA(dialog, IDC_FOLDER, text, sizeof text);
-    ini_set(brrfix_ini, "music", "folder", text[0] ? text : "MUSIC");
+    ini_set(brrfix_ini, "music", "folder", text[0] ? text : "Music");
     ini_set(brrfix_ini, "controller", "enabled", checked(dialog, IDC_PAD) ? "1" : "0");
     ini_set(brrfix_ini, "controller", "deadzone", chosen(dialog, IDC_DEADZONE, deadzones));
     ini_set(brrfix_ini, "controller", "sensitivity", chosen(dialog, IDC_SENSITIVITY, sensitivities));
@@ -480,14 +490,14 @@ static void browse(HWND dialog)
 }
 
 /* Patch the DOS version's RACING.EXE, or put the original back. The DOS and Windows
- * versions install into the same folder, so look here first. */
+ * versions install into the same folder, so look in the game's folder first. */
 static void patch_dos(HWND dialog)
 {
     static const char title[] = "Big Red Racing: the DOS version";
     char dos_folder[MAX_PATH], text[MAX_PATH + 400], message[512];
     int state, result;
     HCURSOR cursor;
-    lstrcpynA(dos_folder, folder, MAX_PATH);
+    lstrcpynA(dos_folder, game_folder, MAX_PATH);
     state = brr_dos_state(dos_folder);
     if (state == BRR_DOS_MISSING) {
         BROWSEINFOA info;
@@ -656,50 +666,41 @@ static int file_contains(const char *path, const char *needle)
 
 static int checks_pass(void)
 {
-    char path[MAX_PATH], setting[MAX_PATH], message[300];
-    int state;
-    wsprintfA(path, "%s\\WINRACE.EXE", folder);
-    if (GetFileAttributesA(path) == 0xFFFFFFFFu) {
-        MessageBoxA(NULL, "WINRACE.EXE isn't here. Put Big Red Racing.exe in the game's folder, next to "
-                    "WINRACE.EXE.", "Big Red Racing", MB_OK | MB_ICONERROR);
+    char path[MAX_PATH], setting[MAX_PATH], message[MAX_PATH + 300];
+    int state = brr_win_game_state(game_folder);
+    if (state == BRR_WIN_MISSING) {
+        wsprintfA(path, "%s\\WINRACE.EXE", folder);
+        if (GetFileAttributesA(path) != 0xFFFFFFFFu)  /* dropped into the game's folder, as earlier versions were */
+            wsprintfA(message, "Big Red Launcher now goes in the folder above the game's files: make a folder "
+                      "called Game next to Big Red Racing.exe and move the game's files (WINRACE.EXE and the "
+                      "rest) into it. README.txt explains.");
+        else
+            wsprintfA(message, "WINRACE.EXE isn't in %s.\n\nPut the game's files there, installed and updated "
+                      "to v2.25.", game_folder);
+        MessageBoxA(NULL, message, "Big Red Racing", MB_OK | MB_ICONERROR);
         return 0;
     }
-    state = brr_win_state(folder);
-    /* also when an earlier launcher's correction is there and WINRACE.ORI is the original */
-    if (state == BRR_WIN_ORIGINAL || (state == BRR_WIN_OTHER && brr_win_backup_is_original(folder))) {
-        /* Windows 95-ME and Wine can also start the file as it is, so a "No" isn't fatal there */
-        int optional = windows_9x || under_wine;
-        if (MessageBoxA(NULL, "WINRACE.EXE needs a small correction: the 1996 linker wrote its file headers "
-                        "carelessly, and Windows 10 and 11 refuse to start it.\n\nCorrect them now? Only the "
-                        "headers change; the game is the same, and works on every version of "
-                        "Windows. The original is kept as WINRACE.ORI.", "Big Red Racing",
-                        MB_YESNO | MB_ICONQUESTION) != IDYES) {
-            if (!optional) {
-                MessageBoxA(NULL, "Without the correction, this version of Windows can't start the game.",
-                            "Big Red Racing", MB_OK | MB_ICONINFORMATION);
-                return 0;
-            }
-        } else if (brr_win_correct(folder, message, sizeof message) < 0) {
-            MessageBoxA(NULL, message, "Big Red Racing", MB_OK | MB_ICONERROR);
-            if (!optional)
-                return 0;
-        }
-    } else if (state != BRR_WIN_ORIGINAL && state != BRR_WIN_CORRECTED
-               && !ask("WINRACE.EXE isn't the v2.25 version (from the official v2.25 patch). "
-                       "Big Red Launcher will leave the game unchanged.\n\nStart anyway?"))
+    if (state == BRR_WIN_OTHER && !ask("WINRACE.EXE isn't the v2.25 version (from the official v2.25 patch). "
+                                       "Big Red Launcher will leave the game unchanged.\n\nStart anyway?"))
         return 0;
+    /* the copy the game runs as: the game's own files stay as they are */
+    wsprintfA(path, "%s\\WINRACEP.EXE", folder);
+    if (brr_win_make_copy(game_folder, path, message, sizeof message) < 0) {
+        MessageBoxA(NULL, message, "Big Red Racing", MB_OK | MB_ICONERROR);
+        return 0;
+    }
     wsprintfA(path, "%s\\TIMER.DLL", folder);
-    if (!file_contains(path, "BRRFIX.INI") && !ask("The TIMER.DLL here isn't Big Red Launcher's (it may be the "
-                                                   "game's own). The game will run without the fixes, and "
+    if (!file_contains(path, "BRRFIX.INI") && !ask("The TIMER.DLL next to Big Red Racing.exe is missing or isn't "
+                                                   "Big Red Launcher's. The game will run without the fixes, and "
                                                    "may not run at all on modern Windows.\n\nStart anyway?"))
         return 0;
     wsprintfA(path, "%s\\ddraw.dll", folder);
     if (!windows_9x && GetFileAttributesA(path) == 0xFFFFFFFFu
-        && !ask("cnc-ddraw (ddraw.dll) isn't here. On modern Windows and Proton the game needs it to fill "
+        && !ask("cnc-ddraw (ddraw.dll) isn't next to Big Red Racing.exe. On modern Windows and Proton the game needs it to fill "
                 "the screen.\n\nStart anyway?"))
         return 0;
     if (ini_flag("music", "music", 1)) {
-        ini_get(brrfix_ini, "music", "folder", "MUSIC", setting, sizeof setting);
+        ini_get(brrfix_ini, "music", "folder", "Music", setting, sizeof setting);
         music_folder(setting, path);
         if (!brr_count_tracks(path) && !ask("There are no music tracks in the music folder, so there'll be no "
                                             "music (unless there's a real CD).\n\nStart anyway?"))
@@ -710,27 +711,39 @@ static int checks_pass(void)
 
 static DWORD start_game(const char *arguments)
 {
-    char command[MAX_PATH * 2], exe[MAX_PATH];
+    char command[MAX_PATH * 2], exe[MAX_PATH], *path;
     STARTUPINFOA startup;
     PROCESS_INFORMATION process;
-    DWORD code = 1;
+    DWORD code = 1, size;
     if (under_wine) {  /* cnc-ddraw instead of Wine's own DirectDraw, without launch options */
         char overrides[512];
-        DWORD n = GetEnvironmentVariableA("WINEDLLOVERRIDES", overrides, sizeof overrides);
-        if (n == 0 || n >= sizeof overrides)
+        size = GetEnvironmentVariableA("WINEDLLOVERRIDES", overrides, sizeof overrides);
+        if (size == 0 || size >= sizeof overrides)
             lstrcpyA(overrides, "ddraw=n,b");
         else if (!strstr(overrides, "ddraw"))
             lstrcatA(overrides, ";ddraw=n,b");
         SetEnvironmentVariableA("WINEDLLOVERRIDES", overrides);
     }
-    wsprintfA(exe, "%s\\WINRACE.EXE", folder);
+    /* the game's KEY.DLL is found in the current folder; PATH as well, in case a PC leaves that out */
+    size = GetEnvironmentVariableA("PATH", NULL, 0);
+    path = (char *)HeapAlloc(GetProcessHeap(), 0, size + MAX_PATH + 2);
+    if (path) {
+        if (!size || GetEnvironmentVariableA("PATH", path, size) >= size)
+            path[0] = 0;
+        if (path[0])
+            lstrcatA(path, ";");
+        lstrcatA(path, game_folder);
+        SetEnvironmentVariableA("PATH", path);
+        HeapFree(GetProcessHeap(), 0, path);
+    }
+    wsprintfA(exe, "%s\\WINRACEP.EXE", folder);
     wsprintfA(command, "\"%s\"%s%s", exe, arguments[0] ? " " : "", arguments);
     memset(&startup, 0, sizeof startup);
     startup.cb = sizeof startup;
-    if (!CreateProcessA(exe, command, NULL, NULL, FALSE, 0, NULL, folder, &startup, &process)) {
+    if (!CreateProcessA(exe, command, NULL, NULL, FALSE, 0, NULL, game_folder, &startup, &process)) {
         char text[300];
         DWORD error = GetLastError();
-        int n = wsprintfA(text, "WINRACE.EXE couldn't be started.\n\nWindows error %lu: ", (unsigned long)error);
+        int n = wsprintfA(text, "WINRACEP.EXE couldn't be started.\n\nWindows error %lu: ", (unsigned long)error);
         if (!FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, error, 0,
                             text + n, (DWORD)(sizeof text - n), NULL))
             text[n - 2] = 0;
@@ -791,6 +804,11 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE previous, LPSTR command_line, i
         *slash = 0;
     wsprintfA(brrfix_ini, "%s\\BRRFIX.INI", folder);
     wsprintfA(ddraw_ini, "%s\\ddraw.ini", folder);
+    {
+        char setting[MAX_PATH];
+        ini_get(brrfix_ini, "launcher", "game", "Game", setting, sizeof setting);
+        folder_from(setting, "Game", game_folder);
+    }
     windows_9x = (GetVersion() & 0x80000000u) != 0;
     under_wine = GetProcAddress(GetModuleHandleA("ntdll.dll"), "wine_get_version") != NULL;
     split_arguments(GetCommandLineA(), arguments, &play, &setup);

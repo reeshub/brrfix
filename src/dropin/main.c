@@ -141,7 +141,7 @@ static void load_config(void)
     if (cfg.music_volume < 0 || cfg.music_volume > 100)
         cfg.music_volume = 100;
     cfg.music_follow_game = ini_int(path, "music", "follow_game_volume", 1);
-    GetPrivateProfileStringA("music", "folder", "MUSIC", cfg.music_folder, sizeof cfg.music_folder, path);
+    GetPrivateProfileStringA("music", "folder", "Music", cfg.music_folder, sizeof cfg.music_folder, path);
     GetPrivateProfileStringA("display", "mode", "fullscreen", text, sizeof text, path);
     cfg.display_mode = !lstrcmpiA(text, "fullscreen") ? DISPLAY_FULLSCREEN
                      : !lstrcmpiA(text, "ask") ? DISPLAY_ASK : DISPLAY_WINDOWED;

@@ -2,9 +2,9 @@ Big Red Launcher by ctrl-alt-rees
 =================================
 ctrl-alt-rees.com
 
-A replacement TIMER.DLL for the Windows 95 version of Big Red Racing (1996),
-patched to v2.25. It makes the original game run on modern Windows and on
-Linux/Steam Deck through Proton, and makes it run smoothly:
+A launcher and a replacement TIMER.DLL for the Windows 95 version of Big Red
+Racing (1996), patched to v2.25. It makes the original game run on modern
+Windows and on Linux/Steam Deck through Proton, and makes it run smoothly:
 
 - No more "privileged instruction" crash: the game's direct reads of the 1996
   VGA card are replaced.
@@ -34,8 +34,9 @@ It contains no part of the game. TIMER.DLL changes the game's code only in
 memory while it runs, and only after checking that WINRACE.EXE is the exact
 v2.25 file and that every place it changes is as expected. If anything doesn't
 match, it changes nothing, writes why to BRRFIX.LOG, and works like the
-original TIMER.DLL. (The launcher also corrects WINRACE.EXE's file headers on
-disk, keeping the original: see Install.)
+original TIMER.DLL. Your game's own files are left as they are: the launcher
+runs its own copy of WINRACE.EXE, WINRACEP.EXE, with its file headers
+corrected (see Install).
 
 You need
 --------
@@ -47,7 +48,7 @@ What's in this zip
 ------------------
 - Big Red Racing.exe  Big Red Launcher: settings, checks, then starts the game
 - Big Red Launcher Help.txt  what every setting in the launcher does
-- TIMER.DLL           the fix itself (replaces the game's own TIMER.DLL)
+- TIMER.DLL           the fix itself (the game loads it instead of its own)
 - DPLAY.DLL           stands in for DirectX 3's DirectPlay, which Windows 10
                       and 11 lack (the game won't start without it); it passes
                       network play on to a real DirectPlay if there is one
@@ -59,18 +60,41 @@ What's in this zip
 
 Install (Windows 95 to 11)
 --------------------------
-1. Back up: in the game folder (for example C:\BIGRED), rename the game's own
-   TIMER.DLL to TIMER.ORI.
-2. Copy everything from this zip into the game folder.
+Big Red Launcher goes in a folder of its own, with your game in a folder
+called Game inside it and the CD music in a folder called Music:
+
+  Big Red Racing\          any name, anywhere you can write to
+    Big Red Racing.exe     everything from this zip
+    BRRFIX.INI ...
+    WINRACEP.EXE           made by the launcher the first time
+    Game\                  your game: WINRACE.EXE and the rest
+    Music\                 the CD tracks (see Music)
+
+1. Make a folder, for example C:\Games\Big Red Racing, and copy everything
+   from this zip into it.
    On Windows 95, 98 and ME you can leave out ddraw.dll, ddraw.ini, Shaders and
    DPLAY.DLL: their own DirectX draws the game properly and has DirectPlay.
-3. Start Big Red Racing.exe (make a shortcut to it if you like).
-   The first time, it offers to correct WINRACE.EXE: the 1996 linker wrote its
-   file headers carelessly, and Windows 10 and 11 refuse to start it. Only the
-   headers change, the corrected file works on every version of Windows, and
-   the original is kept as WINRACE.ORI.
-To undo: delete the files from this zip and rename TIMER.ORI back to TIMER.DLL
-(and, if it's there, WINRACE.ORI back to WINRACE.EXE).
+2. Make a folder called Game inside it, and copy your installed game into it:
+   everything in the game's folder (for example C:\BIGRED). Or leave the game
+   where it is, and set [launcher] game= in BRRFIX.INI to its folder (game=
+   C:\BIGRED).
+3. Put the music in a folder called Music, next to Big Red Racing.exe (see
+   Music).
+4. Start Big Red Racing.exe (make a shortcut to it if you like).
+   It makes WINRACEP.EXE ("P" for patched) beside itself: a copy of the game's
+   WINRACE.EXE with its file headers corrected, because the 1996 linker wrote
+   them carelessly and Windows 10 and 11 refuse to start the original. Only the
+   headers differ, and the copy works on every version of Windows. The launcher
+   starts it in the Game folder, and it picks up our TIMER.DLL (it's beside
+   it) instead of the game's own. Nothing in the Game folder is changed.
+To remove it: delete the folder (the Game folder in it is your copy of the
+game, so keep that if you need it).
+
+Coming from an earlier Big Red Launcher, which went into the game's folder?
+Move the game's files into a folder called Game as above, and in it rename
+TIMER.ORI back to TIMER.DLL (and WINRACE.ORI, if it's there, back to
+WINRACE.EXE). Move our files (everything from this zip) to the top folder, and
+rename MUSIC to Music and move it there too.
 
 Steam Deck and Linux (Proton)
 -----------------------------
@@ -81,8 +105,8 @@ Steam Deck and Linux (Proton)
 3. Right-click it > Properties > Compatibility > "Force the use of a specific
    Steam Play compatibility tool", and pick a Proton version.
 4. Play. No launch options are needed: the launcher tells Proton to use
-   cnc-ddraw. (Starting WINRACE.EXE directly instead? Then add the launch
-   options WINEDLLOVERRIDES="ddraw=n,b" %command%.)
+   cnc-ddraw. Start Big Red Racing.exe, not WINRACEP.EXE: the game only finds
+   its files when the launcher starts it in the Game folder.
 On the Steam Deck the game fills the 1280x800 screen exactly (4x).
 
 The launcher
@@ -94,15 +118,16 @@ Esc (Quit), so a controller mapped to keys by Steam Input can use it.
 - "Skip this window next time" starts the game straight away from then on.
 - To see the window again: hold Shift while starting, or start with -setup.
 - Steam launch options: -play skips the window, -setup always shows it.
-Before starting the game it checks WINRACE.EXE is v2.25, that our TIMER.DLL and
-cnc-ddraw are there, and that the music folder has tracks. It stays running
+Before starting the game it checks the Game folder's WINRACE.EXE is v2.25,
+makes or refreshes WINRACEP.EXE from it, and checks that our TIMER.DLL and
+cnc-ddraw are there and that the music folder has tracks. It stays running
 until the game ends, so Steam counts your play time.
 
 The DOS version
 ---------------
 The launcher can also fix the DOS version (RACING.EXE, v2.24 from the v2.25
 update) for playing on an old PC or in DOSBox: press "Patch the DOS version".
-It patches RACING.EXE in the game folder (or asks where the DOS version is),
+It patches RACING.EXE in the Game folder (or asks where the DOS version is),
 keeping the original as RACING.ORI; press it again to put the original back.
 This does the same as BRRPATCH.EXE, the DOS patch download, for PCs that can't
 run DOS programs.
@@ -110,7 +135,8 @@ run DOS programs.
 Music
 -----
 The game's music was CD audio. Without the CD, put the tracks in a folder
-called MUSIC next to the game, one file per CD track, named by track number:
+called Music next to Big Red Racing.exe, one file per CD track, named by track
+number:
 track02.flac, Track02.ogg, 02.wav, "02 - Title.flac" and so on (FLAC, Ogg
 Vorbis or 16-bit WAV). Either rip your own CD, or, with the project's tools,
 run "python3 brr.py prepare" with your own copy of the game's disc image: it
@@ -166,14 +192,13 @@ the defaults are used.
 
 Troubleshooting
 ---------------
-- Something wrong? Look in BRRFIX.LOG in the game folder: it says what was
-  checked and changed. Set a fix to 0 in BRRFIX.INI to rule it out.
+- Something wrong? Look in BRRFIX.LOG next to Big Red Racing.exe: it says what
+  was checked and changed. Set a fix to 0 in BRRFIX.INI to rule it out.
 - The picture is tiny in a corner of a black screen: cnc-ddraw isn't being
-  used. Start the game with Big Red Racing.exe, or set the DLL override
-  ddraw=n,b (see above).
+  used. Start the game with Big Red Racing.exe.
 - "This program requires 256 colour mode to run windowed": BRRFIX.INI has
   [display] mode=ask; set it to windowed or fullscreen.
-- No music: check the MUSIC folder's file names (the launcher counts the
+- No music: check the Music folder's file names (the launcher counts the
   tracks it finds) and the game's CD volume option.
 - The pad does nothing: choose the joystick in the game's controls menu, and
   check [controller] enabled=1.

@@ -9,7 +9,7 @@
  *
  * Its mciSendCommandA import (slot 0x56C160, found and checked in the import table in
  * memory) goes to brr_mci. A cdaudio device is emulated when the music folder ([music]
- * folder, MUSIC next to the game by default) has tracks: FLAC, Ogg Vorbis or WAV, named
+ * folder, Music next to WINRACEP.EXE and the launcher by default) has tracks: FLAC, Ogg Vorbis or WAV, named
  * by track number. Everything else, or with no tracks, goes to the real mciSendCommandA,
  * so a real CD still works (on Windows 95, say).
  *
@@ -405,11 +405,11 @@ void brr_music_start(void)
     if (cfg.music_folder[0] && (cfg.music_folder[1] == ':' || cfg.music_folder[0] == '\\'))
         lstrcpynA(folder, cfg.music_folder, sizeof folder);
     else {
-        GetModuleFileNameA(NULL, base, sizeof base);  /* WINRACE.EXE's folder */
+        GetModuleFileNameA(NULL, base, sizeof base);  /* WINRACEP.EXE's folder, the launcher's */
         slash = strrchr(base, '\\');
         if (slash)
             *slash = 0;
-        wsprintfA(folder, "%s\\%s", base, cfg.music_folder[0] ? cfg.music_folder : "MUSIC");
+        wsprintfA(folder, "%s\\%s", base, cfg.music_folder[0] ? cfg.music_folder : "Music");
     }
     tracks_found = brr_count_tracks(folder);
     real_mci = (mci_fn)*MCI_SLOT;

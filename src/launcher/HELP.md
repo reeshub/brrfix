@@ -181,8 +181,8 @@ The music's volume, on top of the game's own CD volume option.
 
 **Folder and Browse**
 
-Where the ripped tracks are: MUSIC (a folder next to the game) by default, or
-any folder you choose with Browse.
+Where the ripped tracks are: Music (a folder next to Big Red Racing.exe) by
+default, or any folder you choose with Browse.
 
 ## Controller
 
@@ -264,17 +264,17 @@ The physics is the same either way; only how a pause is made up changes. If in d
 
 **Log**
 
-Writes BRRFIX.LOG next to the game: what was fixed and how the clock ran. It's
-off by default; turn it on if you're reporting a problem, and send the file
-with your report.
+Writes BRRFIX.LOG next to Big Red Racing.exe: what was fixed and how the clock
+ran. It's off by default; turn it on if you're reporting a problem, and send
+the file with your report.
 
 ## The buttons
 
 - **Skip this window next time:** starts the game straight away from now on.
   Hold Shift while starting, or start with -setup, to see this window again.
-- **Patch the DOS version:** fixes the DOS version's RACING.EXE (the same game
-  fixes, for DOS PCs and DOSBox), keeping the original as RACING.ORI. Press it
-  again on a patched file to put the original back.
+- **Patch the DOS version:** fixes the DOS version's RACING.EXE in the Game
+  folder (the same game fixes, for DOS PCs and DOSBox), keeping the original as
+  RACING.ORI. Press it again on a patched file to put the original back.
 - **Help:** opens this file (or press F1).
 - **Defaults:** puts every setting back to the defaults for your PC: Period
   defaults on Windows 95, 98 and ME, Modern defaults on anything newer (see
@@ -283,14 +283,20 @@ with your report.
 - **Save:** saves the settings without starting the game.
 - **Quit:** closes the window without saving.
 
-## Correcting WINRACE.EXE
+## The folders, and WINRACEP.EXE
 
-Windows 10 and 11 refuse to start the 1996 WINRACE.EXE as it is: the linker
-that made it in 1996 wrote its file headers carelessly, which Windows 95 didn't
-mind. The first time you press Play, the launcher offers to correct them. Only
-the headers change; the corrected file works on every version of
-Windows, and the original is kept as WINRACE.ORI. To undo, delete WINRACE.EXE
-and rename WINRACE.ORI to WINRACE.EXE.
+Big Red Racing.exe and its files sit in a folder of their own, with the game
+in a folder called Game inside it, and the CD music in a folder called Music.
+(To use the game where it is instead, set [launcher] game= in BRRFIX.INI to
+its folder, for example game=C:\BIGRED.)
+
+The game's own files are left as they are. Windows 10 and 11 refuse to start
+the 1996 WINRACE.EXE as it is: the linker that made it in 1996 wrote its file
+headers carelessly, which Windows 95 didn't mind. So when you press Play, the
+launcher makes WINRACEP.EXE ("P" for patched) beside itself: a copy of the
+game's WINRACE.EXE with only those headers corrected, which works on every
+version of Windows. It starts that copy in the Game folder. If the game's
+WINRACE.EXE changes, the copy is made again.
 
 ## Starting from Steam
 
@@ -301,6 +307,6 @@ options are passed on to the game.
 ## Where the settings are kept
 
 BRRFIX.INI (the fix's settings) and ddraw.ini (cnc-ddraw's, for full screen),
-next to the game. Each setting is explained in the files, and some that the
+next to Big Red Racing.exe. Each setting is explained in the files, and some that the
 window doesn't show can be changed there. The launcher changes only the values
 it shows, and keeps everything else in the files as it was.

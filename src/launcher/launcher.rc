@@ -89,7 +89,7 @@ BEGIN
     LTEXT           "&Catch-up:", IDC_PAGE_ADVANCED, 18, 88, 44, 8
     COMBOBOX        IDC_CAP, 64, 86, 64, 50, CBS_DROPDOWNLIST | WS_TABSTOP
     GROUPBOX        "Troubleshooting", IDC_PAGE_ADVANCED, 12, 108, 300, 28
-    AUTOCHECKBOX    "Lo&g (writes BRRFIX.LOG next to the game)", IDC_LOG, 18, 120, 200, 10, WS_TABSTOP
+    AUTOCHECKBOX    "Lo&g (writes BRRFIX.LOG next to the launcher)", IDC_LOG, 18, 120, 200, 10, WS_TABSTOP
 
     /* under the tabs */
     AUTOCHECKBOX    "S&kip this window next time (to see it again, hold Shift while starting, or use -setup)", IDC_SKIP, 8, 238, 310, 10, WS_TABSTOP
