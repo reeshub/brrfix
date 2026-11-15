@@ -144,6 +144,7 @@
    "SetCursor",
    "SetDlgItemTextA",
    "SetFocus",
+   "SetForegroundWindow",
    "SetMenu",
    "SetWindowLongA",
    "SetWindowTextA",

@@ -18,7 +18,8 @@
  * Windows 95 has; anything newer is looked up at run time.
  *
  * Command line: -play starts the game straight away; -setup always shows the window;
- * holding Shift while starting also shows it. Anything else goes to the game.
+ * holding Shift while starting also shows it. Anything else goes to the game. When the
+ * window was shown, it comes back when the game ends (on the same tab); Quit leaves.
  *
  * The window's settings are on five tabs (General, Video, Audio, Controller, Advanced),
  * with the buttons below them; General has the Period and Modern defaults.
@@ -142,6 +143,8 @@ static const char *const tab_names[] = {"General", "Video", "Audio", "Controller
 /* controls that this PC never shows (Windows 9x, Proton), whichever tab is chosen */
 static int never_shown[32], never_shown_count;
 static HFONT title_font;
+static int current_page;  /* the tab shown, kept when the window comes back after the game */
+static int returning;     /* the window is back after the game */
 
 static int page_of(int id)
 {
@@ -188,8 +191,8 @@ static void add_tabs(HWND dialog)
         item.pszText = (LPSTR)tab_names[i];
         SendMessageA(tabs, TCM_INSERTITEMA, (WPARAM)i, (LPARAM)&item);
     }
-    SendMessageA(tabs, TCM_SETCURSEL, 0, 0);
-    show_page(dialog, 0);
+    SendMessageA(tabs, TCM_SETCURSEL, (WPARAM)current_page, 0);
+    show_page(dialog, current_page);
 }
 
 /* the title on the General tab, in bold */
@@ -564,6 +567,7 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
                                            IDC_VIB_GROUP, IDC_INTENSITY_LABEL, IDC_INTENSITY};
         char title[96], steam[8];
         size_t i;
+        never_shown_count = 0;  /* a new window each time (it comes back after the game) */
         wsprintfA(title, "Big Red Launcher %s by ctrl-alt-rees", BRRFIX_VERSION);
         SetWindowTextA(dialog, title);
         SendMessageA(dialog, WM_SETICON, ICON_BIG, (LPARAM)LoadIconA(GetModuleHandleA(NULL), MAKEINTRESOURCEA(IDI_APP)));
@@ -587,12 +591,15 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
         add_tabs(dialog);
         /* the tabs have the focus, so the arrow keys change tab and Return still plays */
         SetFocus(GetDlgItem(dialog, IDC_TABS));
+        if (returning)  /* in front again once the game has gone */
+            SetForegroundWindow(dialog);
         return FALSE;
     }
     if (message == WM_NOTIFY) {
         const NMHDR *header = (const NMHDR *)lparam;
         if (header->idFrom == IDC_TABS && header->code == TCN_SELCHANGE) {
-            show_page(dialog, (int)SendDlgItemMessageA(dialog, IDC_TABS, TCM_GETCURSEL, 0, 0));
+            current_page = (int)SendDlgItemMessageA(dialog, IDC_TABS, TCM_GETCURSEL, 0, 0);
+            show_page(dialog, current_page);
             return TRUE;
         }
         return FALSE;
@@ -836,9 +843,21 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE previous, LPSTR command_line, i
         show_window = 1;
     else if (play)
         show_window = 0;
-    if (show_window && DialogBoxParamA(instance, MAKEINTRESOURCEA(IDD_SETTINGS), NULL, settings_proc, 0) != IDOK)
-        return 0;
-    if (!checks_pass())
-        return 1;
-    return (int)start_game(arguments);
+    /* With the window: back to it when the game ends (Quit leaves). Without it (-play, or
+     * "Skip this window"): just the game, so Steam goes back to its library afterwards. */
+    for (;;) {
+        int code;
+        if (show_window && DialogBoxParamA(instance, MAKEINTRESOURCEA(IDD_SETTINGS), NULL, settings_proc, 0) != IDOK)
+            return 0;
+        if (!checks_pass()) {
+            if (!show_window)
+                return 1;
+            returning = 1;
+            continue;
+        }
+        code = (int)start_game(arguments);
+        if (!show_window)
+            return code;
+        returning = 1;
+    }
 }

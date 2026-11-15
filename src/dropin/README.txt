@@ -126,7 +126,8 @@ Esc (Quit), so a controller mapped to keys by Steam Input can use it.
 Before starting the game it checks the Game folder's WINRACE.EXE is v2.25,
 makes or refreshes WINRACEP.EXE from it, and checks that PATCH.DLL and
 cnc-ddraw are there and that the music folder has tracks. It stays running
-until the game ends, so Steam counts your play time.
+until the game ends, so Steam counts your play time, and then its window
+comes back (unless it was skipped, or started with -play).
 
 The DOS version
 ---------------
@@ -180,10 +181,11 @@ dashboard is the game's own, enlarged by the game to match.
 
 Controllers
 -----------
-An Xbox-style pad (XInput, including the Steam Deck's controls) works as the
-game's joystick: left stick steers, right trigger accelerates, left trigger
-brakes and reverses, A and B are the joystick buttons. In the game's controls
-menu, choose the joystick. Deadzone, sensitivity, the response curve and the
+Xbox-style pads (XInput, including the Steam Deck's controls) work as the
+game's two joysticks: the first pad you use is joystick 1, the next one you
+use joystick 2 (two players). Left stick steers, right trigger accelerates,
+left trigger brakes and reverses, A and B are the joystick buttons. In the
+game's controls menu, choose the joystick (JS1 or JS2). Deadzone, sensitivity, the response curve and the
 layout (triggers or stick) are in the launcher and in BRRFIX.INI. The pad
 buzzes when your vehicle takes damage and rumbles while its nitro flames show
 (the launcher's Vibration settings: either can be off, and an intensity).

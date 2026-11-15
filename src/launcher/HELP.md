@@ -198,9 +198,12 @@ for modern pads.
 
 **Modern pad (XInput)**
 
-An Xbox-style pad, including the Steam Deck's controls, works as the game's
-joystick: the left stick steers, and A and B are the joystick's buttons. In the
-game, choose the joystick in the controls menu.
+Xbox-style pads, including the Steam Deck's controls, work as the game's two
+joysticks: the first pad you use becomes joystick 1 (JS1), the next one you use
+joystick 2 (JS2), for two players. The left stick steers, and A and B are the
+joystick's buttons. In the game's controls menu, each player chooses JS1 or JS2.
+While a pad is connected, other joysticks (ones without XInput) are left out;
+without one, they work as in 1996.
 
 **Deadzone**
 
@@ -302,7 +305,10 @@ the file with your report.
 - **Defaults:** puts every setting back to the defaults for your PC: Period
   defaults on Windows 95, 98 and ME, Modern defaults on anything newer (see
   General). Press Save or Play to keep them.
-- **Play:** saves the settings and starts the game.
+- **Play:** saves the settings and starts the game. When the game ends, this
+  window comes back (on the same tab), so you can change something and play
+  again; Quit leaves. Started with -play, or with this window skipped, the
+  launcher ends with the game.
 - **Save:** saves the settings without starting the game.
 - **Quit:** closes the window without saving.
 

@@ -142,6 +142,9 @@ static void load_config(void)
         cfg.pad_damage_strength = 80;
     cfg.pad_nitro_strength = cfg.pad_damage_strength / 2;
     cfg.debug_pad_test = ini_int(path, "debug", "pad_test", 0);
+    cfg.debug_player_type[0] = ini_int(path, "debug", "player1_type", -1);
+    cfg.debug_player_type[1] = ini_int(path, "debug", "player2_type", -1);
+    cfg.debug_log_joysticks = ini_int(path, "debug", "log_joysticks", 0);
     cfg.music = ini_int(path, "music", "music", 1);
     cfg.music_volume = ini_int(path, "music", "volume", 100);
     if (cfg.music_volume < 0 || cfg.music_volume > 100)

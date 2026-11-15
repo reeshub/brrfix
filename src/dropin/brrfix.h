@@ -44,6 +44,8 @@ struct brr_config {
     int pad_vibration, pad_nitro_rumble;        /* [controller] vibration (a buzz on damage), nitro_rumble */
     int pad_damage_strength, pad_nitro_strength; /* % of the motors: vibration_intensity, and half of it */
     int debug_pad_test;      /* tests: a simulated pad (half right, full throttle) */
+    int debug_player_type[2];  /* tests: each player's controller type in a race (-1: the game's) */
+    int debug_log_joysticks;   /* tests: the game's two joysticks in BRRFIX.LOG when they change */
     char music_folder[MAX_PATH];
     int show_version;        /* the drop-in's version on the main menu */
     int display_mode;        /* DISPLAY_WINDOWED, DISPLAY_FULLSCREEN or DISPLAY_ASK */
