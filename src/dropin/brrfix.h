@@ -29,6 +29,8 @@ struct brr_config {
     int renderer_new;        /* [display] renderer=new: Phase 3c's renderer (render.c); original = the game's */
     int render_max;          /* [display] render_resolution=max: experimental, races drawn at up to
                               * 1008x756 (render.c; the new renderer only) */
+    int full_colour;         /* [display] full_colour: the new renderer presents 32-bit pictures */
+    int smooth_sky;          /* [display] smooth_sky: the sky as a smooth gradient (sky.c; full colour) */
     int language;            /* [display] language: 1-7 (ENG, USA, FRE, GER, ITA, SPA, JAP) */
     int clock_original;      /* emulate the original 14 ms callback timer instead */
     uint32_t rate_milli;     /* ticks per 1000 s: 70000 = 70.0 Hz */
@@ -119,6 +121,19 @@ int brr_renderer_decide(int cnc_ddraw);
 HMODULE brr_ddraw_module(void);
 int brr_is_cnc_ddraw(HMODULE ddraw);
 const uint8_t *brr_render_compose(int out_w, int out_h, int out_pitch);
+/* full colour (render.c, 2026-11-15): the final picture in 32 bits (0x00RRGGBB), from the
+ * game's palette, the sky smooth (sky.c); full screen asks DirectDraw for 32 bits (site dd_mode_bpp) */
+extern int brr_full_colour;
+int brr_render_compose32(uint32_t *out, int out_w, int out_h, int out_pitch);
+void brr_render_palette_check(void);
+/* sky.c */
+#define SKY_MARKER 255       /* the colour the game's sky bands are drawn in, with smooth_sky */
+extern int brr_sky_active, brr_screenshot_drawing;
+void __cdecl brr_sky_draw(int16_t *ground, int16_t *sky);
+void brr_hook_sky_draw(void);
+int brr_sky_begin(const uint8_t *picture, int pic_w, int pic_h, int pitch, int sx, int sy, int lx, int ly);
+int brr_sky_view_of_row(int gy);
+void brr_sky_span(uint32_t *out, int fx, int fy, int count, int i);
 uint32_t __cdecl brr_render_mode(uint32_t windowed);
 void brr_hook_dd_setup(void);
 /* Experimental draw distance: site render_view_entry (thunks.asm) draws each view with the
@@ -151,7 +166,7 @@ void brr_hook_screenshot_race(void);
 void brr_hook_screenshot_tape(void);
 #define RENDER_MAX_W 1008   /* the engine's reciprocal table covers spans up to 1,022 pixels; rows */
 #define RENDER_MAX_H 756    /* must be a multiple of 16 wide (its row stride and the 2D code's agree) */
-void __cdecl brr_render_before_present(void);
+int __cdecl brr_render_before_present(void);  /* 1: it presented the frame itself */
 void __cdecl brr_render_after_present(void);
 uint32_t __cdecl brr_menu_mouse(void);
 void brr_hook_menu_mouse(void);

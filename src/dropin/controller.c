@@ -24,7 +24,10 @@
  * stick X steers (deadzone, sensitivity and a response curve), the triggers (or stick Y)
  * are the pedals, A and B are buttons 1 and 2, the calibration matches, and with
  * analogue=1 the per-axis analogue flags (0x44B9D8) are set. A joystick without a pad
- * reads as centred. The game's code is unchanged: only what it's given.
+ * reads as centred. In a race, any pad's Start is Break (key-table index 0x72: pause, and
+ * again to carry on) and Back is Esc (0x01: end the race), as race_keys_tick (0x414240)
+ * reads them through the key hotspots; each is set while the button is held and cleared on
+ * release, so a key held on the keyboard is left alone. The game's code is unchanged: only what it's given.
  *
  * Vibration, read only, for each player's vehicle in a race (+0x30: 1 player one, 2 player
  * two), on the pad of the joystick in that player's controls (JS1 or pedals: JS1; JS2:
@@ -63,6 +66,10 @@
 #define REFRESH_MS    500    /* Wine and Proton end each rumble after 1 s (winebus cutoff_time_ms) */
 #define SLOTS         4
 #define JOYSTICKS     2
+#define PAD_START     0x0010
+#define PAD_BACK      0x0020
+#define KEY_BREAK     0x72   /* key-table index of Break: action 11, pause (race_add_keys) */
+#define KEY_ESC       0x01   /* Esc: action 10, race_quit */
 
 typedef struct {
     WORD buttons;
@@ -388,6 +395,37 @@ static void read_pads(xinput_state states[SLOTS], int ok[SLOTS])
     }
 }
 
+/* In a race, Start and Back on any pad are Break and Esc in the game's key table */
+static void race_buttons(const xinput_state states[SLOTS], const int ok[SLOTS])
+{
+    static int held_start, held_back;
+    uint8_t *keys = *(uint8_t **)0x56C648;  /* KEY.DLL's _KEY_pressed */
+    WORD buttons = 0;
+    int j, start, back;
+    for (j = 0; j < JOYSTICKS; j++)
+        if (joystick_slot[j] >= 0 && ok[joystick_slot[j]])
+            buttons |= states[joystick_slot[j]].pad.buttons;
+    start = *SCREEN == 0x80 && (buttons & PAD_START);
+    back = *SCREEN == 0x80 && (buttons & PAD_BACK);
+    if (start || held_start)  /* the game clears Break when it pauses: held, it stays set */
+        keys[KEY_BREAK] = (uint8_t)start;
+    if (back || held_back)
+        keys[KEY_ESC] = (uint8_t)back;
+    if (start && !held_start)
+        brr_log("controller: Start: Break (pause, or carry on) (tick %ld)", (long)*GAME_TICK_COUNT);
+    if (back && !held_back)
+        brr_log("controller: Back: Esc (end the race) (tick %ld)", (long)*GAME_TICK_COUNT);
+    held_start = start;
+    held_back = back;
+    {
+        static int32_t was_paused;
+        if (*RACE_PAUSED != was_paused && *SCREEN == 0x80)
+            brr_log("controller: the race is %s (tick %ld)", *RACE_PAUSED ? "paused" : "running again",
+                    (long)*GAME_TICK_COUNT);
+        was_paused = *RACE_PAUSED;
+    }
+}
+
 /* A pad's state into joystick j's variables */
 static void drive_joystick(int j, const pad_state *pad)
 {
@@ -472,6 +510,7 @@ void __cdecl brr_before_joystick(void)
         if (!cfg.controller || !get_state)
             return;
         read_pads(states, ok);
+        race_buttons(states, ok);
         for (j = 0; j < JOYSTICKS; j++)
             if (joystick_slot[j] >= 0 && ok[joystick_slot[j]])
                 drive_joystick(j, &states[joystick_slot[j]].pad);

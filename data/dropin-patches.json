@@ -272,18 +272,18 @@
   },
   {
    "name": "screenshot_race_call",
-   "fix": "render_max",
+   "fix": "screenshot",
    "address": "0x428D9E",
    "length": 5,
-   "patch": "Experimental, with set_view_entry. run_screen_frame's race screenshot (PrtSc, key-table index 0x54): CALL 0x423B5C -> CALL brr_hook_screenshot_race: with the race drawn bigger than 640x480, the view goes back to 640x480 for the screenshot (its PCX writer 0x4239BC packs each row into a 1,280-byte stack buffer, enough for 640 pixels only) and to ours afterwards",
+   "patch": "With set_view_entry (Max) or the smooth sky. run_screen_frame's race screenshot (PrtSc, key-table index 0x54): CALL 0x423B5C -> CALL brr_hook_screenshot_race: with the race drawn bigger than 640x480, the view goes back to 640x480 for the screenshot (its PCX writer 0x4239BC packs each row into a 1,280-byte stack buffer, enough for 640 pixels only) and to ours afterwards",
    "sha256": "d9b84b6d5fbf26cbf755f1963750bc9d65a5614ffad2e6ec24aea20569216161"
   },
   {
    "name": "screenshot_tape_call",
-   "fix": "render_max",
+   "fix": "screenshot",
    "address": "0x428D62",
    "length": 5,
-   "patch": "Experimental, with set_view_entry. run_screen_frame's numbered TAPEDECK screenshot: CALL 0x423C40 -> CALL brr_hook_screenshot_tape, as screenshot_race_call",
+   "patch": "With set_view_entry (Max) or the smooth sky. run_screen_frame's numbered TAPEDECK screenshot: CALL 0x423C40 -> CALL brr_hook_screenshot_tape, as screenshot_race_call",
    "sha256": "0ecfe6d255ff3a61303303e24f92472e748f4b7894de67f68ce5513d6c685938"
   },
   {
@@ -301,6 +301,22 @@
    "length": 20,
    "patch": "The set-up's full-screen size check (320x200 -> cooperative level 0x51, 640x480 -> 0x11, else 'Invalid full screen size') from its 640x480 test -> JMP 0x42C782 (level 0x11, DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN) + NOPs, so the screen's own size is accepted",
    "sha256": "6593b31258dfe8a6ef3baf878fbabe7ca8be2890003433988e4f9c97d9ce19de"
+  },
+  {
+   "name": "dd_mode_bpp",
+   "fix": "full_colour",
+   "address": "0x42C7D8",
+   "length": 1,
+   "patch": "dd_setup's SetDisplayMode bits per pixel (the immediate of PUSH 0x8 at 0x42C7D7) -> 0x20: full colour in full screen; render.c composes the 32-bit picture straight into the back surface and flips, instead of the game's 8-bit copy, and clears dd_palette_pending (0x44BFC4), as a 32-bit surface takes no palette",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "sky_draw_call",
+   "fix": "sky",
+   "address": "0x4176F6",
+   "length": 5,
+   "patch": "render_view: CALL sky_draw (0x41A4D0) -> CALL brr_hook_sky_draw: the view's camera and projection recorded, the bands drawn in the marker colour 255, and coloured as a smooth gradient when the frame is presented (sky.c)",
+   "sha256": "013df2c085750453d9535f6459bfd0e7ed9cb3966d18696f9c746d3a0e6b7512"
   },
   {
    "name": "render_view_entry",

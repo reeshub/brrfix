@@ -254,6 +254,36 @@ static int scale_to(const uint8_t *frame, int w, int h, int out_w, int out_h)
     return 1;
 }
 
+/* Full colour in a window: the new renderer's 32-bit picture, drawn 1:1 */
+static uint32_t *picture32;
+static size_t picture32_size;
+
+static int present_full_colour(HDC dc, int w, int h)
+{
+    BITMAPINFOHEADER header;
+    size_t need = (size_t)w * (size_t)h * 4;
+    if (need > picture32_size) {
+        uint32_t *bigger = (uint32_t *)HeapAlloc(GetProcessHeap(), 0, need);
+        if (!bigger)
+            return 0;
+        if (picture32)
+            HeapFree(GetProcessHeap(), 0, picture32);
+        picture32 = bigger;
+        picture32_size = need;
+    }
+    if (!brr_render_compose32(picture32, w, h, w))
+        return 0;
+    memset(&header, 0, sizeof header);
+    header.biSize = sizeof header;
+    header.biWidth = w;
+    header.biHeight = -h;  /* top-down */
+    header.biPlanes = 1;
+    header.biBitCount = 32;
+    header.biCompression = BI_RGB;
+    SetDIBitsToDevice(dc, 0, 0, w, h, 0, 0, 0, h, picture32, (BITMAPINFO *)&header, DIB_RGB_COLORS);
+    return 1;
+}
+
 int __cdecl brr_present_gdi(void)
 {
     const uint8_t *frame = GAME_FRAME;
@@ -290,6 +320,13 @@ int __cdecl brr_present_gdi(void)
         PatBlt(dc, 0, 0, client.right, client.bottom, BLACKNESS);
         GAME_CLEAR_FLAG = 0;
         ReleaseDC(window, dc);
+        return 1;
+    }
+    if (brr_full_colour && present_full_colour(dc, client.right, client.bottom)) {
+        ReleaseDC(window, dc);
+        if (gdi_frames++ == 0)
+            brr_log("display: drawing the game's window with GDI (the new renderer's %ldx%ld picture in full colour, 1:1)",
+                    (long)client.right, (long)client.bottom);
         return 1;
     }
     if (brr_renderer_active) {  /* the new renderer: the final picture at the window's size, shown 1:1 */

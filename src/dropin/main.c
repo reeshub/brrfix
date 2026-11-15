@@ -124,6 +124,8 @@ static void load_config(void)
     else if (cfg.max_draw_distance > DRAW_DISTANCE_FAR_MAX)
         cfg.max_draw_distance = DRAW_DISTANCE_FAR_MAX;
     cfg.debug_log_mouse = ini_int(path, "debug", "log_mouse", 0);
+    cfg.full_colour = ini_int(path, "display", "full_colour", 1);
+    cfg.smooth_sky = ini_int(path, "display", "smooth_sky", 1);
     cfg.show_version = ini_int(path, "display", "show_version", 1);
     cfg.controller = ini_int(path, "controller", "enabled", 1);
     cfg.pad_deadzone = ini_int(path, "controller", "deadzone", 15);

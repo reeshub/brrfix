@@ -39,6 +39,7 @@
         extrn   _brr_display_prompt:dword
         extrn   _brr_orig_present_window:dword
         extrn   _brr_render_before_present:near
+        extrn   _brr_sky_draw:near
         extrn   _brr_render_after_present:near
         extrn   _brr_menu_mouse:near
         extrn   _brr_music_reassert:near
@@ -70,6 +71,7 @@
         public  _brr_hook_display_choice, _brr_hook_present, _brr_hook_joystick
         public  _brr_hook_menu_hotspots, _brr_hook_menu_mouse, _brr_hook_music_check
         public  _brr_hook_dd_setup, _brr_hook_render_view, _brr_hook_landscape_walk
+        public  _brr_hook_sky_draw, _brr_call_sky_draw
         public  _brr_call_landscape_walk, _brr_call_landscape_tables, _brr_call_landscape_far_walk
         public  _brr_hook_credit_lookup, _brr_hook_set_view, _brr_call_set_view
         public  _brr_hook_screenshot_race, _brr_hook_screenshot_tape
@@ -271,7 +273,13 @@ display_fullscreen:
 _brr_hook_present:
         pushad
         call    _brr_render_before_present
+        mov     [esp + 28], eax                 ; EAX after POPAD: 1 = presented in full colour
         popad
+        test    eax, eax
+        jz      present_not_done
+        mov     eax, 1
+        jmp     present_done
+present_not_done:
         cmp     dword ptr [_brr_gdi_present], 0
         je      present_game
         pushad
@@ -295,6 +303,28 @@ present_original:
         push    edx
         cmp     byte ptr ds:[52D720h], 0
         jmp     dword ptr [_brr_present_continue]
+
+; Site sky_draw_call (render_view, 0x4176F6): CALL sky_draw(ground, sky), stdcall, with the
+; game's code keeping every register but EAX. brr_sky_draw (cdecl) records the view and calls it.
+_brr_hook_sky_draw:
+        push    ecx
+        push    edx
+        push    dword ptr [esp + 16]            ; sky
+        push    dword ptr [esp + 16]            ; ground
+        call    _brr_sky_draw
+        add     esp, 8
+        pop     edx
+        pop     ecx
+        ret     8
+
+; brr_call_sky_draw(ground, sky), cdecl: the game's sky_draw (0x41A4D0, stdcall; it keeps
+; EBX, ESI, EDI and EBP)
+_brr_call_sky_draw:
+        push    dword ptr [esp + 8]             ; sky
+        push    dword ptr [esp + 8]             ; ground
+        mov     eax, 41A4D0h
+        call    eax
+        ret
 
 ; Site menu_mouse (0x4274FC's mapping of the mouse into the menu): CX = the menu's x and
 ; BX = its y for the stores that follow; EAX is free there, EDX must survive.

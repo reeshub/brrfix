@@ -329,3 +329,9 @@ void brr_prove_fine_angles(void)
             atan_max, (unsigned long)atan_like_game);
     *ROT_A = saved[0]; *ROT_B = saved[1]; *ROT_C = saved[2]; *ROT_SIN_A = (int32_t)saved[3];
 }
+
+/* ---- shared with sky.c ---- */
+double brr_atan2_units(double y, double x) { return atan2_units(y, x); }
+double brr_square_root(double v) { return square_root(v); }
+/* sin of a game angle (65,536 per turn), from the game's own table, interpolated */
+double brr_sine_units(int32_t angle) { return (double)table_at(SINE_TABLE, (uint32_t)angle & 0xFFFFu) / 32767.0; }

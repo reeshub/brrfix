@@ -158,6 +158,9 @@ own resolution (full screen) or the window's size (windowed), enlarging the
 game's picture by whole numbers on black, so nothing is scaled twice. Windows
 95, 98 and ME, and full screen without cnc-ddraw, keep the game's own
 drawing (renderer=original), which cnc-ddraw scales with its presets.
+The new renderer works in full colour (32 bits), and draws the sky as a smooth
+gradient instead of the game's 16 flat bands ([display] full_colour and
+smooth_sky).
 Windowed: pick it in the launcher (or [display]
 mode=windowed in BRRFIX.INI, and windowed=true in ddraw.ini): the game's own
 window with its 1996 menu bar (About, Modes, Language), as big as fits on your
@@ -184,8 +187,9 @@ Controllers
 Xbox-style pads (XInput, including the Steam Deck's controls) work as the
 game's two joysticks: the first pad you use is joystick 1, the next one you
 use joystick 2 (two players). Left stick steers, right trigger accelerates,
-left trigger brakes and reverses, A and B are the joystick buttons. In the
-game's controls menu, choose the joystick (JS1 or JS2). Deadzone, sensitivity, the response curve and the
+left trigger brakes and reverses, A and B are the joystick buttons. In a
+race, Start pauses (and carries on) and Back (View) ends it, as Pause and Esc
+do. In the game's controls menu, choose the joystick (JS1 or JS2). Deadzone, sensitivity, the response curve and the
 layout (triggers or stick) are in the launcher and in BRRFIX.INI. The pad
 buzzes when your vehicle takes damage and rumbles while its nitro flames show
 (the launcher's Vibration settings: either can be off, and an intensity).

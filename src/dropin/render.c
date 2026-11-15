@@ -24,6 +24,15 @@
  * 640x480 race view into ours (race_view_size). The game's display stays 640x480 (menus,
  * the window, DirectDraw, split screen and the menu mouse are unchanged); the HUD is still
  * the game's own, scaled by its own code to the view's width.
+ * Full colour ([display] full_colour, 2026-11-15): the final picture is made in 32 bits, each
+ * of the game's pixels through its live palette (0x52D758), so effects beyond its 256 colours
+ * can be added; the first is the smooth sky (sky.c). In full screen the game asks DirectDraw
+ * for a 32-bit mode (site dd_mode_bpp, its PUSH 8 at 0x42C7D7), and the present (site
+ * present_entry) composes straight into the back surface and flips, instead of the game's
+ * 8-bit copy (dd_copy_frame 0x42CAC0). A 32-bit surface takes no palette, so the game's
+ * dd_set_palette (0x42D1FC), which fills its palette entries first, would create a new
+ * palette object each time while dd_palette_pending (0x44BFC4) stayed set: it's cleared here.
+ * In a window, display.c draws the 32-bit picture with GDI.
  * Windows NT family only (Wine, Proton, Windows 2000 onwards): on Windows 95/98/ME the
  * original renderer stays. Docs: KNOWLEDGE "The renderer (Phase 3c)". */
 #include "brrfix.h"
@@ -45,6 +54,7 @@
 #define MENU_H 200
 
 int brr_renderer_active;               /* the new renderer's sites are patched */
+int brr_full_colour;                   /* it presents 32-bit pictures */
 uint32_t brr_dd_setup_continue = 0x42C599;
 static int screen_w, screen_h;         /* the screen's own resolution */
 static int mode_w, mode_h;             /* full screen: the mode we gave DirectDraw (0 in a window) */
@@ -259,6 +269,169 @@ const uint8_t *brr_render_compose(int out_w, int out_h, int out_pitch)
     return out;
 }
 
+/* ---- full colour ---- */
+static uint32_t colours[256];
+
+static PALETTEENTRY shown_palette[256];  /* the colours of the last full-colour picture */
+
+static void palette_colours(void)
+{
+    const PALETTEENTRY *p = (const PALETTEENTRY *)0x52D758;
+    int i;
+    memcpy(shown_palette, p, sizeof shown_palette);
+    for (i = 0; i < 256; i++)
+        colours[i] = (uint32_t)p[i].peRed << 16 | (uint32_t)p[i].peGreen << 8 | p[i].peBlue;
+}
+
+static void fill32(uint32_t *o, uint32_t value, int count)
+{
+    while (count-- > 0)
+        *o++ = value;
+}
+
+/* As compose, in 32 bits: each game pixel through the palette, and the sky's marker pixels
+ * (sky.c) coloured per final pixel, so a row with sky in it is worked out afresh each time. */
+static void compose32(const uint8_t *in, int w, int h, int in_pitch, uint32_t *out, int out_w, int out_h,
+                      int out_pitch, const struct layout *l, int sky)
+{
+    int y, row = 0, cols = w, rows = h, view = -1, marked = 0;
+    int left = l->x, width = w * l->sx;
+    if (left + width > out_w) {
+        cols = (out_w - left) / l->sx;
+        width = cols * l->sx;
+    }
+    if (l->y + rows * l->sy > out_h)
+        rows = (out_h - l->y) / l->sy;
+    for (y = 0; y < out_h; y++) {
+        uint32_t *o = out + (size_t)y * (size_t)out_pitch;
+        int first = (y - l->y) % l->sy == 0;
+        if (!(y >= l->y && row < rows)) {
+            fill32(o, 0, out_w);
+            continue;
+        }
+        if (first) {
+            view = sky ? brr_sky_view_of_row(row) : -1;
+            marked = view >= 0 && memchr(in + (size_t)row * (size_t)in_pitch, SKY_MARKER, (size_t)cols) != NULL;
+        }
+        if (!first && !marked) {  /* a repeat of the row above */
+            memcpy(o, o - out_pitch, (size_t)out_w * 4);
+        } else {
+            const uint8_t *p = in + (size_t)row * (size_t)in_pitch;
+            uint32_t *q = o + left;
+            int x, k;
+            fill32(o, 0, left);
+            for (x = 0; x < cols; x++, q += l->sx) {
+                uint8_t v = p[x];
+                if (v == SKY_MARKER && marked) {
+                    brr_sky_span(q, left + x * l->sx, y, l->sx, view);
+                } else {
+                    uint32_t c = colours[v];
+                    for (k = 0; k < l->sx; k++)
+                        q[k] = c;
+                }
+            }
+            fill32(o + left + width, 0, out_w - left - width);
+        }
+        if ((y - l->y) % l->sy == l->sy - 1)
+            row++;
+    }
+}
+
+/* The final picture in 32 bits at out_w x out_h into out (rows out_pitch pixels apart);
+ * 0 when there's nothing to compose. */
+int brr_render_compose32(uint32_t *out, int out_w, int out_h, int out_pitch)
+{
+    const uint8_t *pixels;
+    int w, h, pitch, sky;
+    struct layout l;
+    if (!brr_full_colour || out_w <= 0 || out_h <= 0 || !game_picture(&pixels, &w, &h, &pitch))
+        return 0;
+    fit(w, h, out_w, out_h, &l);
+    palette_colours();
+    sky = brr_sky_begin(pixels, w, h, pitch, l.sx, l.sy, l.x, l.y) > 0;
+    compose32(pixels, w, h, pitch, out, out_w, out_h, out_pitch, &l, sky);
+    final_w = out_w;
+    final_h = out_h;
+    log_layout(w, h, out_w, out_h, &l);
+    return 1;
+}
+
+/* Full screen in full colour: our picture straight into the back surface, then the flip
+ * (as dd_present 0x42CE78 does, without dd_copy_frame's 8-bit copy). 1 when done. */
+#define DD_PRIMARY         (*(void *volatile *)0x52D710)
+#define DD_BACK            (*(void *volatile *)0x52D714)
+#define DD_READY           (*(volatile uint8_t *)0x52D720)
+#define DD_PALETTE_PENDING (*(volatile uint8_t *)0x44BFC4)
+#define DD_CLEAR_PENDING   (*(volatile uint8_t *)0x52D754)
+#define DDERR_LOST         ((HRESULT)0x887601C2L)
+#define METHOD(object, offset) (*(void **)(*(uint8_t **)(object) + (offset)))
+typedef HRESULT (__stdcall *lock_fn)(void *self, RECT *rect, void *desc, DWORD flags, HANDLE event);
+typedef HRESULT (__stdcall *unlock_fn)(void *self, void *rect);
+typedef HRESULT (__stdcall *flip_fn)(void *self, void *target, DWORD flags);
+typedef HRESULT (__stdcall *restore_fn)(void *self);
+
+static int present_full_colour(void)
+{
+    static int failures, logged;
+    uint8_t desc[0x6C];  /* DDSURFACEDESC */
+    void *back = DD_BACK, *primary = DD_PRIMARY;
+    HRESULT result;
+    uint32_t bits, width, height;
+    int32_t pitch;
+    uint8_t *surface;
+    if (!DD_READY || !back || !primary)
+        return 0;
+    DD_PALETTE_PENDING = 0;  /* no palette on a 32-bit surface: the game just keeps its entries */
+    DD_CLEAR_PENDING = 0;    /* the whole picture is drawn each time */
+    memset(desc, 0, sizeof desc);
+    *(DWORD *)desc = sizeof desc;
+    result = ((lock_fn)METHOD(back, 0x64))(back, NULL, desc, 1 /* DDLOCK_WAIT */, NULL);
+    if (result == DDERR_LOST) {
+        ((restore_fn)METHOD(back, 0x6C))(back);
+        return 1;  /* this frame is skipped */
+    }
+    if (result != 0) {
+        if (failures++ < 4)
+            brr_log("render: full colour: Lock failed (0x%08lX)", (unsigned long)result);
+        return 1;
+    }
+    height = *(DWORD *)(desc + 0x08);
+    width = *(DWORD *)(desc + 0x0C);
+    pitch = *(int32_t *)(desc + 0x10);
+    surface = *(uint8_t **)(desc + 0x24);
+    bits = *(DWORD *)(desc + 0x54);  /* ddpfPixelFormat.dwRGBBitCount */
+    if (bits == 32 && surface && !brr_render_compose32((uint32_t *)surface, (int)width, (int)height, pitch / 4))
+        for (; height > 0; height--)
+            memset(surface + (size_t)(height - 1) * (size_t)pitch, 0, (size_t)width * 4);
+    ((unlock_fn)METHOD(back, 0x80))(back, NULL);
+    if (bits != 32) {
+        if (failures++ < 4)
+            brr_log("render: full colour: the surface has %lu bits per pixel, not 32", (unsigned long)bits);
+        return 1;
+    }
+    result = ((flip_fn)METHOD(primary, 0x2C))(primary, NULL, 0);
+    if (result == DDERR_LOST)
+        ((restore_fn)METHOD(primary, 0x6C))(primary);
+    if (!logged++)
+        brr_log("render: full colour: %lux%lu, 32 bits, drawn straight into DirectDraw's back surface",
+                (unsigned long)width, (unsigned long)*(DWORD *)(desc + 0x08));
+    return 1;
+}
+
+/* Called by brr_retrace (vga_wait_retrace): full-screen fades step the palette once per
+ * retrace without presenting, as an 8-bit screen shows new colours at once (palette_set_level
+ * 0x412F48); in full colour the last picture is presented again in the new colours. */
+void brr_render_palette_check(void)
+{
+    static int fade_logged;
+    if (!brr_full_colour || *GAME_WINDOWED || !mode_w
+        || !memcmp(shown_palette, (const void *)0x52D758, sizeof shown_palette))
+        return;
+    if (!fade_logged++)
+        brr_log("render: full colour: a palette fade, shown a step at a time");
+    present_full_colour();
+}
+
 /* ---- Max: races drawn bigger (experimental) ---- */
 
 /* The race view for a final picture of out_w x out_h: 4:3 (the game's own field of view, and
@@ -322,6 +495,7 @@ uint32_t __cdecl brr_view_size(uint32_t width, uint32_t height)
 void __cdecl brr_screenshot_begin(void)
 {
     static int logged;
+    brr_screenshot_drawing = 1;  /* the game's own sky bands in the PCX (sky.c) */
     screenshot_held = race_w > 640 && VIEW_W == race_w && VIEW_H == race_h;
     if (screenshot_held) {
         if (logged++ < 4)
@@ -333,6 +507,7 @@ void __cdecl brr_screenshot_begin(void)
 
 void __cdecl brr_screenshot_end(void)
 {
+    brr_screenshot_drawing = 0;
     if (screenshot_held) {
         view_held = 0;
         brr_call_set_view(640, 480);  /* ours again, through site set_view_entry */
@@ -362,22 +537,26 @@ uint32_t __cdecl brr_render_mode(uint32_t windowed)
 static uint8_t *game_source;
 static int32_t game_frame_w, game_frame_h;
 
-/* Called on entry to the present (0x42CE78), before the game copies its frame. */
-void __cdecl brr_render_before_present(void)
+/* Called on entry to the present (0x42CE78), before the game copies its frame. Returns 1
+ * when it has presented the frame itself (full colour, full screen). */
+int __cdecl brr_render_before_present(void)
 {
     const uint8_t *out;
     game_source = NULL;
     if (!brr_renderer_active || *GAME_WINDOWED || !mode_w)
-        return;  /* in a window, display.c composes */
+        return 0;  /* in a window, display.c composes */
+    if (brr_full_colour)
+        return present_full_colour();
     out = brr_render_compose(mode_w, mode_h, mode_w);
     if (!out)
-        return;
+        return 0;
     game_source = PRESENT_SOURCE;
     game_frame_w = FRAME_W;
     game_frame_h = FRAME_H;
     PRESENT_SOURCE = (uint8_t *)out;
     FRAME_W = mode_w;
     FRAME_H = mode_h;
+    return 0;
 }
 
 void __cdecl brr_render_after_present(void)

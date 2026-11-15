@@ -178,6 +178,9 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "resolution")) return cfg.resolution_high;
     if (!strcmp(fix, "credits")) return 1;
     if (!strcmp(fix, "render_max")) return cfg.render_max && brr_renderer_active;  /* experimental */
+    if (!strcmp(fix, "full_colour")) return brr_full_colour;
+    if (!strcmp(fix, "sky")) return brr_sky_active;
+    if (!strcmp(fix, "screenshot")) return (cfg.render_max && brr_renderer_active) || brr_sky_active;
     if (!strcmp(fix, "draw_distance")) return cfg.max_draw_distance > 0;  /* experimental, off by default */
     if (!strcmp(fix, "draw_distance_far")) return cfg.max_draw_distance > DRAW_DISTANCE_GRID_MAX;
     return 0;
@@ -291,6 +294,11 @@ static int replacement(const struct site_info *s, uint8_t *out)
     } else if (!strcmp(n, "dd_mode_check") && s->length == 20) {
         out[0] = 0xEB;  /* JMP to the full-screen cooperative level (0x11), whatever the mode's size */
         out[1] = 0x35;
+    } else if (!strcmp(n, "dd_mode_bpp") && s->length == 1) {
+        out[0] = 32;  /* PUSH 0x20: SetDisplayMode's bits per pixel (full colour; render.c presents) */
+    } else if (!strcmp(n, "sky_draw_call") && s->length == 5) {
+        out[0] = 0xE8;  /* CALL brr_hook_sky_draw: the sky's geometry recorded, its bands in the marker colour */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_sky_draw);
     } else if (!strcmp(n, "menu_double_call") && s->length == 5) {
         /* NOPs: the menus' doubling isn't called; the present scales them (render.c) */
     } else if (!strcmp(n, "menu_mouse") && s->length == 56) {
@@ -402,6 +410,12 @@ void brr_patch_all(void)
         return;
     }
     brr_renderer_active = brr_renderer_decide(brr_is_cnc_ddraw(brr_ddraw_module()));
+    brr_full_colour = brr_renderer_active && cfg.full_colour;
+    brr_sky_active = brr_full_colour && cfg.smooth_sky;
+    if (brr_renderer_active)
+        brr_log("render: %s%s", brr_full_colour ? "full colour (32-bit pictures from the game's palette)"
+                                                 : "256 colours, as the game ([display] full_colour=0)",
+                brr_sky_active ? "; the sky as a smooth gradient" : "");
     int applied = 0;
     for (size_t i = 0; i < count; i++) {
         const struct site_info *s = &SITES[i];

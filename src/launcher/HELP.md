@@ -45,7 +45,10 @@ Period defaults on Windows 95, 98 and ME, Modern defaults on anything newer.
   down that come nearest to the 4:3 shape of a 1996 monitor (see "4:3"
   below); 640x480 races are enlarged by the same whole number both ways. In
   full screen it needs cnc-ddraw (CNCDD.DLL, next to Big Red Racing.exe), as
-  the game does on modern Windows; without it, the original is used.
+  the game does on modern Windows; without it, the original is used. It works
+  in full colour, so the sky is a smooth gradient instead of the game's
+  16 flat bands (BRRFIX.INI's [display] full_colour and smooth_sky turn these
+  off).
 - **Original:** the game's own drawing. In full screen cnc-ddraw enlarges it
   (see "Full screen" below); the menus are 320x200 pictures doubled into the
   middle of a 640x480 picture, with black bands above and below.
@@ -221,6 +224,9 @@ end of the stick's travel; higher values reach it sooner.
   reverses.
 - **Stick:** push the stick up to accelerate and down to brake, as with the
   original joystick.
+
+In a race, Start pauses it and carries on, as the Pause key does, and Back
+(View on newer pads) ends it, as Esc does.
 
 ### Vibration
 

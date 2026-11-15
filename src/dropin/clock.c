@@ -323,7 +323,9 @@ uint32_t __cdecl brr_clock_read(void)
  * refresh did, so palette fades keep their original speed. */
 void __cdecl brr_retrace(void)
 {
-    int64_t now = qpc_raw();
+    int64_t now;
+    brr_render_palette_check();  /* full colour: show a fade's step */
+    now = qpc_raw();
     int64_t period_scaled = freq * 1000;  /* one refresh = freq*1000/70000 counts */
     int64_t scaled = (now - load_qpc) * 70000;
     int64_t next = (scaled / period_scaled + 1) * period_scaled;
