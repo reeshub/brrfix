@@ -17,6 +17,13 @@
         extrn   _brr_rotation_fine:near
         extrn   _brr_timer_count:dword
         extrn   _brr_reciprocals:dword
+        extrn   _brr_hud_begin:near
+        extrn   _brr_hud_end:near
+        extrn   _brr_hud_sprite:near
+        extrn   _brr_hud_drawing:dword
+        extrn   _brr_orig_hud_draw:dword
+        extrn   _brr_orig_hud_icon:dword
+        extrn   _brr_sprite_scaled_continue:dword
         extrn   _brr_orig_race_tick:dword
         extrn   _brr_orig_race_draw:dword
         extrn   _brr_orig_playback_tick:dword
@@ -89,6 +96,7 @@
         public  _brr_hook_scn_commit, _brr_hook_scn_end
         public  _brr_call_dd_set_mode
         public  _brr_hook_sprite_rows, _brr_hook_sprite_columns
+        public  _brr_hook_hud_draw, _brr_hook_hud_icon, _brr_hook_sprite_scaled
 
         .code
 
@@ -449,6 +457,54 @@ _brr_hook_set_view:
         push    esi
         mov     esi, edx
         jmp     dword ptr [_brr_set_view_continue]
+
+; Sites hud_draw_call (render_view 0x417865) and hud_icon_call (0x417877): CALL hud_draw
+; (0x423658, the vehicle in EAX) and CALL hud_draw_playback_icon (0x4236F0) -> here: the game's
+; 2D drawing pointed at our 320x200 layers around them (hud.c). Every register as the game's
+; own call leaves it, but EAX, which render_view doesn't read after either.
+_brr_hook_hud_draw:
+        pushad
+        push    1
+        call    _brr_hud_begin
+        add     esp, 4
+        popad
+        call    dword ptr [_brr_orig_hud_draw]
+        pushad
+        call    _brr_hud_end
+        popad
+        ret
+
+_brr_hook_hud_icon:
+        pushad
+        push    0
+        call    _brr_hud_begin
+        add     esp, 4
+        popad
+        call    dword ptr [_brr_orig_hud_icon]
+        pushad
+        call    _brr_hud_end
+        popad
+        ret
+
+; Site sprite_scaled_entry: sprite_draw_scaled's first instructions (0x426F90: PUSH ESI;
+; PUSH EDI; PUSH EBP; SUB ESP,50h) -> JMP here. While the HUD draws, brr_hud_sprite(its
+; caller, y in CX) picks the layer; then those instructions and on from 0x426F96.
+_brr_hook_sprite_scaled:
+        cmp     dword ptr [_brr_hud_drawing], 0
+        je      hss_continue
+        pushad
+        movsx   eax, cx
+        push    eax
+        push    dword ptr [esp + 36]            ; the return address (above PUSHAD and y)
+        call    _brr_hud_sprite
+        add     esp, 8
+        popad
+hss_continue:
+        push    esi
+        push    edi
+        push    ebp
+        sub     esp, 50h
+        jmp     dword ptr [_brr_sprite_scaled_continue]
 
 ; sprite_draw_scaled (0x426F90), the HUD's sprite routine, steps through the sprite with an
 ; error term starting at half the drawn size; drawn more than twice as big, the last row and

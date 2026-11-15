@@ -20,8 +20,9 @@
  * engine at a reciprocal table of ours, bigger than its own 1,024 entries; site view_max raises
  * the view record's maximum before the engine allocates its picture, depth buffer and row
  * table from it, and site set_view_entry turns the game's 640x480 race view into ours. The game's display stays 640x480 (menus,
- * the window, DirectDraw, split screen and the menu mouse are unchanged); the HUD is still
- * the game's own, scaled by its own code to the view's width.
+ * the window, DirectDraw, split screen and the menu mouse are unchanged); the HUD is laid over
+ * the composed picture by hud.c ([display] hud=lowres), or with hud=game is the game's own,
+ * scaled by its own code to the view's width.
  * Full colour ([display] full_colour, 2026-11-15): the final picture is made in 32 bits, each
  * of the game's pixels through its live palette (0x52D758), so effects beyond its 256 colours
  * can be added; the first is the smooth sky (sky.c). In full screen the game asks DirectDraw
@@ -293,6 +294,7 @@ const uint8_t *brr_render_compose(int out_w, int out_h, int out_pitch)
     }
     fit(w, h, out_w, out_h, &l);
     compose(pixels, w, h, pitch, out, out_w, out_h, out_pitch, &l);
+    brr_hud_overlay(pixels, w, h, out, out_w, out_h, out_pitch, l.x, l.y, l.sx, l.sy, NULL, 0);
     final_w = out_w;
     final_h = out_h;
     log_layout(w, h, out_w, out_h, &l);
@@ -386,7 +388,7 @@ static void compose32(const uint8_t *in, const uint8_t *origin, int w, int h, in
  * out and the new one in). */
 static uint8_t *shown_pixels;
 static const uint8_t *shown_origin;
-static int shown_w, shown_h, replaying;
+static int shown_w, shown_h, replaying, shown_hud;
 
 /* The final picture in 32 bits at out_w x out_h into out (rows out_pitch pixels apart);
  * 0 when there's nothing to compose. */
@@ -420,6 +422,11 @@ int brr_render_compose32(uint32_t *out, int out_w, int out_h, int out_pitch)
     palette_colours();
     sky = brr_sky_begin(origin, w, h, pitch, l.sx, l.sy, l.x, l.y) > 0;
     compose32(pixels, origin, w, h, pitch, out, out_w, out_h, out_pitch, &l, sky);
+    /* the race HUD (hud.c) on top; a fade's steps keep the HUD the picture was shown with */
+    if (!replaying)
+        shown_hud = brr_hud_overlay(origin, w, h, out, out_w, out_h, out_pitch, l.x, l.y, l.sx, l.sy, colours, 0);
+    else if (shown_hud)
+        brr_hud_overlay(origin, w, h, out, out_w, out_h, out_pitch, l.x, l.y, l.sx, l.sy, colours, 1);
     final_w = out_w;
     final_h = out_h;
     log_layout(w, h, out_w, out_h, &l);

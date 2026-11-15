@@ -162,7 +162,10 @@ enlarges it with the launcher's Scaling choice (4:3 sharp by default). In full
 colour (32 bits) the sky is a smooth gradient instead of the game's 16 flat
 bands, and lit surfaces (buildings, trees, vehicles, tunnel walls) are shaded
 smoothly instead of a palette shade at a time ([display] full_colour,
-smooth_sky, smooth_shading).
+smooth_sky, smooth_shading). The race dashboard (map, place, nitro, laps,
+damage, messages) is the game's 320x200 art, drawn by the game on layers of
+its own and enlarged by whole numbers into the race picture's corners
+([display] hud=lowres; hud=game gives the game's own, as before).
 Windowed, it's a plain window drawn by cnc-ddraw: Alt+Enter switches to full
 screen and back. Its options: scaling, window size, colour depth,
 "Resolution: Max (experimental)" (the default: races drawn 4:3 as tall as the

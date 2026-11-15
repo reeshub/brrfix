@@ -58,7 +58,7 @@ GAME = WORK / "game"
 SYSTEM_DLLS = {"kernel32.dll", "user32.dll", "gdi32.dll", "winmm.dll", "advapi32.dll"}
 C_FILES = ["main.c", "clock.c", "patch.c", "interp.c", "camera.c", "debug.c", "angles.c", "display.c",
            "music.c", "decoders.c", "sha256.c", "tracks.c", "controller.c", "keys.c", "render.c", "distance.c",
-           "sky.c", "shade.c", "palanim.c"]
+           "sky.c", "shade.c", "palanim.c", "hud.c"]
 # Third-party code compiled in: pinned, downloaded at build time, checked by SHA-256, never committed
 THIRD_PARTY = ROOT / "tools" / "third-party"
 DECODERS = [

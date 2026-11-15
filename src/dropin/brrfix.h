@@ -34,6 +34,8 @@ struct brr_config {
     int full_colour;         /* [display] full_colour: the new renderer presents 32-bit pictures */
     int smooth_sky;          /* [display] smooth_sky: the sky as a smooth gradient (sky.c; full colour) */
     int smooth_shading;      /* [display] smooth_shading: lit polygons shaded smoothly (shade.c; full colour) */
+    int hud_lowres;          /* [display] hud=lowres: the race HUD from the 320x200 art on its own layers,
+                              * enlarged by whole numbers (hud.c; the new renderer only); game = the game's own */
     int colour_animation;    /* [display] colour_animation: the levels' palette cycling, as in DOS (palanim.c) */
     int menu_navigation;     /* [controller] menu_navigation: B, and the stick's left and right, in menus (keys.c) */
     int language;            /* [display] language: 1-7 (ENG, USA, FRE, GER, ITA, SPA, JAP) */
@@ -151,6 +153,14 @@ void __cdecl brr_poly_light_smooth(void);
 void brr_shade_census_report(void);
 void brr_debug_every_frame(void);
 void brr_debug_frame_shot(const uint32_t *picture, int width, int height, int pitch);
+/* hud.c: the race HUD on layers of its own */
+extern int brr_hud_active;
+void brr_hud_setup(void);
+void brr_hook_hud_draw(void);
+void brr_hook_hud_icon(void);
+void brr_hook_sprite_scaled(void);
+int brr_hud_overlay(const uint8_t *origin, int w, int h, void *out, int out_w, int out_h, int out_pitch,
+                    int px, int py, int sx, int sy, const uint32_t *colours, int again);
 /* sky.c */
 #define SKY_MARKER 255       /* the colour the game's sky bands are drawn in, with smooth_sky */
 extern int brr_sky_active, brr_screenshot_drawing;

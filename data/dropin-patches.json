@@ -575,6 +575,30 @@
    "sha256": "6e8242f12ddc21b27e5d2716044aa5d8f85d1bd7c2add73b651d637f0b787d6c"
   },
   {
+   "name": "hud_draw_call",
+   "fix": "hud",
+   "address": "0x417865",
+   "length": 5,
+   "patch": "render_view: CALL hud_draw (0x423658) -> CALL brr_hook_hud_draw (thunks.asm): the view's size set to 320x200, the high-resolution flag cleared and the 2D routines' buffer (0x542030) pointed at our layers around it, so the game draws its 320x200 HUD (GAMEVGA.SPR, the 64x64 map) there instead of into the 3D view; hud.c lays the layers over the composed race picture, enlarged by whole numbers and pinned to its corners. Modern renderer, single view; split screen and the screenshot's redraw keep the game's own",
+   "sha256": "0349439893da667d1b27d3d7fd8e144067c94928e3bb9de3e35a3cd796c6490b"
+  },
+  {
+   "name": "hud_icon_call",
+   "fix": "hud",
+   "address": "0x417877",
+   "length": 5,
+   "patch": "render_view: CALL hud_draw_playback_icon (0x4236F0, recordings' playback) -> CALL brr_hook_hud_icon: the same, into the same frame's layers",
+   "sha256": "7687067fb6a6e0834d1b544e3c9d30a1b5ff7011073df7469224b2f81371f0bc"
+  },
+  {
+   "name": "sprite_scaled_entry",
+   "fix": "hud",
+   "address": "0x426F90",
+   "length": 6,
+   "patch": "sprite_draw_scaled's first instructions (PUSH ESI; PUSH EDI; PUSH EBP; SUB ESP,0x50) -> JMP brr_hook_sprite_scaled: while the HUD draws into our layers, brr_hud_sprite picks the layer of the sprite's corner from its caller (the map left; place, nitro and laps right; damage and messages centred; top or bottom by y); then those instructions and on from 0x426F96. Every caller of sprite_draw_scaled is HUD drawing or the demo's goodbye screen (bye_*), which the flag leaves alone",
+   "sha256": "affbabf60b652adedbc86764fbdd0e11ed2be3ab58650b536a1aa79df764cfcb"
+  },
+  {
    "name": "set_view_entry",
    "fix": "render_max",
    "address": "0x425F78",

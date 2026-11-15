@@ -183,6 +183,7 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "full_colour")) return brr_full_colour;
     if (!strcmp(fix, "sky")) return brr_sky_active || brr_shade_active;  /* the 3D view's start, for both */
     if (!strcmp(fix, "shading")) return brr_shade_active;
+    if (!strcmp(fix, "hud")) return brr_hud_active;
     if (!strcmp(fix, "menu_pad")) return cfg.menu_navigation;
     if (!strcmp(fix, "screenshot")) return (cfg.render_max && brr_renderer_active) || brr_sky_active;
     if (!strcmp(fix, "draw_distance")) return cfg.max_draw_distance > 0;  /* experimental, off by default */
@@ -279,6 +280,13 @@ static int replacement(const struct site_info *s, uint8_t *out)
         size[0] = (uint16_t)brr_view_max_w;
         size[1] = (uint16_t)brr_view_max_h;
         memcpy(out, size, 4);
+    } else if ((!strcmp(n, "hud_draw_call") || !strcmp(n, "hud_icon_call")) && s->length == 5) {
+        out[0] = 0xE8;  /* CALL brr_hook_hud_draw / _icon: the HUD drawn into our layers (hud.c) */
+        put_rel32(out + 1, s->address + 5,
+                  !strcmp(n, "hud_draw_call") ? (void *)brr_hook_hud_draw : (void *)brr_hook_hud_icon);
+    } else if (!strcmp(n, "sprite_scaled_entry") && s->length == 6) {
+        out[0] = 0xE9;  /* JMP brr_hook_sprite_scaled, which runs the 4 instructions replaced here */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_sprite_scaled);
     } else if (!strcmp(n, "sprite_scale_rows") && s->length == 11) {
         out[0] = 0xE8;  /* CALL brr_hook_sprite_rows: EAX = the rows' error start; NOPs after */
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_sprite_rows);
@@ -467,6 +475,7 @@ void brr_patch_all(void)
     brr_sky_active = brr_full_colour && cfg.smooth_sky;
     brr_shade_active = brr_full_colour && cfg.smooth_shading;
     brr_shade_setup();  /* may turn it off (memory) */
+    brr_hud_setup();
     if (brr_renderer_active)
         brr_log("render: %s%s%s", brr_full_colour ? "full colour (32-bit pictures from the game's palette)"
                                                    : "256 colours, as the game ([display] full_colour=0)",

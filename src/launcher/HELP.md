@@ -52,7 +52,10 @@ setting below). Each renderer has its own:
   it to the screen or the window, as Scaling (below) says, 4:3 sharp by
   default, so the menus fill the same space as the races. Starting and
   leaving a race changes the picture's size, which cnc-ddraw may show as a
-  brief jump. It needs cnc-ddraw (CNCDD.DLL, next to Big Red Racing.exe), as
+  brief jump. The race dashboard (map, place, nitro, laps, damage and
+  messages) is the 1996 game's low-resolution art, drawn by the game on a
+  layer of its own and enlarged by whole numbers, so it stays sharp and in
+  its corner at any race size. It needs cnc-ddraw (CNCDD.DLL, next to Big Red Racing.exe), as
   the game does on modern Windows; without it, the original is used.
 - **Original:** the game's own drawing, exactly as in 1996. In full screen
   cnc-ddraw enlarges it (see "Full screen" below); the menus are 320x200
@@ -84,8 +87,9 @@ Tab) broke its window, so it's removed.
   demo drawn with as many pixels as your screen (or window) is tall, up to
   the Max limit below, in the game's 4:3 shape, and never less than
   640x480: 1056x792 on 1280x800 (Steam Deck), 1440x1080 on 1920x1080 and
-  bigger screens. cnc-ddraw then enlarges it as Scaling says. The dashboard (position, laps, map) is the game's own, enlarged
-  by the game itself to match. Menus
+  bigger screens. cnc-ddraw then enlarges it as Scaling says. The dashboard
+  (position, laps, map) is laid over it in whole-number blocks (see Modern,
+  above). Menus
   and split-screen races stay as they are. If something looks wrong in a
   race, go back to High and tell us.
 
