@@ -75,12 +75,12 @@ Tab) broke its window, so it's removed.
 
 **Resolution**
 
-- **High (640x480)** (the default): the game's own sharper mode, which it
+- **High (640x480)** (the Original renderer's default): the game's own sharper mode, which it
   only offered through its window's Modes menu or keypad +. It applies from
   the first screen. Races are drawn at 640x480; the menus are always 320x200
   pictures.
 - **Low (320x200):** as the game starts.
-- **Max (experimental)** (Modern renderer only): races and the attract-mode
+- **Max (experimental)** (Modern renderer only, and its default): races and the attract-mode
   demo drawn with up to 1008x756 pixels, the most the game's 3D engine can
   draw. The size is the 4:3 picture that, enlarged by a whole number, fills
   the most of your screen or window, and never less than 640x480: 1008x756
@@ -111,6 +111,10 @@ its own choice: Integer for the Original, 4:3 sharp for the Modern one.
   one screen pixel wider than others.
 - **Stretch:** fills the whole screen, whatever its shape.
 - **Smooth:** slightly blurred, as cnc-ddraw does by default.
+- **Square sharp (full height):** the picture's own shape, with square
+  pixels, as tall as the screen and kept sharp: the menus' 320x200 pictures
+  are wider than 4:3 (they fill a 16:10 screen such as the Steam Deck's),
+  races' 4:3 pictures have black bars at the sides.
 
 **Window size** (Modern renderer, in a window only)
 

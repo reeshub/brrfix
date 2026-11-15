@@ -67,7 +67,8 @@ static const struct choice scales[] = {  /* the Modern renderer's window: multip
     {"4x (2560x1920)", "4"}, {"5x", "5"}, {"6x", "6"}, {0, 0}};
 static const struct choice presets[] = {
     {"Integer (sharp)", "integer"}, {"4:3 sharp", "43sharp"}, {"4:3 nearest", "43nearest"},
-    {"Stretch", "stretch"}, {"Smooth", "smooth"}, {0, 0}};
+    {"Stretch", "stretch"}, {"Smooth", "smooth"}, {"Square sharp (full height)", "squaresharp"}, {0, 0}};
+#define PRESET_COUNT 6
 static const struct choice smoothings[] = {
     {"Off", "0"}, {"Light", "25"}, {"Medium", "50"}, {"Strong", "100"}, {0, 0}};
 static const struct choice frame_limits[] = {
@@ -87,12 +88,14 @@ static const struct choice rates[] = {{"70.0 (DOS original)", "70.0"}, {"71.43 (
 static const struct choice caps[] = {{"8 ticks", "8"}, {"35 (original)", "35"}, {0, 0}};
 
 /* the cnc-ddraw keys for each full-screen preset: boxing, maintas, aspect_ratio, shader, d3d9_filter */
-static const char *const preset_keys[5][5] = {
+static const char *const preset_keys[PRESET_COUNT][5] = {
     {"true", "true", "", "Shaders\\nearest-neighbor.glsl", "0"},
     {"false", "true", "4:3", "Shaders\\interpolation\\lanczos2-sharp.glsl", "0"},
     {"false", "true", "4:3", "Shaders\\nearest-neighbor.glsl", "0"},
     {"false", "false", "", "Shaders\\nearest-neighbor.glsl", "0"},
-    {"false", "true", "", "Shaders\\interpolation\\catmull-rom-bilinear.glsl", "1"}};
+    {"false", "true", "", "Shaders\\interpolation\\catmull-rom-bilinear.glsl", "1"},
+    /* the picture's own shape (square pixels), as tall as the screen, kept sharp */
+    {"false", "true", "", "Shaders\\interpolation\\lanczos2-sharp.glsl", "0"}};
 
 /* the scaling preset each renderer uses (index into presets): 0 the Original's
  * (fullscreen_scaling), 1 the Modern one's (modern_scaling); the combo box shows the chosen
@@ -357,7 +360,7 @@ static const struct { int id; const char *text; } tips[] = {
     {IDC_COLOUR_ANIM, "The colour cycling of four levels (CHOPPER3, CITY4 Italy, MOON2, RIG4) that the DOS version "
                       "had and the Windows version lost."},
     {IDC_PRESET, "How cnc-ddraw enlarges the picture to the screen (or the Modern window): whole numbers, "
-                 "4:3 sharp (Modern's default), 4:3 nearest, stretched or smooth."},
+                 "4:3 sharp (Modern's default), 4:3 nearest, stretched, smooth, or square pixels at full height."},
     {IDC_INTERP, "Draws the vehicles and the camera between the game's 35 physics steps a second, for smooth motion."},
     {IDC_SMOOTHING, "Experimental: softens the camera's movement further. Not needed for the stutter fix."},
     {IDC_FRAMES, "The most pictures drawn a second. The game itself runs at the same speed whatever you choose."},
@@ -468,7 +471,9 @@ static void load(HWND dialog, int defaults)
     {
         char resolution[16];
         ini_get(f, "display", "resolution", period ? "low" : "high", resolution, sizeof resolution);
-        if (!lstrcmpiA(resolution, "high") && !lstrcmpiA(GET(f, "display", "render_resolution", "original"), "max"))
+        /* Max is the Modern renderer's default (director, 2026-11-15) */
+        if (!lstrcmpiA(resolution, "high")
+            && !lstrcmpiA(GET(f, "display", "render_resolution", period ? "original" : "max"), "max"))
             lstrcpyA(resolution, "max");
         fill_resolutions(dialog, resolution);
     }
@@ -479,17 +484,17 @@ static void load(HWND dialog, int defaults)
         char boxing[16], aspect[16], shader[MAX_PATH], maintas[16];
         int i, found = 0;
         ini_get(f, "display", "fullscreen_scaling", "", v, sizeof v);
-        for (i = 0; i < 5; i++)
+        for (i = 0; i < PRESET_COUNT; i++)
             if (!lstrcmpiA(v, presets[i].value))
                 break;
-        if (i < 5)
+        if (i < PRESET_COUNT)
             found = i;
         else {
             ini_get(d, "ddraw", "boxing", "true", boxing, sizeof boxing);
             ini_get(d, "ddraw", "maintas", "true", maintas, sizeof maintas);
             ini_get(d, "ddraw", "aspect_ratio", "", aspect, sizeof aspect);
             ini_get(d, "ddraw", "shader", preset_keys[0][3], shader, sizeof shader);
-            for (i = 0; i < 5; i++)
+            for (i = 0; i < PRESET_COUNT; i++)
                 if (!lstrcmpiA(boxing, preset_keys[i][0]) && !lstrcmpiA(maintas, preset_keys[i][1])
                     && !lstrcmpiA(aspect, preset_keys[i][2]) && !lstrcmpiA(shader, preset_keys[i][3]))
                     found = i;
@@ -497,7 +502,7 @@ static void load(HWND dialog, int defaults)
         preset_of[0] = found;
         ini_get(f, "display", "modern_scaling", "43sharp", v, sizeof v);
         preset_of[1] = 1;  /* 4:3 sharp, the Modern renderer's default (director, 2026-11-15) */
-        for (i = 0; i < 5; i++)
+        for (i = 0; i < PRESET_COUNT; i++)
             if (!lstrcmpiA(v, presets[i].value))
                 preset_of[1] = i;
         shown_fresh = -1;  /* update_enabled fills the box with the chosen renderer's */
@@ -555,7 +560,7 @@ static void save(HWND dialog)
             ini_set(brrfix_ini, "display", "render_resolution", max ? "max" : "original");
     }
     ini_set(brrfix_ini, "display", "language", chosen(dialog, IDC_LANGUAGE, languages));
-    if (preset >= 0 && preset <= 4)
+    if (preset >= 0 && preset < PRESET_COUNT)
         preset_of[fresh_now] = preset;
     preset = preset_of[fresh_now];
     ini_set(brrfix_ini, "display", "fullscreen_scaling", presets[preset_of[0]].value);

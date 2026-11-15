@@ -82,7 +82,7 @@ static void load_config(void)
     cfg.resolution_high = !lstrcmpiA(text, "high");
     GetPrivateProfileStringA("display", "renderer", "new", text, sizeof text, path);
     cfg.renderer_new = lstrcmpiA(text, "original") != 0;
-    GetPrivateProfileStringA("display", "render_resolution", "original", text, sizeof text, path);
+    GetPrivateProfileStringA("display", "render_resolution", "max", text, sizeof text, path);
     cfg.render_max = !lstrcmpiA(text, "max");
     GetPrivateProfileStringA("display", "language", "ENG", text, sizeof text, path);
     {
