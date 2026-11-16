@@ -57,6 +57,7 @@
 #define IDC_GROUND_PERSP 1322
 #define IDC_SORT_FOOT    1323
 #define IDC_CLOSE_GAPS   1324
+#define IDC_HORIZON      1325
 
 /* Audio */
 #define IDC_PAGE_AUDIO   1400

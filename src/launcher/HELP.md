@@ -350,6 +350,15 @@ slit of sky at today's resolutions; they're now drawn together. Polygon edges
 are also worked out exactly, where the engine lost a little along long
 edges. Some slits remain where separate pieces meet at an angle.
 
+**Horizon culling (experimental)** (off by default; needs Close gaps)
+
+The engine paints the scene from far to near, so the ground and objects
+behind a hill are painted and then covered. Ticked, anything nearer ground
+will surely cover is left out: the picture is exactly the same. So far it
+saves about as much time as it takes to work out, because hidden far ground
+is cheap for the engine to paint; it's here to try, and a faster version
+(skipping hidden ground before the engine even prepares it) is planned.
+
 
 ## Audio
 

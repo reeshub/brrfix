@@ -191,6 +191,8 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "sort_footprint")) return cfg.sort_footprint && brr_renderer_active;
     if (!strcmp(fix, "ground_perspective")) return cfg.ground_perspective && brr_renderer_active;
     if (!strcmp(fix, "close_gaps")) return cfg.close_gaps && brr_renderer_active;
+    /* its cover assumes close_gaps' exact edges: the game's could fall short by pixels */
+    if (!strcmp(fix, "horizon_culling")) return cfg.horizon_culling && cfg.close_gaps && brr_renderer_active;
     if (!strcmp(fix, "object_shading")) return cfg.object_shading && brr_renderer_active;
     if (!strcmp(fix, "object_detail")) return (cfg.object_detail != 0 || cfg.debug_lod_log) && brr_renderer_active;
     if (!strcmp(fix, "widescreen")) return brr_widescreen && brr_renderer_active && cfg.render_max;
@@ -301,6 +303,9 @@ static int replacement(const struct site_info *s, uint8_t *out)
         size[0] = (uint16_t)brr_view_max_w;
         size[1] = (uint16_t)brr_view_max_h;
         memcpy(out, size, 4);
+    } else if (!strcmp(n, "display_list_call") && s->length == 5) {
+        out[0] = 0xE8;  /* CALL brr_hook_display_list: horizon culling, then display_list_draw */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_display_list);
     } else if (!strcmp(n, "scenery_snap") && s->length == 8) {
         out[0] = 0xE8;  /* CALL brr_hook_scenery_pos: the position's loads, snapped; then 3 NOPs */
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_scenery_pos);

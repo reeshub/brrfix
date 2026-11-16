@@ -290,6 +290,7 @@ static int hidden_by_choice(HWND dialog, int id)
     case IDC_GROUND_PERSP:
     case IDC_SORT_FOOT:
     case IDC_CLOSE_GAPS:
+    case IDC_HORIZON:
         return !fresh;
     }
     return 0;
@@ -385,6 +386,8 @@ static void update_enabled(HWND dialog)
         /* the menus' backgrounds across the screen: for native widescreen only */
         enable(dialog, IDC_WIDEMENUS, max && full && checked(dialog, IDC_WIDESCREEN));
     }
+    /* horizon culling counts on close gaps' exact edges */
+    enable(dialog, IDC_HORIZON, checked(dialog, IDC_CLOSE_GAPS));
     /* the Modern renderer's window (cnc-ddraw's) */
     enable(dialog, IDC_SCALE_LABEL, window);
     enable(dialog, IDC_SCALE, window);
@@ -437,6 +440,8 @@ static const struct { int id; const char *text; } tips[] = {
                     "showing through the hills in front of them."},
     {IDC_CLOSE_GAPS, "Pieces the level designers placed a hair apart (Italy's tunnels, the start's billboards) drawn "
                      "together, and polygon edges worked out exactly: fewer slits of sky."},
+    {IDC_HORIZON, "Experimental: skips drawing ground and objects that nearer hills will cover anyway. The same "
+                  "picture; so far it saves about as much time as it takes. Needs Close gaps."},
     {IDC_HUD43, "The race dashboard's pixels 1.2 times taller than wide, as the 320x200 art looked on a 1996 4:3 "
                 "monitor; off: square."},
     {IDC_SCALE, "How big the Modern renderer's window is, in whole multiples of 640x480; the picture is "
@@ -643,6 +648,7 @@ static void load(HWND dialog, int defaults)
     check(dialog, IDC_GROUND_PERSP, defaults ? 1 : ini_flag("display", "ground_perspective", 1));
     check(dialog, IDC_SORT_FOOT, defaults ? 1 : ini_flag("display", "sort_footprint", 1));
     check(dialog, IDC_CLOSE_GAPS, defaults ? 1 : ini_flag("display", "close_gaps", 1));
+    check(dialog, IDC_HORIZON, defaults ? 0 : ini_flag("display", "horizon_culling", 0));
     if (!defaults)
         check(dialog, IDC_SKIP, ini_flag("launcher", "skip", 0));
 #undef GET
@@ -708,6 +714,7 @@ static void save(HWND dialog)
     ini_set(brrfix_ini, "display", "ground_perspective", checked(dialog, IDC_GROUND_PERSP) ? "1" : "0");
     ini_set(brrfix_ini, "display", "sort_footprint", checked(dialog, IDC_SORT_FOOT) ? "1" : "0");
     ini_set(brrfix_ini, "display", "close_gaps", checked(dialog, IDC_CLOSE_GAPS) ? "1" : "0");
+    ini_set(brrfix_ini, "display", "horizon_culling", checked(dialog, IDC_HORIZON) ? "1" : "0");
     ini_set(brrfix_ini, "launcher", "skip", checked(dialog, IDC_SKIP) ? "1" : "0");
     if (windows_9x)
         ini_set(brrfix_ini, "clock", "vsync", checked(dialog, IDC_VSYNC) ? "1" : "0");
@@ -902,6 +909,7 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
         case IDC_MUSIC:
         case IDC_PAD:
         case IDC_WIDESCREEN:
+        case IDC_CLOSE_GAPS:
         case IDC_VIBRATION:
         case IDC_NITRO_RUMBLE:
             update_enabled(dialog);

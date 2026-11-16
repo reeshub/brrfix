@@ -1036,6 +1036,15 @@ void brr_display_list_report(void)
         brr_log("precise 3D: the game's 32-bit maths would have got %lu projected corners, %lu faces' facing and "
                 "%lu screen-edge clips wrong", (unsigned long)brr_count_project, (unsigned long)brr_count_backface,
                 (unsigned long)brr_count_clip);
+    if (brr_horizon_frames)
+        brr_log("horizon culling: %lu of %lu ground squares and %lu of %lu objects skipped (painted over by nearer "
+                "ground); the pass took %ld us a frame, drawing the list %ld us", (unsigned long)brr_horizon_records_culled,
+                (unsigned long)brr_horizon_records, (unsigned long)brr_horizon_objects_culled,
+                (unsigned long)brr_horizon_objects,
+                (long)(brr_horizon_time * 1000000 / brr_qpc_freq() / brr_horizon_frames),
+                (long)(brr_horizon_draw_time * 1000000 / brr_qpc_freq() / brr_horizon_frames));
+    brr_horizon_records = brr_horizon_records_culled = brr_horizon_objects = brr_horizon_objects_culled = 0;
+    brr_horizon_time = brr_horizon_frames = brr_horizon_draw_time = 0;
     if (brr_count_persp)
         brr_log("ground perspective: %lu ground polygons set up with the precise perspective",
                 (unsigned long)brr_count_persp);

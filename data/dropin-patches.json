@@ -639,6 +639,14 @@
    "sha256": "1d44f2bb9890982c87bbb3df9392ce16edf027553b5a909acdff98daa633170c"
   },
   {
+   "name": "display_list_call",
+   "fix": "horizon_culling",
+   "address": "0x417808",
+   "length": 5,
+   "patch": "render_view: CALL display_list_draw (0x42B8B4, after every node is in the list, the far passes' too) -> CALL brr_hook_display_list (thunks.asm): brr_horizon_cull (horizon.c) walks the list near to far (from 0x5268C8 by +8, the reverse of the painting order), keeps per screen column the row from which nearer, opaque, front-facing ground surely covers down to the bottom, and unlinks every ground record and object whose possible pixels lie wholly there: they would be painted over anyway, so the picture is the same. Needs close_gaps (its exact edges); effects and decals are never culled; then display_list_draw",
+   "sha256": "efd920dedaf6aaae4260a72f6f491bbe57405ffb4306f1c48b32d0effac19f83"
+  },
+  {
    "name": "scenery_snap",
    "fix": "close_gaps",
    "address": "0x448D06",

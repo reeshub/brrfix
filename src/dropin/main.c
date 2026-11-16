@@ -147,6 +147,7 @@ static void load_config(void)
     cfg.sort_footprint = ini_int(path, "display", "sort_footprint", 1);
     cfg.ground_perspective = ini_int(path, "display", "ground_perspective", 1);
     cfg.close_gaps = ini_int(path, "display", "close_gaps", 1);
+    cfg.horizon_culling = ini_int(path, "display", "horizon_culling", 0);  /* experimental: no faster yet */
     GetPrivateProfileStringA("display", "object_shading", "flat", text, sizeof text, path);
     cfg.object_shading = !lstrcmpiA(text, "smooth") ? 1 : !lstrcmpiA(text, "flat") ? 2 : 0;
     GetPrivateProfileStringA("display", "object_detail", "highest", text, sizeof text, path);
@@ -215,6 +216,7 @@ static void load_config(void)
     GetPrivateProfileStringA("debug", "level", "", cfg.debug_level, sizeof cfg.debug_level, path);
     cfg.debug_shade_split = ini_int(path, "debug", "shade_split", 0);
     cfg.debug_lod_log = ini_int(path, "debug", "lod_log", 0);
+    cfg.debug_horizon_log = ini_int(path, "debug", "horizon_log", 0);
     cfg.debug_shot_tick = ini_int(path, "debug", "shot_tick", 0);
     cfg.debug_shade_no_corners = ini_int(path, "debug", "shade_no_corners", 0);
     if (cfg.clock_original)

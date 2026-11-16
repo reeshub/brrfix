@@ -81,6 +81,7 @@ BEGIN
     AUTOCHECKBOX    "Steady &ground textures", IDC_GROUND_PERSP, 18, 176, 140, 10, WS_TABSTOP
     AUTOCHECKBOX    "Better draw ord&er", IDC_SORT_FOOT, 160, 176, 140, 10, WS_TABSTOP
     AUTOCHECKBOX    "&Close gaps between polygons", IDC_CLOSE_GAPS, 18, 190, 140, 10, WS_TABSTOP
+    AUTOCHECKBOX    "Horizo&n culling (experimental)", IDC_HORIZON, 160, 190, 140, 10, WS_TABSTOP
 
     /* Audio */
     GROUPBOX        "Music", IDC_PAGE_AUDIO, 12, 24, 300, 78

@@ -46,6 +46,7 @@ struct brr_config {
     int sort_footprint;      /* [display] sort_footprint: objects drawn in order of their footprint, not their height */
     int ground_perspective;  /* [display] ground_perspective: every textured ground square perspective-correct (persp.c) */
     int close_gaps;          /* [display] close_gaps: level pieces one unit apart drawn together; exact edge slopes */
+    int horizon_culling;     /* [display] horizon_culling: skip what nearer ground will paint over (horizon.c) */
     int object_shading;      /* [display] object_shading: 0 game (smooth near, flat beyond 8 squares), 1 smooth, 2 flat */
     int texture_distance;    /* [display] texture_distance with max_draw_distance: 0 the slider's, else squares */
     int object_detail;       /* [display] object_detail: 0 original, 1 matched to the resolution, 2 highest */
@@ -92,6 +93,7 @@ struct brr_config {
     char debug_level[16];           /* tests: race this level (e.g. CITY1) whatever the menus chose */
     int debug_shade_split;          /* tests: smooth shading on the picture's left half only */
     int debug_lod_log;              /* tests: each model's level-of-detail distances, once (render.c) */
+    int debug_horizon_log;          /* tests: N: the coverage line for N frames from tick 300; 999: no culling, timed (horizon.c) */
     int debug_shot_tick;            /* tests: save the full-colour picture at this race tick */
     int debug_shade_no_corners;     /* tests: smooth shading without the corners' fractions */
 };
@@ -180,6 +182,11 @@ void brr_hook_hud_icon(void);
 void brr_hook_raw_name(void);              /* thunks.asm: site raw_name_call */
 void brr_hook_persp_setup(void);           /* thunks.asm: site persp_setup_hook */
 void brr_hook_scenery_pos(void);           /* thunks.asm: site scenery_snap */
+void brr_hook_display_list(void);          /* thunks.asm: site display_list_call */
+void __cdecl brr_horizon_cull(void);       /* horizon.c */
+extern uint32_t brr_horizon_records, brr_horizon_records_culled, brr_horizon_objects, brr_horizon_objects_culled;
+extern int64_t brr_horizon_time, brr_horizon_frames, brr_horizon_draw_time;
+void __cdecl brr_horizon_drawn(void);
 int __cdecl brr_persp_setup(void);         /* persp.c */
 extern uint32_t brr_persp_setup_original, brr_count_persp;
 void brr_hook_sprite_scaled(void);
