@@ -294,9 +294,6 @@ static int replacement(const struct site_info *s, uint8_t *out)
     } else if (!strcmp(n, "raw_name_call") && s->length == 5) {
         out[0] = 0xE8;  /* CALL brr_hook_raw_name: which picture the screen loaded, then file_open */
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_raw_name);
-    } else if (!strcmp(n, "hud_map_call") && s->length == 5) {
-        out[0] = 0xE8;  /* CALL brr_hook_hud_map: the map in its own 640x400 layer, the 128x128 art */
-        put_rel32(out + 1, s->address + 5, (void *)brr_hook_hud_map);
     } else if ((!strcmp(n, "hud_draw_call") || !strcmp(n, "hud_icon_call")) && s->length == 5) {
         out[0] = 0xE8;  /* CALL brr_hook_hud_draw / _icon: the HUD drawn into our layers (hud.c) */
         put_rel32(out + 1, s->address + 5,

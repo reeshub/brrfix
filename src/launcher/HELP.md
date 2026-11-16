@@ -281,8 +281,8 @@ it's square either way.
 - **Large (1996):** as big as the game's low resolution showed it (4 on the
   Steam Deck, 5 at 1080).
 
-The track map is twice the size of the rest, with the full detail of the
-game's 640x480 map.
+The track map is enlarged twice as much as the rest (the same 320x200 art:
+the game's 640x480 map was scaled badly in places in 1996).
 
 Either way the dashboard is laid out afresh: the map at the top left and the
 place at the top right sit the same distance from their edges, the nitro and

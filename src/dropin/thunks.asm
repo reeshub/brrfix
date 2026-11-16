@@ -32,9 +32,6 @@
         extrn   _brr_hud_drawing:dword
         extrn   _brr_orig_hud_draw:dword
         extrn   _brr_orig_hud_icon:dword
-        extrn   _brr_orig_hud_map:dword
-        extrn   _brr_hud_map_begin:near
-        extrn   _brr_hud_map_end:near
         extrn   _brr_raw_loaded:near
         extrn   _brr_sprite_scaled_continue:dword
         extrn   _brr_orig_race_tick:dword
@@ -109,7 +106,7 @@
         public  _brr_hook_scn_commit, _brr_hook_scn_end
         public  _brr_call_dd_set_mode
         public  _brr_hook_sprite_rows, _brr_hook_sprite_columns
-        public  _brr_hook_hud_draw, _brr_hook_hud_icon, _brr_hook_sprite_scaled, _brr_hook_hud_map
+        public  _brr_hook_hud_draw, _brr_hook_hud_icon, _brr_hook_sprite_scaled
         public  _brr_hook_raw_name
         public  _brr_hook_proj_scale, _brr_hook_landscape_width
         public  _brr_backface, _brr_clip_t_x, _brr_clip_t_y, _brr_cull_margin, _brr_shading_restore
@@ -682,18 +679,6 @@ _brr_hook_hud_draw:
         call    dword ptr [_brr_orig_hud_draw]
         pushad
         call    _brr_hud_end
-        popad
-        ret
-
-; Site hud_map_call (hud_draw 0x4236E5: CALL hud_draw_map, the vehicle in EAX, the sprite bank in
-; EDX) -> here: the map's own 640x400 layer around it (hud.c).
-_brr_hook_hud_map:
-        pushad
-        call    _brr_hud_map_begin
-        popad
-        call    dword ptr [_brr_orig_hud_map]
-        pushad
-        call    _brr_hud_map_end
         popad
         ret
 

@@ -38,7 +38,7 @@ struct brr_config {
                               * enlarged by whole numbers (hud.c; the new renderer only); game = the game's own */
     int hud_aspect43;        /* [display] hud_aspect43: the HUD's blocks the 4:3 monitor's shape (1) or square */
     int hud_large;           /* [display] hud_size=large: the 1996 low resolution's size; small (half) the default */
-    int hud_map_large;       /* [display] hud_map=large: the map twice the size, from the high-resolution art */
+    int hud_map_large;       /* [display] hud_map=large: the map twice the rest of the HUD's size (hud.c) */
     int widescreen;          /* [display] widescreen: Max races at the screen's shape (render.c) */
     int widescreen_menus;    /* [display] widescreen_menus: menu backgrounds across the whole width (render.c) */
     int precise_3d;          /* [display] precise_3d: the 3D maths in 64 bits and culling by the real scale */
@@ -171,7 +171,6 @@ extern int brr_hud_active;
 void brr_hud_setup(void);
 void brr_hook_hud_draw(void);
 void brr_hook_hud_icon(void);
-void brr_hook_hud_map(void);
 void brr_hook_raw_name(void);              /* thunks.asm: site raw_name_call */
 void brr_hook_sprite_scaled(void);
 int brr_hud_overlay(const uint8_t *origin, int w, int h, void *out, int out_w, int out_h, int out_pitch,

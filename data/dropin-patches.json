@@ -591,14 +591,6 @@
    "sha256": "7687067fb6a6e0834d1b544e3c9d30a1b5ff7011073df7469224b2f81371f0bc"
   },
   {
-   "name": "hud_map_call",
-   "fix": "hud",
-   "address": "0x4236E5",
-   "length": 5,
-   "patch": "hud_draw: CALL hud_draw_map (0x4230E8; EAX the vehicle, EDX the sprite bank; the only call, for races and recordings) -> CALL brr_hook_hud_map (thunks.asm): with [display] hud_map=large (the default), the view at 640x400 with the high-resolution flag set and the 2D routines pointed at the map's own 640x400 layer for the call, so the game draws the level's 128x128 map (marked for 640) 1:1 and its vehicle dots twice as big: the map twice the size of the low-resolution one, with the high-resolution art's detail",
-   "sha256": "ae05d02541e02d28eb3a1bb5b38cc15626f8100ce0f1d533f4c801fbbbc9f8c5"
-  },
-  {
    "name": "sprite_scaled_entry",
    "fix": "hud",
    "address": "0x426F90",
