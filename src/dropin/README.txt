@@ -161,8 +161,9 @@ DOS version plays them: far trucks are quieter, the game's effects volume
 option works, and the three engines heard at once are the nearest trucks'.
 The stereo works too: the game panned a truck only a little off centre almost
 entirely into one speaker; it now moves smoothly between them ("Natural
-stereo"; [sound] stereo_pan). And it has 16 sound channels instead of 8, with
-every truck's engine heard instead of 3 ([sound] channels).
+stereo"; [sound] stereo_pan). And it has 32 sound channels instead of 8 (or 16,
+or the game's 8: "Sound channels"), with every truck's engine heard instead of
+3 ([sound] channels).
 
 Display and scaling
 -------------------
@@ -171,7 +172,9 @@ Two renderers ("Renderer" in the launcher, [display] renderer in BRRFIX.INI):
 Modern (renderer=new, the default; Windows 2000 onwards, Wine and Proton, with
 cnc-ddraw): each picture goes to cnc-ddraw at its own size, crisp and with no
 black borders (the menus' 320x200, races' 640x480 or bigger), and cnc-ddraw
-enlarges it with the launcher's Scaling choice (4:3 sharp by default). In full
+enlarges it with the launcher's Scaling aspect and Scaling choices (Square and
+Sharp by default). PrtSc does nothing (the game's own screenshots are left to
+the Original renderer; ours are to come). In full
 colour (32 bits) the sky is a smooth gradient instead of the game's 16 flat
 bands, and lit surfaces (buildings, trees, vehicles, tunnel walls) are shaded
 smoothly instead of a palette shade at a time ([display] full_colour,
@@ -186,10 +189,10 @@ background pictures widened across the screen: "Widescreen menu backgrounds",
 [display] widescreen_menus).
 Windowed, it's a plain window drawn by cnc-ddraw: Alt+Enter switches to full
 screen and back. Its options: scaling, window size, colour depth,
-"Resolution: Max" (the default: races drawn as tall as the screen, at its
-shape with native widescreen, up to "Max limit": the screen's own height by
-default, 1080 or 1440; the game draws in software, so more rows cost frame
-rate), and the
+"Resolution: Max" (the default: races drawn with a part of the screen's
+height, "Max limit": half by default, a third, a quarter, a fifth or all of
+it, at its shape with native widescreen, then enlarged to fill it; the game
+draws in software, so more rows cost frame rate), and the
 "Race world": "Draw distance" (the in-game sliders, the engine's own maximum
 of 25 squares, Far at 44 or Max out at 60, the default, with the scenery and
 vehicles as far as the ground), "Textures" (how far the ground is textured),
@@ -204,8 +207,8 @@ so they don't show through hills, and gaps between level pieces closed
 
 Original (renderer=original; the only one on Windows 95, 98 and ME): the 1996
 game's own drawing, as players saw it, with only the smooth-motion fixes and
-cnc-ddraw's full-screen scaling presets (integer, the default; 4:3 sharp, 4:3
-nearest, stretch and smooth). Windowed, it's the game's own window with its
+cnc-ddraw's full-screen scaling presets (Square and Integer by default).
+Windowed, it's the game's own window with its
 1996 menu bar (About, Modes, Language) at the game's own size. Keypad + and -
 switch between 640x480 and 320x200 as in 1996; the draw distance is the
 in-game sliders'.

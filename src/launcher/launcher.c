@@ -72,13 +72,35 @@ static const struct choice languages[] = {
 static const struct choice scales[] = {  /* the Modern renderer's window: multiples of 640x480 */
     {"Largest that fits", "auto"}, {"1x (640x480)", "1"}, {"2x (1280x960)", "2"}, {"3x (1920x1440)", "3"},
     {"4x (2560x1920)", "4"}, {"5x", "5"}, {"6x", "6"}, {0, 0}};
-static const struct choice presets[] = {
-    {"Integer (sharp)", "integer"}, {"4:3 sharp", "43sharp"}, {"4:3 nearest", "43nearest"},
-    {"Stretch", "stretch"}, {"Smooth", "smooth"}, {"Square sharp (full height)", "squaresharp"}, {0, 0}};
-#define PRESET_COUNT 6
-/* Max's limit (Modern renderer): the race picture's rows at most (4:3), or the screen's own height */
+/* cnc-ddraw's scaling presets, each under its Scaling aspect (the director, 2026-11-16: the same
+ * names in each), with its ddraw.ini keys: boxing, maintas, aspect_ratio, shader, d3d9_filter.
+ * Integer is square only: cnc-ddraw's whole-number scaling keeps the picture's own shape. */
+#define SHADER_SHARP   "Shaders\\interpolation\\lanczos2-sharp.glsl"
+#define SHADER_NEAREST "Shaders\\nearest-neighbor.glsl"
+#define SHADER_SMOOTH  "Shaders\\interpolation\\catmull-rom-bilinear.glsl"
+static const struct preset {
+    int square;
+    const char *label, *value, *keys[5];
+} presets[] = {
+    {0, "Sharp", "43sharp", {"false", "true", "4:3", SHADER_SHARP, "0"}},
+    {0, "Nearest", "43nearest", {"false", "true", "4:3", SHADER_NEAREST, "0"}},
+    {0, "Smooth", "43smooth", {"false", "true", "4:3", SHADER_SMOOTH, "1"}},
+    {0, "Stretch", "43stretch", {"false", "false", "", SHADER_NEAREST, "0"}},
+    {1, "Sharp", "squaresharp", {"false", "true", "", SHADER_SHARP, "0"}},
+    {1, "Nearest", "squarenearest", {"false", "true", "", SHADER_NEAREST, "0"}},
+    {1, "Smooth", "smooth", {"false", "true", "", SHADER_SMOOTH, "1"}},
+    {1, "Integer", "integer", {"true", "true", "", SHADER_NEAREST, "0"}},
+    {1, "Stretch", "stretch", {"false", "false", "", SHADER_NEAREST, "0"}}};
+#define PRESET_COUNT ((int)(sizeof presets / sizeof presets[0]))
+#define PRESET_ORIGINAL "integer"     /* the Original renderer's default */
+#define PRESET_MODERN "squaresharp"   /* the Modern renderer's (director, 2026-11-16) */
+#define PRESET_WINDOW "stretch"       /* the Original renderer's own window: no letterbox */
+static const struct choice aspects[] = {{"4:3", "4:3"}, {"Square", "square"}, {0, 0}};
+/* Max's limit (Modern renderer): that part of the screen's (or window's) height (director, 2026-11-16) */
 static const struct choice max_limits[] = {
-    {"1080 (1440x1080)", "1080"}, {"1440 (1920x1440)", "1440"}, {"Screen height", "screen"}, {0, 0}};
+    {"1/5 screen height", "1/5"}, {"1/4 screen height", "1/4"}, {"1/3 screen height", "1/3"},
+    {"1/2 screen height", "1/2"}, {"Screen height", "screen"}, {0, 0}};
+static const struct choice channel_counts[] = {{"8 (1996)", "8"}, {"16", "16"}, {"32", "32"}, {0, 0}};
 static const struct choice smoothings[] = {
     {"Off", "0"}, {"Light", "25"}, {"Medium", "50"}, {"Strong", "100"}, {0, 0}};
 static const struct choice frame_limits[] = {
@@ -96,16 +118,6 @@ static const struct choice sensitivities[] = {
 static const struct choice layouts[] = {{"Triggers", "triggers"}, {"Stick", "stick"}, {0, 0}};
 static const struct choice rates[] = {{"70.0 (DOS original)", "70.0"}, {"71.43 (Windows original)", "71.43"}, {0, 0}};
 static const struct choice caps[] = {{"8 ticks", "8"}, {"35 (original)", "35"}, {0, 0}};
-
-/* the cnc-ddraw keys for each full-screen preset: boxing, maintas, aspect_ratio, shader, d3d9_filter */
-static const char *const preset_keys[PRESET_COUNT][5] = {
-    {"true", "true", "", "Shaders\\nearest-neighbor.glsl", "0"},
-    {"false", "true", "4:3", "Shaders\\interpolation\\lanczos2-sharp.glsl", "0"},
-    {"false", "true", "4:3", "Shaders\\nearest-neighbor.glsl", "0"},
-    {"false", "false", "", "Shaders\\nearest-neighbor.glsl", "0"},
-    {"false", "true", "", "Shaders\\interpolation\\catmull-rom-bilinear.glsl", "1"},
-    /* the picture's own shape (square pixels), as tall as the screen, kept sharp */
-    {"false", "true", "", "Shaders\\interpolation\\lanczos2-sharp.glsl", "0"}};
 
 /* the scaling preset each renderer uses (index into presets): 0 the Original's
  * (fullscreen_scaling), 1 the Modern one's (modern_scaling); the combo box shows the chosen
@@ -157,6 +169,58 @@ static const char *chosen(HWND dialog, int id, const struct choice *list)
 {
     LRESULT i = SendDlgItemMessageA(dialog, id, CB_GETCURSEL, 0, 0);
     return i >= 0 ? list[i].value : list[0].value;
+}
+
+/* value if the list has it, else fallback (a value from an older launcher) */
+static const char *listed(const struct choice *list, const char *value, const char *fallback)
+{
+    int i;
+    for (i = 0; list[i].label; i++)
+        if (!lstrcmpiA(list[i].value, value))
+            return value;
+    return fallback;
+}
+
+static int preset_index(const char *value, const char *fallback)
+{
+    int i;
+    for (i = 0; i < PRESET_COUNT; i++)
+        if (!lstrcmpiA(presets[i].value, value))
+            return i;
+    return fallback ? preset_index(fallback, NULL) : 0;
+}
+
+/* The Scaling box: the presets of one Scaling aspect, want chosen, or its namesake in this
+ * aspect (Sharp for Sharp), or the first */
+static void fill_presets(HWND dialog, int square, int want)
+{
+    HWND box = GetDlgItem(dialog, IDC_PRESET);
+    int i, chosen_item = 0;
+    SendMessageA(box, CB_RESETCONTENT, 0, 0);
+    for (i = 0; i < PRESET_COUNT; i++) {
+        LRESULT item;
+        if (presets[i].square != square)
+            continue;
+        item = SendMessageA(box, CB_ADDSTRING, 0, (LPARAM)presets[i].label);
+        SendMessageA(box, CB_SETITEMDATA, (WPARAM)item, (LPARAM)i);
+        if (i == want || (presets[want].square != square && !lstrcmpA(presets[i].label, presets[want].label)))
+            chosen_item = (int)item;
+    }
+    SendMessageA(box, CB_SETCURSEL, (WPARAM)chosen_item, 0);
+}
+
+/* the preset the Scaling box shows (index into presets), or -1 */
+static int shown_preset(HWND dialog)
+{
+    LRESULT item = SendDlgItemMessageA(dialog, IDC_PRESET, CB_GETCURSEL, 0, 0);
+    return item >= 0 ? (int)SendDlgItemMessageA(dialog, IDC_PRESET, CB_GETITEMDATA, (WPARAM)item, 0) : -1;
+}
+
+/* both boxes showing a preset */
+static void show_preset(HWND dialog, int preset)
+{
+    fill(dialog, IDC_ASPECT, aspects, presets[preset].square ? "square" : "4:3");
+    fill_presets(dialog, presets[preset].square, preset);
 }
 
 static void check(HWND dialog, int id, int on) { CheckDlgButton(dialog, id, on ? BST_CHECKED : BST_UNCHECKED); }
@@ -313,26 +377,28 @@ static void place(HWND dialog, int id, int x, int y, int w, int h)
  * first), the group as tall as the rows shown (launcher.rc) */
 static void layout_display(HWND dialog)
 {
-    int fresh = new_renderer(dialog), bottom, y = 78;
+    int fresh = new_renderer(dialog), y = 78;
     if (fresh) {
-        place(dialog, IDC_MAXLIMIT_LABEL, 18, y + 2, 44, 8);
-        place(dialog, IDC_MAXLIMIT, 62, y, 94, 60);
+        place(dialog, IDC_MAXLIMIT_LABEL, 18, y + 2, 54, 8);
+        place(dialog, IDC_MAXLIMIT, 74, y, 88, 80);
         y += 14;
         place(dialog, IDC_WIDESCREEN, 18, y, 140, 10);
         y += 12;
     }
-    place(dialog, IDC_PRESET_LABEL, 18, y + 2, 44, 8);
-    place(dialog, IDC_PRESET, 62, y, 94, 70);
+    place(dialog, IDC_ASPECT_LABEL, 18, y + 2, 54, 8);
+    place(dialog, IDC_ASPECT, 74, y, 88, 60);
+    y += 14;
+    place(dialog, IDC_PRESET_LABEL, 18, y + 2, 54, 8);
+    place(dialog, IDC_PRESET, 74, y, 88, 80);
     if (fresh) {
         y += 14;
-        place(dialog, IDC_SCALE_LABEL, 18, y + 2, 44, 8);
-        place(dialog, IDC_SCALE, 62, y, 94, 90);
+        place(dialog, IDC_SCALE_LABEL, 18, y + 2, 54, 8);
+        place(dialog, IDC_SCALE, 74, y, 88, 90);
         y += 13;
-        place(dialog, IDC_COLOUR_LABEL, 18, y + 2, 44, 8);
-        place(dialog, IDC_COLOUR, 62, y, 94, 60);
+        place(dialog, IDC_COLOUR_LABEL, 18, y + 2, 54, 8);
+        place(dialog, IDC_COLOUR, 74, y, 88, 60);
     }
-    bottom = !fresh ? 96 : y + 15;
-    place(dialog, IDC_DISPLAY_GROUP, 12, 24, 150, bottom - 24);
+    place(dialog, IDC_DISPLAY_GROUP, 12, 24, 156, y + 15 - 24);
 }
 
 /* The Renderer tab: Smoothness and Full colour on the left, Race world on the right (the
@@ -356,6 +422,15 @@ static void fill_resolutions(HWND dialog, const char *value)
     if (!fresh && !lstrcmpiA(value, "max"))
         value = "high";
     fill_first(dialog, IDC_RESOLUTION, resolutions, value, fresh ? -1 : ORIGINAL_RESOLUTIONS);
+}
+
+/* Native widescreen in effect: Max in full screen with Native widescreen ticked, on a screen
+ * wider than 4:3. The pictures then have the screen's shape, so cnc-ddraw keeps it (save). */
+static int native_widescreen(HWND dialog)
+{
+    return new_renderer(dialog) && !lstrcmpiA(chosen(dialog, IDC_MODE, modes), "fullscreen")
+        && checked(dialog, IDC_WIDESCREEN) && !lstrcmpiA(chosen(dialog, IDC_RESOLUTION, resolutions), "max")
+        && GetSystemMetrics(SM_CXSCREEN) * 3 > GetSystemMetrics(SM_CYSCREEN) * 4;
 }
 
 /* Grey out what the other choices make irrelevant */
@@ -392,16 +467,19 @@ static void update_enabled(HWND dialog)
     enable(dialog, IDC_SCALE_LABEL, window);
     enable(dialog, IDC_SCALE, window);
     /* cnc-ddraw's scaling presets: the Original renderer's full screen; the Modern renderer's
-     * pictures in full screen and in its window. The box shows the chosen renderer's own. */
+     * pictures in full screen and in its window. The boxes show the chosen renderer's own. */
     if (shown_fresh != fresh) {
-        int shown = (int)SendDlgItemMessageA(dialog, IDC_PRESET, CB_GETCURSEL, 0, 0);
+        int shown = shown_preset(dialog);
         if (shown_fresh >= 0 && shown >= 0)
             preset_of[shown_fresh] = shown;
-        fill(dialog, IDC_PRESET, presets, presets[preset_of[fresh]].value);
+        show_preset(dialog, preset_of[fresh]);
         shown_fresh = fresh;
     }
     enable(dialog, IDC_PRESET_LABEL, full || fresh);
     enable(dialog, IDC_PRESET, full || fresh);
+    /* native widescreen's pictures have the screen's shape already (the menus 4:3 inside) */
+    enable(dialog, IDC_ASPECT_LABEL, (full || fresh) && !native_widescreen(dialog));
+    enable(dialog, IDC_ASPECT, (full || fresh) && !native_widescreen(dialog));
     /* the gradients need full colour (Display tab) */
     enable(dialog, IDC_SMOOTH_SKY, full_colour(dialog));
     enable(dialog, IDC_SMOOTH_SHADING, full_colour(dialog));
@@ -428,8 +506,8 @@ static const struct { int id; const char *text; } tips[] = {
                "full screen."},
     {IDC_RESOLUTION, "Low: 320x200, as the game starts. High: 640x480, its sharper mode. Max (Modern): races with "
                      "as many pixels as Max limit allows. Original: keypad + and - switch in the game."},
-    {IDC_MAXLIMIT, "How many rows Max draws races with at most, or the screen's own height. The game draws "
-                   "in software, so more rows cost frame rate: 1080 is smooth on any modern PC."},
+    {IDC_MAXLIMIT, "How many rows Max draws races with: a part of your screen's (or window's) height, enlarged "
+                   "to fill it, or all of it. The game draws in software, so more rows cost frame rate."},
     {IDC_WIDESCREEN, "With Max, in full screen on a wide screen: races at the screen's own shape, seeing more at the "
                      "sides; the menus 4:3 in the middle (their backgrounds across the screen, as below)."},
     {IDC_WIDEMENUS, "With native widescreen: each menu's background picture across the whole screen, sharp, "
@@ -453,8 +531,10 @@ static const struct { int id; const char *text; } tips[] = {
                          "a time (with full colour: Display tab, Colour depth)."},
     {IDC_COLOUR_ANIM, "The colour cycling of four levels (CHOPPER3, CITY4 Italy, MOON2, RIG4) that the DOS version "
                       "had and the Windows version lost."},
-    {IDC_PRESET, "How cnc-ddraw enlarges the picture to the screen (or the Modern window): whole numbers, "
-                 "4:3 sharp (Modern's default), 4:3 nearest, stretched, smooth, or square pixels at full height."},
+    {IDC_ASPECT, "The shape cnc-ddraw shows the picture at: 4:3, as a 1996 monitor showed the game's 320x200, "
+                 "or square pixels. Native widescreen pictures keep the screen's shape either way."},
+    {IDC_PRESET, "How cnc-ddraw enlarges the picture to fill the screen's (or window's) height: Sharp, Nearest "
+                 "(plain pixels), Smooth, Integer (whole numbers, black borders) or Stretch (the whole screen)."},
     {IDC_INTERP, "Draws the vehicles and the camera between the game's 35 physics steps a second, for smooth motion."},
     {IDC_SMOOTHING, "Experimental: softens the camera's movement further. Not needed for the stutter fix."},
     {IDC_FRAMES, "The most pictures drawn a second. The game itself runs at the same speed whatever you choose."},
@@ -463,8 +543,8 @@ static const struct { int id; const char *text; } tips[] = {
                        "played almost at full volume); also gives the game's effects volume its full range."},
     {IDC_STEREO_PAN, "Vehicles to the right sound more from the right speaker, smoothly; the game's own panning sent "
                      "anything a little off centre almost entirely to one side."},
-    {IDC_CHANNELS16, "Twice the game's 8 sound channels, and every truck's engine (the game allowed 3), so more of the "
-                     "field is heard at once."},
+    {IDC_CHANNELS, "How many sounds play at once: the game's 8, or 16 or 32, with every truck's engine (the game "
+                   "allowed 3), so more of the field is heard at once."},
     {IDC_MUSIC, "Plays the CD music from ripped tracks (trackNN.flac, .ogg or .wav) instead of the CD."},
     {IDC_VOLUME, "Music volume, on top of the game's own CD volume option."},
     {IDC_FOLDER, "The folder with the ripped tracks: Music next to the launcher, or a full path."},
@@ -586,34 +666,27 @@ static void load(HWND dialog, int defaults)
     }
     fill(dialog, IDC_LANGUAGE, languages, GET(f, "display", "language", "ENG"));
     fill(dialog, IDC_SCALE, scales, GET(f, "display", "window_scale", "auto"));
-    fill(dialog, IDC_MAXLIMIT, max_limits, GET(f, "display", "render_max_height", "screen"));
+    fill(dialog, IDC_MAXLIMIT, max_limits, listed(max_limits, GET(f, "display", "render_max_height", "1/2"), "1/2"));
     {   /* the full-screen preset: as saved in BRRFIX.INI, or else whichever ddraw.ini matches,
          * by its boxing, maintas, aspect_ratio and shader */
         char boxing[16], aspect[16], shader[MAX_PATH], maintas[16];
         int i, found = 0;
         ini_get(f, "display", "fullscreen_scaling", "", v, sizeof v);
-        for (i = 0; i < PRESET_COUNT; i++)
-            if (!lstrcmpiA(v, presets[i].value))
-                break;
-        if (i < PRESET_COUNT)
-            found = i;
-        else {
+        found = preset_index(v, PRESET_ORIGINAL);
+        if (!v[0]) {
             ini_get(d, "ddraw", "boxing", "true", boxing, sizeof boxing);
             ini_get(d, "ddraw", "maintas", "true", maintas, sizeof maintas);
             ini_get(d, "ddraw", "aspect_ratio", "", aspect, sizeof aspect);
-            ini_get(d, "ddraw", "shader", preset_keys[0][3], shader, sizeof shader);
+            ini_get(d, "ddraw", "shader", SHADER_NEAREST, shader, sizeof shader);
             for (i = 0; i < PRESET_COUNT; i++)
-                if (!lstrcmpiA(boxing, preset_keys[i][0]) && !lstrcmpiA(maintas, preset_keys[i][1])
-                    && !lstrcmpiA(aspect, preset_keys[i][2]) && !lstrcmpiA(shader, preset_keys[i][3]))
+                if (!lstrcmpiA(boxing, presets[i].keys[0]) && !lstrcmpiA(maintas, presets[i].keys[1])
+                    && !lstrcmpiA(aspect, presets[i].keys[2]) && !lstrcmpiA(shader, presets[i].keys[3]))
                     found = i;
         }
         preset_of[0] = found;
-        ini_get(f, "display", "modern_scaling", "43sharp", v, sizeof v);
-        preset_of[1] = 1;  /* 4:3 sharp, the Modern renderer's default (director, 2026-11-15) */
-        for (i = 0; i < PRESET_COUNT; i++)
-            if (!lstrcmpiA(v, presets[i].value))
-                preset_of[1] = i;
-        shown_fresh = -1;  /* update_enabled fills the box with the chosen renderer's */
+        /* Square, Sharp: the Modern renderer's default (director, 2026-11-16) */
+        preset_of[1] = preset_index(GET(f, "display", "modern_scaling", PRESET_MODERN), PRESET_MODERN);
+        shown_fresh = -1;  /* update_enabled fills the boxes with the chosen renderer's */
     }
     check(dialog, IDC_INTERP, defaults ? 1 : ini_flag("fixes", "interpolation", 1));
     fill(dialog, IDC_SMOOTHING, smoothings, GET(f, "camera", "smoothing", "0"));
@@ -627,7 +700,7 @@ static void load(HWND dialog, int defaults)
     check(dialog, IDC_MUSIC, defaults ? 1 : ini_flag("music", "music", 1));
     check(dialog, IDC_DISTANCE_VOL, defaults ? 1 : ini_flag("sound", "distance_volume", 1));
     check(dialog, IDC_STEREO_PAN, defaults ? 1 : ini_flag("sound", "stereo_pan", 1));
-    check(dialog, IDC_CHANNELS16, defaults ? 1 : GetPrivateProfileIntA("sound", "channels", 16, brrfix_ini) != 8);
+    fill(dialog, IDC_CHANNELS, channel_counts, listed(channel_counts, GET(f, "sound", "channels", "32"), "32"));
     fill(dialog, IDC_VOLUME, volumes, GET(f, "music", "volume", "100"));
     SetDlgItemTextA(dialog, IDC_FOLDER, GET(f, "music", "folder", "Music"));
     check(dialog, IDC_PAD, defaults ? 1 : ini_flag("controller", "enabled", 1));
@@ -652,7 +725,7 @@ static void load(HWND dialog, int defaults)
     check(dialog, IDC_SMOOTH_SHADING, defaults ? 1 : ini_flag("display", "smooth_shading", 1));
     check(dialog, IDC_COLOUR_ANIM, defaults ? 1 : ini_flag("display", "colour_animation", 1));
     check(dialog, IDC_WIDESCREEN, defaults ? 1 : ini_flag("display", "widescreen", 1));
-    check(dialog, IDC_HUD43, defaults ? 1 : ini_flag("display", "hud_aspect43", 1));
+    check(dialog, IDC_HUD43, defaults ? 0 : ini_flag("display", "hud_aspect43", 0));
     check(dialog, IDC_WIDEMENUS, defaults ? 1 : ini_flag("display", "widescreen_menus", 1));
     check(dialog, IDC_GROUND_PERSP, defaults ? 1 : ini_flag("display", "ground_perspective", 1));
     check(dialog, IDC_SORT_FOOT, defaults ? 1 : ini_flag("display", "sort_footprint", 1));
@@ -669,7 +742,7 @@ static void save(HWND dialog)
 {
     char text[MAX_PATH];
     const char *mode = chosen(dialog, IDC_MODE, modes);
-    int preset = (int)SendDlgItemMessageA(dialog, IDC_PRESET, CB_GETCURSEL, 0, 0), i, fresh_now = new_renderer(dialog);
+    int preset = shown_preset(dialog), i, fresh_now = new_renderer(dialog);
     static const char *const preset_names[5] = {"boxing", "maintas", "aspect_ratio", "shader", "d3d9_filter"};
     ini_set(brrfix_ini, "display", "mode", mode);
     if (!windows_9x)  /* there the DLL keeps the original renderer whatever the file says */
@@ -726,7 +799,7 @@ static void save(HWND dialog)
     ini_set(brrfix_ini, "display", "horizon_culling", checked(dialog, IDC_HORIZON) ? "1" : "0");
     ini_set(brrfix_ini, "sound", "distance_volume", checked(dialog, IDC_DISTANCE_VOL) ? "1" : "0");
     ini_set(brrfix_ini, "sound", "stereo_pan", checked(dialog, IDC_STEREO_PAN) ? "1" : "0");
-    ini_set(brrfix_ini, "sound", "channels", checked(dialog, IDC_CHANNELS16) ? "16" : "8");
+    ini_set(brrfix_ini, "sound", "channels", chosen(dialog, IDC_CHANNELS, channel_counts));
     ini_set(brrfix_ini, "launcher", "skip", checked(dialog, IDC_SKIP) ? "1" : "0");
     if (windows_9x)
         ini_set(brrfix_ini, "clock", "vsync", checked(dialog, IDC_VSYNC) ? "1" : "0");
@@ -777,14 +850,12 @@ static void save(HWND dialog)
             ini_set(ddraw_ini, "ddraw", "height", number);
         }
         if (!fresh && !full)
-            preset = 3;
+            preset = preset_index(PRESET_WINDOW, NULL);
         for (i = 0; i < 5; i++)
-            ini_set(ddraw_ini, "ddraw", preset_names[i], preset_keys[preset][i]);
+            ini_set(ddraw_ini, "ddraw", preset_names[i], presets[preset].keys[i]);
         /* Native widescreen (Max, full screen, a screen wider than 4:3): the pictures already
          * have the screen's shape, the menus 4:3 inside them, so cnc-ddraw keeps their shape */
-        if (fresh && full && checked(dialog, IDC_WIDESCREEN)
-            && !lstrcmpiA(chosen(dialog, IDC_RESOLUTION, resolutions), "max")
-            && GetSystemMetrics(SM_CXSCREEN) * 3 > GetSystemMetrics(SM_CYSCREEN) * 4)
+        if (native_widescreen(dialog))
             ini_set(ddraw_ini, "ddraw", "aspect_ratio", "");
     }
 }
@@ -872,6 +943,8 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
             hide_for_good(dialog, IDC_RENDERER_LABEL);
             hide_for_good(dialog, IDC_PRESET);
             hide_for_good(dialog, IDC_PRESET_LABEL);
+            hide_for_good(dialog, IDC_ASPECT);
+            hide_for_good(dialog, IDC_ASPECT_LABEL);
             for (i = 0; i < sizeof pad_controls / sizeof pad_controls[0]; i++)
                 hide_for_good(dialog, pad_controls[i]);
             /* menu navigation works with a 1996 joystick too: up where Vibration would be */
@@ -917,6 +990,13 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
         case IDC_DRAWDIST:
             if (HIWORD(wparam) == CBN_SELCHANGE)
                 update_enabled(dialog);
+            return TRUE;
+        case IDC_ASPECT:  /* the same preset in the other aspect: Sharp stays Sharp */
+            if (HIWORD(wparam) == CBN_SELCHANGE) {
+                int shown = shown_preset(dialog);
+                fill_presets(dialog, !lstrcmpiA(chosen(dialog, IDC_ASPECT, aspects), "square"),
+                             shown >= 0 ? shown : 0);
+            }
             return TRUE;
         case IDC_MUSIC:
         case IDC_PAD:

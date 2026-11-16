@@ -105,11 +105,11 @@ static int layer_k(int element)
 
 /* Before hud_draw (first = 1, a new frame's HUD) or hud_draw_playback_icon (first = 0) in
  * render_view: the 2D routines pointed at our OTHER layer, at 320x200, low resolution.
- * Split screen and the race redrawn for a screenshot (PCX) keep the game's own HUD. */
+ * Split screen keeps the game's own HUD. */
 void __cdecl brr_hud_begin(int first)
 {
     int i;
-    if (!brr_hud_active || brr_screenshot_drawing)
+    if (!brr_hud_active)
         return;
     if (SPLIT_SCREEN) {
         valid = 0;

@@ -29,8 +29,10 @@ struct brr_config {
     int renderer_new;        /* [display] renderer=new: Phase 3c's renderer (render.c); original = the game's */
     int render_max;          /* [display] render_resolution=max: experimental, races drawn at the
                               * screen's (or window's) own height, 4:3 (render.c; the new renderer only) */
-    int render_max_rows;     /* [display] render_max_height: Max's rows at most (1080 by default; 0 = the
-                              * screen's height): the game draws in software, so rows cost frame rate */
+    int render_max_part;     /* [display] render_max_height=1/N: Max's rows are the screen's (or
+                              * window's) height / N (2 by default; 1 = all of it): the game draws in
+                              * software, so rows cost frame rate */
+    int render_max_rows;     /* [display] render_max_height=ROWS (before 2026-11-16): at most ROWS; 0 = no limit */
     int full_colour;         /* [display] full_colour: the new renderer presents 32-bit pictures */
     int smooth_sky;          /* [display] smooth_sky: the sky as a smooth gradient (sky.c; full colour) */
     int smooth_shading;      /* [display] smooth_shading: lit polygons shaded smoothly (shade.c; full colour) */
@@ -49,7 +51,7 @@ struct brr_config {
     int horizon_culling;     /* [display] horizon_culling: skip what nearer ground will paint over (horizon.c) */
     int distance_volume;     /* [sound] distance_volume: the effects' full volume range, nearest vehicles first (sound.c) */
     int stereo_pan;          /* [sound] stereo_pan: pans as a balance, not near hard left or right (sound.c) */
-    int sound_channels;      /* [sound] channels: 8 (the game's) or 16 (sound.c) */
+    int sound_channels;      /* [sound] channels: 8 (the game's), 16 or 32 (the default; sound.c) */
     int object_shading;      /* [display] object_shading: 0 game (smooth near, flat beyond 8 squares), 1 smooth, 2 flat */
     int texture_distance;    /* [display] texture_distance with max_draw_distance: 0 the slider's, else squares */
     int object_detail;       /* [display] object_detail: 0 original, 1 matched to the resolution, 2 highest */
@@ -191,9 +193,10 @@ void __cdecl brr_horizon_cull(void);       /* horizon.c */
 void brr_hook_sound_nearest(void);         /* thunks.asm: site sound_nearest_first */
 extern int32_t brr_ds_volumes[128];          /* sound.c: site ds_volume_curve */
 extern int32_t brr_ds_pans[255];             /* sound.c: site ds_pan_curve */
-extern int32_t brr_snd_keep[16], brr_snd_data[16], brr_snd_busy[16];  /* sound.c: sites snd@ */
-extern uint8_t brr_snd_requests[16 * 0x1B], brr_snd_channels[16 * 0x1B];
-extern void *brr_ds_buffers[16];
+#define SOUND_CHANNELS_MAX 32  /* sound.c: sites snd@ */
+extern int32_t brr_snd_keep[SOUND_CHANNELS_MAX], brr_snd_data[SOUND_CHANNELS_MAX], brr_snd_busy[SOUND_CHANNELS_MAX];
+extern uint8_t brr_snd_requests[SOUND_CHANNELS_MAX * 0x1B], brr_snd_channels[SOUND_CHANNELS_MAX * 0x1B];
+extern void *brr_ds_buffers[SOUND_CHANNELS_MAX];
 extern int brr_sound_debug_on;
 void __cdecl brr_sound_debug(const int32_t *frame);
 void brr_hook_ds_pan(void);                 /* thunks.asm: site ds_pan_curve */
@@ -208,7 +211,7 @@ int brr_hud_overlay(const uint8_t *origin, int w, int h, void *out, int out_w, i
                     int px, int py, int sx, int sy, const uint32_t *colours, int again);
 /* sky.c */
 #define SKY_MARKER 255       /* the colour the game's sky bands are drawn in, with smooth_sky */
-extern int brr_sky_active, brr_screenshot_drawing;
+extern int brr_sky_active;
 void __cdecl brr_sky_draw(int16_t *ground, int16_t *sky);
 void brr_hook_sky_draw(void);
 int brr_sky_begin(const uint8_t *picture, int pic_w, int pic_h, int pitch, int sx, int sy, int lx, int ly);
@@ -244,12 +247,6 @@ void brr_call_landscape_far_walk(void);     /* the walk's loop (0x41D618) on our
 extern uint32_t brr_set_view_continue;
 uint32_t __cdecl brr_view_size(uint32_t width, uint32_t height);
 void brr_hook_set_view(void);
-void __cdecl brr_call_set_view(uint32_t width, uint32_t height);  /* thunks.asm: the game's set_view */
-extern uint32_t brr_orig_screenshot_race, brr_orig_screenshot_tape;
-void __cdecl brr_screenshot_begin(void);
-void __cdecl brr_screenshot_end(void);
-void brr_hook_screenshot_race(void);
-void brr_hook_screenshot_tape(void);
 /* The 3D engine's reciprocal table (2^32 / n, 0x54A380) has 1,024 entries: spans up to 1,022
  * pixels, edges up to 1,023 rows. Ours has RECIPROCALS, and every reader is pointed at it (the
  * recip_* sites), so Max views can be up to RENDER_LIMIT_W x RENDER_LIMIT_H; a multiple of 16

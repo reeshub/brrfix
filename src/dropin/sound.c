@@ -26,22 +26,23 @@
  * the far speaker's level falls in proportion (pan 64, half: -6 dB; 127: silent), as the DOS
  * version's Miles pans.
  *
- * 16 channels ([sound] channels=16): the game mixes its effects on 8 DirectSound buffers and
- * gathers at most 8 requests an update; one busy truck (four loops and four events) could fill
- * them all. Its channel tables move to the arrays below, with the same layout for 16 channels
- * and 16 requests, and every loop, bound and limit follows (116 sites "snd@ADDRESS:RULE", from
- * a census checked against the executable's own relocation table: work/logs/sound-channels/,
- * KNOWLEDGE "Sound"); every vehicle's engine may play (the game allowed 3). They're patched as
- * the DLL loads, before the game starts DirectSound. */
+ * 16 or 32 channels ([sound] channels; 32 by default, the director 2026-11-16): the game mixes
+ * its effects on 8 DirectSound buffers and gathers at most 8 requests an update; one busy truck
+ * (four loops and four events) could fill them all. Its channel tables move to the arrays below,
+ * with the same layout for N channels and N requests, and every loop, bound and limit follows
+ * (116 sites "snd@ADDRESS:RULE", the rule a formula of N, from a census checked against the
+ * executable's own relocation table: work/logs/sound-channels/, KNOWLEDGE "Sound"); every
+ * vehicle's engine may play (the game allowed 3). They're patched as the DLL loads, before the
+ * game starts DirectSound. */
 #include "brrfix.h"
 #include <math.h>
 
 int32_t brr_ds_volumes[128];
-/* 16 channels: the game's tables (0x452960 keep, 0x452980 data, 0x4529A0 busy, 0x4543F0
- * requests, 0x4544C8 channels, 0x52F240 DirectSound buffers), twice as long */
-int32_t brr_snd_keep[16], brr_snd_data[16], brr_snd_busy[16];
-uint8_t brr_snd_requests[16 * 0x1B], brr_snd_channels[16 * 0x1B];
-void *brr_ds_buffers[16];
+/* 16 or 32 channels: the game's tables (0x452960 keep, 0x452980 data, 0x4529A0 busy, 0x4543F0
+ * requests, 0x4544C8 channels, 0x52F240 DirectSound buffers), long enough for 32 */
+int32_t brr_snd_keep[SOUND_CHANNELS_MAX], brr_snd_data[SOUND_CHANNELS_MAX], brr_snd_busy[SOUND_CHANNELS_MAX];
+uint8_t brr_snd_requests[SOUND_CHANNELS_MAX * 0x1B], brr_snd_channels[SOUND_CHANNELS_MAX * 0x1B];
+void *brr_ds_buffers[SOUND_CHANNELS_MAX];
 int32_t brr_ds_pans[255];          /* pan -127..127 at [pan + 127]: DirectSound's pan */
 int brr_sound_debug_on;            /* [debug] sound_log: thunks.asm calls brr_sound_debug */
 
@@ -83,10 +84,10 @@ void __cdecl brr_sound_debug(const int32_t *frame)
         return;
     next = now + 2 * brr_qpc_freq();
     {
-        const uint8_t *channels = cfg.sound_channels == 16 ? (const uint8_t *)brr_snd_channels : (const uint8_t *)0x4544C8;
-        void *const *buffers = cfg.sound_channels == 16 ? (void *const *)brr_ds_buffers : (void *const *)0x52F240;
+        const uint8_t *channels = cfg.sound_channels > 8 ? (const uint8_t *)brr_snd_channels : (const uint8_t *)0x4544C8;
+        void *const *buffers = cfg.sound_channels > 8 ? (void *const *)brr_ds_buffers : (void *const *)0x52F240;
         int busy = 0, made = 0, n = cfg.sound_channels;
-        char kinds[40];
+        char kinds[2 * SOUND_CHANNELS_MAX + 1];
         for (i = 0; i < n; i++) {
             busy += channels[i * 0x1B] != 0xFF;
             made += buffers[i] != NULL;

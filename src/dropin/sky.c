@@ -18,8 +18,7 @@
  * the frame is presented, every marker pixel gets the sky's colour for its own direction:
  * the elevation is worked out from the model above, at the final picture's resolution, and
  * the colour is blended between the bands' colours (the live palette's, at each band's
- * middle), so the sky is a smooth gradient however much it is enlarged. A PrtSc screenshot
- * (drawn again by the game for its PCX file) keeps the game's own bands. */
+ * middle), so the sky is a smooth gradient however much it is enlarged. */
 #include "brrfix.h"
 #include <stddef.h>
 #include <string.h>
@@ -47,7 +46,7 @@ double brr_atan2_units(double y, double x);
 double brr_square_root(double v);
 double brr_sine_units(int32_t angle);
 
-int brr_sky_active, brr_screenshot_drawing;
+int brr_sky_active;
 
 struct sky_view {
     const uint8_t *picture;            /* where the engine drew this view */
@@ -130,7 +129,7 @@ void __cdecl brr_sky_draw(int16_t *ground, int16_t *sky)
     int16_t saved[2 * BANDS];
     int n_sky, n_ground, i;
     brr_shade_view_begin();  /* smooth shading (shade.c): this view's part of the side buffer */
-    if (!brr_sky_active || brr_screenshot_drawing) {
+    if (!brr_sky_active) {
         brr_call_sky_draw(ground, sky);
         return;
     }

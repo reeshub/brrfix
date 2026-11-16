@@ -667,7 +667,7 @@
    "fix": "sound_channels",
    "address": "0x413634",
    "length": 4,
-   "patch": "16 sound channels ([sound] channels=16): sound_channels_init: MOV [EAX+0x45295C],EDX: keep[-1]: loop base, EAX = 4..0x20 step 4 -> our array KEEP-4",
+   "patch": "16 or 32 sound channels ([sound] channels=16 or 32, N below): sound_channels_init: MOV [EAX+0x45295C],EDX: keep[-1]: loop base, EAX = 4..0x20 step 4 -> our array KEEP-4",
    "sha256": "1f98f69f7d893f66aa40ee08071b74016090cc7943547a0074b65ca9db54d005"
   },
   {
@@ -679,19 +679,19 @@
    "sha256": "77ef0349d79a40f002dc69bfde2f0b7cccfc29c471fe8bf558450679b7791fd6"
   },
   {
-   "name": "snd@413640:=64",
+   "name": "snd@41363e:AL=4*N",
    "fix": "sound_channels",
-   "address": "0x413640",
-   "length": 1,
-   "patch": "sound_channels_init: CMP EAX,0x20: end of loop = 8 x 4 bytes -> 16 x 4 -> 64",
-   "sha256": "36a9e7f1c95b82ffb99743e0c5c4ce95d83c9a430aac59f84ef3cbfab6145068"
+   "address": "0x41363E",
+   "length": 3,
+   "patch": "sound_channels_init: CMP EAX,0x20 (the loop's end, 8 x 4 bytes; JNZ) -> CMP AL,4N; NOP: 4N doesn't fit CMP EAX's signed byte at 32 channels, and EAX only counts 4..4N, so AL says the same",
+   "sha256": "37571829170628ea3991a6ab7abcefe3f14f9261d69b2c665599aabe9db3375e"
   },
   {
-   "name": "snd@41365e:=16",
+   "name": "snd@41365e:=N",
    "fix": "sound_channels",
    "address": "0x41365E",
    "length": 1,
-   "patch": "sound_channels_shutdown: CMP EDX,0x8: ds_stop for channels 0..7 -> 0..15 -> 16",
+   "patch": "sound_channels_shutdown: CMP EDX,0x8: ds_stop for channels 0..7 -> 0..N-1 -> N",
    "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
   },
   {
@@ -759,11 +759,11 @@
    "sha256": "fa32b6aa22014f148c1f18ebb121f0d6e07c935ff66988ef3dd775401ec6b27a"
   },
   {
-   "name": "snd@413882:=16",
+   "name": "snd@413882:=N",
    "fix": "sound_channels",
    "address": "0x413882",
    "length": 1,
-   "patch": "sound_stop_all: CMP EDX,0x8: sound_channel_stop for channels 0..7 -> 0..15 -> 16",
+   "patch": "sound_stop_all: CMP EDX,0x8: sound_channel_stop for channels 0..7 -> 0..N-1 -> N",
    "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
   },
   {
@@ -807,27 +807,27 @@
    "sha256": "a466f418291b018ab81d26abb0b6777368fedead4a09ecb8f2cbf4b9d8315e7c"
   },
   {
-   "name": "snd@4159fa:=16",
+   "name": "snd@4159fa:=N",
    "fix": "sound_channels",
    "address": "0x4159FA",
    "length": 1,
-   "patch": "sound_channel_find_free: CMP EDX,0x8: scan channels 0..7 for an idle one -> 0..15 -> 16",
+   "patch": "sound_channel_find_free: CMP EDX,0x8: scan channels 0..7 for an idle one -> 0..N-1 -> N",
    "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
   },
   {
-   "name": "snd@415a05:=16",
+   "name": "snd@415a05:=N",
    "fix": "sound_channels",
    "address": "0x415A05",
    "length": 4,
-   "patch": "sound_channel_find_free: MOV ECX,0x8: divisor: sound_channel_next = (next+1) % 8 -> % 16 -> 16",
+   "patch": "sound_channel_find_free: MOV ECX,0x8: divisor: sound_channel_next = (next+1) % 8 -> % N -> N",
    "sha256": "dc765660b06ee03dd16fd7ca5b957e8c805161ac2c4af28c5a100ab2ab432ca1"
   },
   {
-   "name": "snd@415d4f:=432",
+   "name": "snd@415d4f:=27*N",
    "fix": "sound_channels",
    "address": "0x415D4F",
    "length": 4,
-   "patch": "sound_channels_reset: MOV EBX,0xD8: memset size of sound_channels = 8 x 0x1B -> 16 x 0x1B -> 432",
+   "patch": "sound_channels_reset: MOV EBX,0xD8: memset size of sound_channels = 8 x 0x1B -> N x 0x1B -> 27*N",
    "sha256": "305b0569ad0b657003b5c9961c05d9feba78bf951b71df1a412ab18f6cbd5d1e"
   },
   {
@@ -839,11 +839,11 @@
    "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
   },
   {
-   "name": "snd@415d60:=432",
+   "name": "snd@415d60:=27*N",
    "fix": "sound_channels",
    "address": "0x415D60",
    "length": 4,
-   "patch": "sound_channels_reset: MOV EBX,0xD8: memset size of sound_requests = 8 x 0x1B -> 16 x 0x1B -> 432",
+   "patch": "sound_channels_reset: MOV EBX,0xD8: memset size of sound_requests = 8 x 0x1B -> N x 0x1B -> 27*N",
    "sha256": "305b0569ad0b657003b5c9961c05d9feba78bf951b71df1a412ab18f6cbd5d1e"
   },
   {
@@ -863,19 +863,19 @@
    "sha256": "7bd107f96636e161d4a384364362f23c6b2e74b823bdca895d34d257885f51dc"
   },
   {
-   "name": "snd@415d7e:=432",
+   "name": "snd@415d7e:=27*N",
    "fix": "sound_channels",
    "address": "0x415D7E",
    "length": 4,
-   "patch": "sound_channels_reset: CMP EAX,0xD8: loop end: owner = 0xFF for 8 channels -> 16 -> 432",
+   "patch": "sound_channels_reset: CMP EAX,0xD8: loop end: owner = 0xFF for 8 channels -> N -> 27*N",
    "sha256": "305b0569ad0b657003b5c9961c05d9feba78bf951b71df1a412ab18f6cbd5d1e"
   },
   {
-   "name": "snd@415da7:=16",
+   "name": "snd@415da7:=N",
    "fix": "sound_channels",
    "address": "0x415DA7",
    "length": 1,
-   "patch": "sound_request_add: CMP [sound_request_count],0x8: request cap 8 -> 16 (sound_request_count itself stays where it is) -> 16",
+   "patch": "sound_request_add: CMP [sound_request_count],0x8: request cap 8 -> N (sound_request_count itself stays where it is) -> N",
    "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
   },
   {
@@ -887,19 +887,19 @@
    "sha256": "191c1846b801ce3cb595dfdd14193e4b2152d2cb35b726f2b4ffa33c8b5e9c13"
   },
   {
-   "name": "snd@415e5e:=15",
+   "name": "snd@415e5e:=N-1",
    "fix": "sound_channels",
    "address": "0x415E5E",
    "length": 4,
-   "patch": "sound_channel_find: MOV EDX,0x7: first (last) channel index 7 -> 15 -> 15",
+   "patch": "sound_channel_find: MOV EDX,0x7: first (last) channel index 7 -> N-1 -> N-1",
    "sha256": "e8613f5a5bc9f9feeda32a8e7c80b69dd4878e47b6a91723fb15eb84236b6a2b"
   },
   {
-   "name": "snd@415e63:CH+405",
+   "name": "snd@415e63:CH+27*N-27",
    "fix": "sound_channels",
    "address": "0x415E63",
    "length": 4,
-   "patch": "sound_channel_find: MOV EAX,0x454585: channels[7].owner, loop start (walks down 0x1B) -> channels[15] -> our array CH+405",
+   "patch": "sound_channel_find: MOV EAX,0x454585: channels[7].owner, loop start (walks down 0x1B) -> channels[N-1] -> our array CH+27*N-27",
    "sha256": "ddb727881b055fe1ee4463b6b9019f05a282d5e45d2c226443aa0e208f4ba0ca"
   },
   {
@@ -959,35 +959,35 @@
    "sha256": "084fed08b978af4d7d196a7446a86b58009e636b611db16211b65a9aadff29c5"
   },
   {
-   "name": "snd@416214:=24",
+   "name": "snd@416214:=N+8",
    "fix": "sound_channels",
    "address": "0x416214",
    "length": 1,
-   "patch": "sound_update_channels: SUB ESP,0x10: frame: flags[8]@0, ptr@8, best@0xC -> flags[16]@0, ptr@0x10, best@0x14 -> 24",
+   "patch": "sound_update_channels: SUB ESP,0x10: frame: flags[8]@0, ptr@8, best@0xC -> flags[N]@0, ptr@N, best@N+4 -> N+8",
    "sha256": "c555eab45d08845ae9f10d452a99bfcb06f74a50b988fe7e48dd323789b88ee3"
   },
   {
-   "name": "snd@416216:=16",
+   "name": "snd@416216:=N",
    "fix": "sound_channels",
    "address": "0x416216",
    "length": 4,
-   "patch": "sound_update_channels: MOV EBX,0x8: memset(flags, 0, 8): one \"taken\" byte per REQUEST -> 16 -> 16",
+   "patch": "sound_update_channels: MOV EBX,0x8: memset(flags, 0, 8): one \"taken\" byte per REQUEST -> N -> N",
    "sha256": "dc765660b06ee03dd16fd7ca5b957e8c805161ac2c4af28c5a100ab2ab432ca1"
   },
   {
-   "name": "snd@416224:=15",
+   "name": "snd@416224:=N-1",
    "fix": "sound_channels",
    "address": "0x416224",
    "length": 4,
-   "patch": "sound_update_channels: MOV EDX,0x7: idle sweep: first channel 7 -> 15 -> 15",
+   "patch": "sound_update_channels: MOV EDX,0x7: idle sweep: first channel 7 -> N-1 -> N-1",
    "sha256": "e8613f5a5bc9f9feeda32a8e7c80b69dd4878e47b6a91723fb15eb84236b6a2b"
   },
   {
-   "name": "snd@416229:=405",
+   "name": "snd@416229:=27*N-27",
    "fix": "sound_channels",
    "address": "0x416229",
    "length": 4,
-   "patch": "sound_update_channels: MOV EBX,0xBD: idle sweep: offset of channel 7 (7 x 0x1B) -> 15 x 0x1B -> 405",
+   "patch": "sound_update_channels: MOV EBX,0xBD: idle sweep: offset of channel 7 (7 x 0x1B) -> (N-1) x 0x1B -> 27*N-27",
    "sha256": "665f136f317949c6550ee7fc9f757b9c9c02642e6c36cbe0be917c026f6eff55"
   },
   {
@@ -999,11 +999,11 @@
    "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
   },
   {
-   "name": "snd@41625a:=16",
+   "name": "snd@41625a:=N",
    "fix": "sound_channels",
    "address": "0x41625A",
    "length": 1,
-   "patch": "sound_update_channels: MOV [ESP+0x8],sound_requests (disp8): local ptr moves 8 -> 0x10 -> 16",
+   "patch": "sound_update_channels: MOV [ESP+0x8],sound_requests (disp8): local ptr moves 8 -> N -> N",
    "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
   },
   {
@@ -1015,27 +1015,27 @@
    "sha256": "191c1846b801ce3cb595dfdd14193e4b2152d2cb35b726f2b4ffa33c8b5e9c13"
   },
   {
-   "name": "snd@416264:=16",
+   "name": "snd@416264:=N",
    "fix": "sound_channels",
    "address": "0x416264",
    "length": 1,
-   "patch": "sound_update_channels: MOV EBX,[ESP+0x8]: local ptr -> 16",
+   "patch": "sound_update_channels: MOV EBX,[ESP+0x8]: local ptr -> N",
    "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
   },
   {
-   "name": "snd@416266:=15",
+   "name": "snd@416266:=N-1",
    "fix": "sound_channels",
    "address": "0x416266",
    "length": 4,
-   "patch": "sound_update_channels: MOV EDX,0x7: inline find (owner,kind): first channel 7 -> 15 -> 15",
+   "patch": "sound_update_channels: MOV EDX,0x7: inline find (owner,kind): first channel 7 -> N-1 -> N-1",
    "sha256": "e8613f5a5bc9f9feeda32a8e7c80b69dd4878e47b6a91723fb15eb84236b6a2b"
   },
   {
-   "name": "snd@41626b:CH+405",
+   "name": "snd@41626b:CH+27*N-27",
    "fix": "sound_channels",
    "address": "0x41626B",
    "length": 4,
-   "patch": "sound_update_channels: MOV EAX,0x454585: inline find: &channels[7] -> &channels[15] -> our array CH+405",
+   "patch": "sound_update_channels: MOV EAX,0x454585: inline find: &channels[7] -> &channels[N-1] -> our array CH+27*N-27",
    "sha256": "ddb727881b055fe1ee4463b6b9019f05a282d5e45d2c226443aa0e208f4ba0ca"
   },
   {
@@ -1159,27 +1159,27 @@
    "sha256": "448ced75743a810f4298b46f3e6c52dea82d5ced983edc124e80fcceffa12304"
   },
   {
-   "name": "snd@41632c:=16",
+   "name": "snd@41632c:=N",
    "fix": "sound_channels",
    "address": "0x41632C",
    "length": 1,
-   "patch": "sound_update_channels: MOV EBX,[ESP+0x8]: local ptr -> 16",
+   "patch": "sound_update_channels: MOV EBX,[ESP+0x8]: local ptr -> N",
    "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
   },
   {
-   "name": "snd@41633d:=16",
+   "name": "snd@41633d:=N",
    "fix": "sound_channels",
    "address": "0x41633D",
    "length": 1,
-   "patch": "sound_update_channels: MOV [ESP+0x8],EBX: local ptr -> 16",
+   "patch": "sound_update_channels: MOV [ESP+0x8],EBX: local ptr -> N",
    "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
   },
   {
-   "name": "snd@416358:=20",
+   "name": "snd@416358:=N+4",
    "fix": "sound_channels",
    "address": "0x416358",
    "length": 1,
-   "patch": "sound_update_channels: MOV [ESP+0xC],EBP: local best -> 20",
+   "patch": "sound_update_channels: MOV [ESP+0xC],EBP: local best -> N+4",
    "sha256": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977"
   },
   {
@@ -1191,51 +1191,51 @@
    "sha256": "de4a5a050a39444c8b40fe3028959b44a3290a1a0f00a44aef2734454e7cb27f"
   },
   {
-   "name": "snd@416376:=20",
+   "name": "snd@416376:=N+4",
    "fix": "sound_channels",
    "address": "0x416376",
    "length": 1,
-   "patch": "sound_update_channels: MOV [ESP+0xC],EAX: local best -> 20",
+   "patch": "sound_update_channels: MOV [ESP+0xC],EAX: local best -> N+4",
    "sha256": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977"
   },
   {
-   "name": "snd@416388:=20",
+   "name": "snd@416388:=N+4",
    "fix": "sound_channels",
    "address": "0x416388",
    "length": 1,
-   "patch": "sound_update_channels: CMP [ESP+0xC],0x0: local best -> 20",
+   "patch": "sound_update_channels: CMP [ESP+0xC],0x0: local best -> N+4",
    "sha256": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977"
   },
   {
-   "name": "snd@41639d:=20",
+   "name": "snd@41639d:=N+4",
    "fix": "sound_channels",
    "address": "0x41639D",
    "length": 1,
-   "patch": "sound_update_channels: MOV EAX,[ESP+0xC]: local best -> 20",
+   "patch": "sound_update_channels: MOV EAX,[ESP+0xC]: local best -> N+4",
    "sha256": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977"
   },
   {
-   "name": "snd@4163a1:=405",
+   "name": "snd@4163a1:=27*N-27",
    "fix": "sound_channels",
    "address": "0x4163A1",
    "length": 4,
-   "patch": "sound_update_channels: MOV EDX,0xBD: victim search: offset of channel 7 -> 15 x 0x1B -> 405",
+   "patch": "sound_update_channels: MOV EDX,0xBD: victim search: offset of channel 7 -> (N-1) x 0x1B -> 27*N-27",
    "sha256": "665f136f317949c6550ee7fc9f757b9c9c02642e6c36cbe0be917c026f6eff55"
   },
   {
-   "name": "snd@4163aa:CH+405",
+   "name": "snd@4163aa:CH+27*N-27",
    "fix": "sound_channels",
    "address": "0x4163AA",
    "length": 4,
-   "patch": "sound_update_channels: MOV BL,[0x454585]: channels[7].owner -> channels[15].owner -> our array CH+405",
+   "patch": "sound_update_channels: MOV BL,[0x454585]: channels[7].owner -> channels[N-1].owner -> our array CH+27*N-27",
    "sha256": "ddb727881b055fe1ee4463b6b9019f05a282d5e45d2c226443aa0e208f4ba0ca"
   },
   {
-   "name": "snd@4163af:=15",
+   "name": "snd@4163af:=N-1",
    "fix": "sound_channels",
    "address": "0x4163AF",
    "length": 4,
-   "patch": "sound_update_channels: MOV EAX,0x7: victim search: first channel 7 -> 15 -> 15",
+   "patch": "sound_update_channels: MOV EAX,0x7: victim search: first channel 7 -> N-1 -> N-1",
    "sha256": "e8613f5a5bc9f9feeda32a8e7c80b69dd4878e47b6a91723fb15eb84236b6a2b"
   },
   {
@@ -1255,11 +1255,11 @@
    "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
   },
   {
-   "name": "snd@4163eb:=20",
+   "name": "snd@4163eb:=N+4",
    "fix": "sound_channels",
    "address": "0x4163EB",
    "length": 1,
-   "patch": "sound_update_channels: IMUL EAX,[ESP+0xC],0x1B: local best -> 20",
+   "patch": "sound_update_channels: IMUL EAX,[ESP+0xC],0x1B: local best -> N+4",
    "sha256": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977"
   },
   {
@@ -1303,19 +1303,19 @@
    "sha256": "4fbf0245d1b93d96d0211e72063e8ecc12d08e15219113840128228b879887ae"
   },
   {
-   "name": "snd@416425:=20",
+   "name": "snd@416425:=N+4",
    "fix": "sound_channels",
    "address": "0x416425",
    "length": 1,
-   "patch": "sound_update_channels: CMP [ESP+0xC],0x0: local best -> 20",
+   "patch": "sound_update_channels: CMP [ESP+0xC],0x0: local best -> N+4",
    "sha256": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977"
   },
   {
-   "name": "snd@41642f:=24",
+   "name": "snd@41642f:=N+8",
    "fix": "sound_channels",
    "address": "0x41642F",
    "length": 1,
-   "patch": "sound_update_channels: ADD ESP,0x10: frame -> 24",
+   "patch": "sound_update_channels: ADD ESP,0x10: frame -> N+8",
    "sha256": "c555eab45d08845ae9f10d452a99bfcb06f74a50b988fe7e48dd323789b88ee3"
   },
   {
@@ -1327,11 +1327,11 @@
    "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
   },
   {
-   "name": "snd@42e8d4:=16",
+   "name": "snd@42e8d4:=N",
    "fix": "sound_channels",
    "address": "0x42E8D4",
    "length": 1,
-   "patch": "ds_shutdown: CMP EAX,0x8: release buffers 0..7 -> 0..15 -> 16",
+   "patch": "ds_shutdown: CMP EAX,0x8: release buffers 0..7 -> 0..N-1 -> N",
    "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
   },
   {
@@ -1471,11 +1471,11 @@
    "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
   },
   {
-   "name": "snd@42eca5:=16",
+   "name": "snd@42eca5:=N",
    "fix": "sound_channels",
    "address": "0x42ECA5",
    "length": 1,
-   "patch": "ds_set_pan: CMP EAX,0x8: bounds check ch < 8 -> < 16 (else returns 0: pan silently ignored) -> 16",
+   "patch": "ds_set_pan: CMP EAX,0x8: bounds check ch < 8 -> < N (else returns 0: pan silently ignored) -> N",
    "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
   },
   {
@@ -1495,11 +1495,11 @@
    "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
   },
   {
-   "name": "snd@42ed2e:=16",
+   "name": "snd@42ed2e:=N",
    "fix": "sound_channels",
    "address": "0x42ED2E",
    "length": 1,
-   "patch": "ds_is_playing: CMP EAX,0x8: bounds check ch < 8 -> < 16 (else \"not playing\": channels 8-15 would look idle forever) -> 16",
+   "patch": "ds_is_playing: CMP EAX,0x8: bounds check ch < 8 -> < N (else \"not playing\": channels 8 and up would look idle forever) -> N",
    "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
   },
   {
@@ -1547,39 +1547,39 @@
    "fix": "sound_channels",
    "address": "0x410B6E",
    "length": 4,
-   "patch": "diag_sound_panel: CMP EDI,0xD8: rows for 8 channels -> 16 (16 rows x 6 px from y 100 still fit in 200) -> 432",
+   "patch": "diag_sound_panel: CMP EDI,0xD8: rows for 8 channels -> 16 at most (16 rows x 6 px from y 100 fit in 200; 32 wouldn't) -> 432",
    "sha256": "305b0569ad0b657003b5c9961c05d9feba78bf951b71df1a412ab18f6cbd5d1e"
   },
   {
-   "name": "snd@415e22:=15",
+   "name": "snd@415e22:=N-1",
    "fix": "sound_channels",
    "address": "0x415E22",
    "length": 4,
-   "patch": "dead@0x415E1C (find owner+kind+sample): MOV EDX,0x7: first channel 7 -> 15 -> 15 (code nothing calls)",
+   "patch": "dead@0x415E1C (find owner+kind+sample): MOV EDX,0x7: first channel 7 -> N-1 -> N-1 (code nothing calls)",
    "sha256": "e8613f5a5bc9f9feeda32a8e7c80b69dd4878e47b6a91723fb15eb84236b6a2b"
   },
   {
-   "name": "snd@415e27:CH+405",
+   "name": "snd@415e27:CH+27*N-27",
    "fix": "sound_channels",
    "address": "0x415E27",
    "length": 4,
-   "patch": "dead@0x415E1C (find owner+kind+sample): MOV EAX,0x454585: &channels[7] -> [15] -> our array CH+405 (code nothing calls)",
+   "patch": "dead@0x415E1C (find owner+kind+sample): MOV EAX,0x454585: &channels[7] -> [N-1] -> our array CH+27*N-27 (code nothing calls)",
    "sha256": "ddb727881b055fe1ee4463b6b9019f05a282d5e45d2c226443aa0e208f4ba0ca"
   },
   {
-   "name": "snd@415e90:=15",
+   "name": "snd@415e90:=N-1",
    "fix": "sound_channels",
    "address": "0x415E90",
    "length": 4,
-   "patch": "dead@0x415E8C (find + stop + free): MOV EDX,0x7: first channel 7 -> 15 -> 15 (code nothing calls)",
+   "patch": "dead@0x415E8C (find + stop + free): MOV EDX,0x7: first channel 7 -> N-1 -> N-1 (code nothing calls)",
    "sha256": "e8613f5a5bc9f9feeda32a8e7c80b69dd4878e47b6a91723fb15eb84236b6a2b"
   },
   {
-   "name": "snd@415e97:CH+405",
+   "name": "snd@415e97:CH+27*N-27",
    "fix": "sound_channels",
    "address": "0x415E97",
    "length": 4,
-   "patch": "dead@0x415E8C (find + stop + free): MOV EAX,0x454585: &channels[7] -> [15] -> our array CH+405 (code nothing calls)",
+   "patch": "dead@0x415E8C (find + stop + free): MOV EAX,0x454585: &channels[7] -> [N-1] -> our array CH+27*N-27 (code nothing calls)",
    "sha256": "ddb727881b055fe1ee4463b6b9019f05a282d5e45d2c226443aa0e208f4ba0ca"
   },
   {
@@ -1991,20 +1991,12 @@
    "sha256": "7c030aa13f378d6f84082190a9636ef53af80882de32ff9ae933e4296aa6fde9"
   },
   {
-   "name": "screenshot_race_call",
-   "fix": "screenshot",
-   "address": "0x428D9E",
-   "length": 5,
-   "patch": "With set_view_entry (Max) or the smooth sky. run_screen_frame's race screenshot (PrtSc, key-table index 0x54): CALL 0x423B5C -> CALL brr_hook_screenshot_race: with the race drawn bigger than 640x480, the view goes back to 640x480 for the screenshot (its PCX writer 0x4239BC packs each row into a 1,280-byte stack buffer, enough for 640 pixels only) and to ours afterwards",
-   "sha256": "d9b84b6d5fbf26cbf755f1963750bc9d65a5614ffad2e6ec24aea20569216161"
-  },
-  {
-   "name": "screenshot_tape_call",
-   "fix": "screenshot",
-   "address": "0x428D62",
-   "length": 5,
-   "patch": "With set_view_entry (Max) or the smooth sky. run_screen_frame's numbered TAPEDECK screenshot: CALL 0x423C40 -> CALL brr_hook_screenshot_tape, as screenshot_race_call",
-   "sha256": "0ecfe6d255ff3a61303303e24f92472e748f4b7894de67f68ce5513d6c685938"
+   "name": "prtsc_skip",
+   "fix": "no_screenshot",
+   "address": "0x428D88",
+   "length": 2,
+   "patch": "With the Modern renderer. run_screen_frame's PrtSc check (key-table index 0x54): JZ 0x428DCD -> JMP 0x428DCD (74 43 -> EB 43), so PrtSc does nothing: no PCX screenshot, and no wait for the key's release. Our own screenshots are to come",
+   "sha256": "c5e0bcf36e1ea2b0f60473aa4037f3f0610d86b2afe9a4afd3de7c8244851f51"
   },
   {
    "name": "dd_setup_entry",

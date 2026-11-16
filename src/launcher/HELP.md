@@ -51,8 +51,8 @@ Choices marked **(1996)** are the game's own, as it was in 1996.
 - **Modern** (the default): each picture goes to cnc-ddraw at its own size,
   crisp and with no black borders of its own: the menus as their 320x200
   pictures, races as 640x480 (or bigger, with Max). cnc-ddraw then enlarges
-  it to the screen or the window, as Scaling (below) says, 4:3 sharp by
-  default, so the menus fill the same space as the races. Starting and
+  it to the screen or the window, as Scaling (below) says, square and sharp
+  by default. Starting and
   leaving a race changes the picture's size, which cnc-ddraw may show as a
   brief jump. The race dashboard (map, place, nitro, laps, damage and
   messages) is the 1996 game's low-resolution art, drawn by the game on a
@@ -86,33 +86,40 @@ Tab) broke its window, so it's removed.
   keypad +. It applies from the first screen. Races are drawn at 640x480; the
   menus are always 320x200 pictures.
 - **Max** (Modern renderer only, and its default): races and the attract-mode
-  demo drawn with as many pixels as your screen (or window) is tall, up to
-  the Max limit below, at your screen's shape (native widescreen, below) or
-  4:3, and never less than 640x480: 1280x800 on the Steam Deck, 1920x1080
-  on a 1080p screen. cnc-ddraw then enlarges it if need be, as Scaling says.
-  The dashboard (position, laps, map) is laid over it in whole-number blocks
-  (see Modern, above). Menus and split-screen races stay as they are.
+  demo drawn with a part of your screen's (or window's) height, the Max limit
+  below, at your screen's shape (native widescreen, below) or 4:3: 640x400 on
+  the Steam Deck and 960x540 on a 1080p screen with the default half.
+  cnc-ddraw then enlarges it to fill the screen, as Scaling says. The
+  dashboard (position, laps, map) is laid over it in whole-number blocks (see
+  Modern, above). Menus and split-screen races stay as they are.
 
 **Max limit** (Modern renderer, with Max)
 
-How many rows Max draws races with at most:
+How many rows Max draws races with: a part of your screen's (or window's)
+height, which cnc-ddraw then enlarges to fill it.
 
-- **Screen height** (the default): your screen's (or window's) own height,
-  the sharpest. The game draws in software, on the processor, so every extra
-  row costs frame rate: on a 4K screen even a fast PC manages only about 25
-  frames a second, so pick 1080 there.
-- **1080:** smooth on any modern PC. A 4K screen shows it doubled exactly.
-- **1440:** sharper on 1440p and 4K screens; needs a fast PC.
+- **1/2 screen height** (the default): 960x540 on a 1080p screen, 640x400 on
+  the Steam Deck, 1280x720 on a 1440p screen, 1920x1080 on 4K.
+- **1/3, 1/4 and 1/5 screen height:** chunkier and faster: a fifth of 1080
+  rows is 216, about the game's own low resolution (200). Never fewer than
+  200 rows (and 320 columns), so on the Steam Deck 1/5 is the same as 1/4
+  (320x200).
+- **Screen height:** your screen's (or window's) own height, the sharpest.
 
-With native widescreen (below) the limit is the race's height, and its width
-follows the screen's shape: 1920x1080 at 1080.
+On common screens these parts are enlarged by whole numbers (960x540 exactly
+twice on 1080p), so they stay sharp. The game draws in software, on the
+processor, so every extra row costs frame rate: on a 4K screen even a fast PC
+manages only about 25 frames a second at its full height. With native
+widescreen (below) the race's width follows the screen's shape; otherwise
+it's 4:3. The dashboard is enlarged by whole numbers of the race's own
+pixels, so with fewer rows it's a little bigger on the screen.
 
 **Native widescreen** (Modern renderer, with Max; on by default)
 
 In full screen on a screen wider than 4:3 (16:10 like the Steam Deck, 16:9,
-or wider), races are drawn at your screen's own shape: 1280x800 on the Steam
-Deck, 1920x1080 on a 1080p screen (and, with the 1080 limit, on 1440p and 4K
-screens, enlarged exactly). The game sees as much from top to bottom as in
+or wider), races are drawn at your screen's own shape: 640x400 on the Steam
+Deck, 960x540 on a 1080p screen (with the default Max limit, half the
+screen's height, enlarged exactly). The game sees as much from top to bottom as in
 4:3 and more at the sides; nothing is stretched, and the dashboard stays in
 the corners. The menus stay 4:3, enlarged by whole numbers in the middle of a
 picture of your screen's shape, which cnc-ddraw enlarges to fill the screen's
@@ -132,31 +139,38 @@ With the Original renderer, keypad + and - still switch between high and low
 resolution in the game, as in 1996. The Modern renderer keeps the one chosen
 here.
 
-**Scaling** (not on Windows 95, 98 or ME)
+**Scaling aspect** and **Scaling** (not on Windows 95, 98 or ME)
 
 How cnc-ddraw enlarges the picture: the Original renderer's in full screen,
 the Modern renderer's in full screen and in its window. Each renderer keeps
-its own choice: Integer for the Original, 4:3 sharp for the Modern one.
+its own choice: Square and Integer for the Original, Square and Sharp for
+the Modern one.
 
-- **Integer (sharp):** the largest whole-number size that fits, with square
-  pixels and black borders. 4x on the Steam Deck, which fills its screen.
-  At 640x480 a screen needs to be at least 960 pixels tall for 2x; on
-  smaller screens the picture is shown at 1x, so 4:3 sharp may suit them
-  better.
-- **4:3 sharp:** the 1996 monitor shape, as big as fits, kept sharp (the
-  menus' 320x200 pictures a little taller, as 1996 monitors showed them).
-- **4:3 nearest:** the same shape with plain pixels; some rows and columns are
-  one screen pixel wider than others.
-- **Stretch:** fills the whole screen, whatever its shape.
-- **Smooth:** slightly blurred, as cnc-ddraw does by default.
-- **Square sharp (full height):** the picture's own shape, with square
-  pixels, as tall as the screen and kept sharp: the menus' 320x200 pictures
-  are wider than 4:3 (they fill a 16:10 screen such as the Steam Deck's),
-  races' 4:3 pictures have black bars at the sides.
+Scaling aspect is the shape the picture is shown at:
+
+- **Square** (the default): the picture's own shape, with square pixels. The
+  menus' 320x200 pictures are wider than 4:3 (they fill a 16:10 screen such
+  as the Steam Deck's); 4:3 race pictures have black bars at the sides.
+- **4:3:** the 1996 monitor's shape: the menus' 320x200 pictures a little
+  taller, as 1996 monitors showed them.
 
 With native widescreen the pictures already have the screen's shape (the
-menus 4:3 inside them), so the 4:3 choices keep the picture's own shape
-instead: 4:3 sharp is then simply sharp, 4:3 nearest plain pixels.
+menus 4:3 inside them), so the aspect is greyed out: they keep their shape.
+
+Scaling then offers that aspect's ways of enlarging, with the same names in
+each:
+
+- **Sharp** (the default): as big as fits, kept sharp (very slight halos at
+  edges).
+- **Nearest:** as big as fits, plain pixels; some rows and columns are one
+  screen pixel wider than others.
+- **Smooth:** slightly blurred, as cnc-ddraw does by default.
+- **Integer** (Square only): the largest whole-number size that fits, with
+  black borders. 4x on the Steam Deck, which fills its screen. At 640x480 a
+  screen needs to be at least 960 pixels tall for 2x; on smaller screens the
+  picture is shown at 1x, so Sharp may suit them better.
+- **Stretch:** fills the whole screen, whatever its shape (the same under
+  either aspect).
 
 **Window size** (Modern renderer, in a window only)
 
@@ -281,7 +295,7 @@ RIG4. The DOS version does it; the Windows version lost it, as the code that
 did it was left uncalled. Ticked, those colours move again, at the DOS
 version's speed, while the race runs (they stop when you pause, as in DOS).
 
-**4:3 HUD correction** (Modern renderer; on by default)
+**4:3 HUD correction** (Modern renderer; off by default)
 
 The race dashboard (map, place, nitro, laps, damage and messages) is the
 game's 320x200 art, enlarged by whole numbers. Ticked, each of its pixels is
@@ -405,14 +419,19 @@ and only trucks straight ahead were heard from both. Ticked, a truck's sound
 moves smoothly between the speakers as it moves round you (half way to the
 side: the far speaker 6 dB quieter), as the DOS version did.
 
-**16 sound channels (1996: 8)** (on by default)
+**Sound channels** (32 by default)
 
 The game mixes its sound effects on 8 channels and gathers at most 8 sounds
 at a time, and played only 3 trucks' engines: one busy truck (its engine,
-skid, ground and nitro, and its knocks) could take every channel. Ticked, it
-has 16 channels and plays every truck's engine, so more of the field is
-heard at once, the nearest first; far trucks are quiet anyway with "Distant
-vehicles quieter".
+skid, ground and nitro, and its knocks) could take every channel.
+
+- **8 (1996):** as the game.
+- **16:** twice as many, and every truck's engine.
+- **32** (the default): room for every truck's engine, skids, ground noise,
+  nitro and knocks at once: the whole field's chaos.
+
+With 16 or 32 the nearest trucks come first; far trucks are quiet anyway with
+"Distant vehicles quieter".
 
 ## Controller
 

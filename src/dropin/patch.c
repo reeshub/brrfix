@@ -194,7 +194,7 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "close_gaps")) return cfg.close_gaps && brr_renderer_active;
     if (!strcmp(fix, "distance_volume")) return cfg.distance_volume;  /* both renderers */
     if (!strcmp(fix, "stereo_pan")) return cfg.stereo_pan;
-    if (!strcmp(fix, "sound_channels")) return cfg.sound_channels == 16;
+    if (!strcmp(fix, "sound_channels")) return cfg.sound_channels > 8;
     /* the hook carries the sound log too */
     if (!strcmp(fix, "distance_volume_order")) return cfg.distance_volume || cfg.debug_sound_log;
     /* its cover assumes close_gaps' exact edges: the game's could fall short by pixels */
@@ -205,7 +205,7 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "wide_menus"))
         return brr_widescreen && brr_renderer_active && cfg.render_max && cfg.widescreen_menus;
     if (!strcmp(fix, "menu_pad")) return cfg.menu_navigation;
-    if (!strcmp(fix, "screenshot")) return (cfg.render_max && brr_renderer_active) || brr_sky_active;
+    if (!strcmp(fix, "no_screenshot")) return brr_renderer_active;  /* ours is to come (the director) */
     if (!strcmp(fix, "draw_distance")) return cfg.max_draw_distance > 0;  /* experimental, off by default */
     /* beyond the near pass's grid; also at 25 in widescreen, where the grid can't hold the
      * wider area (16:9 wants 24 squares either side at 25, it holds 18) and these fill the sides */
@@ -226,6 +226,32 @@ static void put_abs32(uint8_t *out, void *target)
 {
     uint32_t value = (uint32_t)target;
     memcpy(out, &value, 4);
+}
+
+/* A sound site's formula of N, the channel count ([sound] channels): terms such as 16, N or 27*N,
+ * added or taken away ("N-1", "27*N-27", "+18", "-4"); SOUND_RULE_BAD if unreadable */
+#define SOUND_RULE_BAD (-0x7FFFFFFFL)
+static long sound_rule(const char *p)
+{
+    long total = 0;
+    while (*p) {
+        const char *start = p;
+        long sign = 1, k = 1;
+        if (*p == '+' || *p == '-')
+            sign = *p++ == '-' ? -1 : 1;
+        if (*p >= '0' && *p <= '9')
+            k = strtol(p, (char **)&p, 10);
+        if (*p == '*')
+            p++;
+        if (*p == 'N') {
+            k *= cfg.sound_channels;
+            p++;
+        }
+        if (p == start || (*p && *p != '+' && *p != '-'))
+            return SOUND_RULE_BAD;
+        total += sign * k;
+    }
+    return total;
 }
 
 /* The new bytes for a site; returns 0 if the name is unknown or the length is wrong. */
@@ -298,12 +324,9 @@ static int replacement(const struct site_info *s, uint8_t *out)
     } else if (!strcmp(n, "set_view_entry") && s->length == 5) {
         out[0] = 0xE9;  /* JMP brr_hook_set_view, which runs the 4 instructions replaced here */
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_set_view);
-    } else if (!strcmp(n, "screenshot_race_call") && s->length == 5) {
-        out[0] = 0xE8;
-        put_rel32(out + 1, s->address + 5, (void *)brr_hook_screenshot_race);
-    } else if (!strcmp(n, "screenshot_tape_call") && s->length == 5) {
-        out[0] = 0xE8;
-        put_rel32(out + 1, s->address + 5, (void *)brr_hook_screenshot_tape);
+    } else if (!strcmp(n, "prtsc_skip") && s->length == 2) {
+        out[0] = 0xEB;  /* JZ -> JMP over run_screen_frame's PrtSc block: no screenshot */
+        out[1] = 0x43;
     } else if (!strcmp(n, "view_max") && s->length == 4) {
         uint16_t size[2];
         size[0] = (uint16_t)brr_view_max_w;
@@ -317,15 +340,29 @@ static int replacement(const struct site_info *s, uint8_t *out)
         put_abs32(out + 3, (void *)brr_ds_volumes);
         out[7] = 0x98;
         out[8] = out[9] = 0x90;
+    } else if (!strncmp(n, "snd@", 4) && strchr(n, ':') && !strncmp(strchr(n, ':') + 1, "AL=", 3)
+               && s->length == 3) {
+        /* a loop's end, compared in AL: CMP AL,VALUE; NOP */
+        long value = sound_rule(strchr(n, ':') + 4);
+        if (value < 1 || value > 255)
+            return 0;
+        out[0] = 0x3C;
+        out[1] = (uint8_t)value;
+        out[2] = 0x90;
     } else if (!strncmp(n, "snd@", 4) && strchr(n, ':') && (s->length == 1 || s->length == 4)) {
-        /* 16 channels: "snd@ADDRESS:=VALUE" (a count or bound) or "snd@ADDRESS:TABLE+DELTA" (an
+        /* N channels: "snd@ADDRESS:=VALUE" (a count or bound) or "snd@ADDRESS:TABLE+DELTA" (an
          * address in one of the game's channel tables, now in ours: the same offset, or for a
-         * loop's start at the last channel, the new last channel's) */
+         * loop's start at the last channel, the new last channel's); VALUE and DELTA are
+         * formulas of N (sound_rule) */
         const char *rule = strchr(n, ':') + 1;
+        long formula;
         uint32_t value;
-        if (*rule == '=')
-            value = (uint32_t)strtol(rule + 1, NULL, 10);
-        else {
+        if (*rule == '=') {
+            formula = sound_rule(rule + 1);
+            if (formula == SOUND_RULE_BAD || formula < 0)
+                return 0;
+            value = (uint32_t)formula;
+        } else {
             static const struct { const char *name; void *base; } tables[] = {
                 {"KEEP", brr_snd_keep}, {"DATA", brr_snd_data}, {"BUSY", brr_snd_busy},
                 {"REQ", brr_snd_requests}, {"CH", brr_snd_channels}, {"DSB", brr_ds_buffers}};
@@ -337,7 +374,10 @@ static int replacement(const struct site_info *s, uint8_t *out)
             }
             if (k == sizeof tables / sizeof tables[0])
                 return 0;
-            value = (uint32_t)tables[k].base + (uint32_t)strtol(rule + strlen(tables[k].name), NULL, 10);
+            formula = sound_rule(rule + strlen(tables[k].name));
+            if (formula == SOUND_RULE_BAD)
+                return 0;
+            value = (uint32_t)tables[k].base + (uint32_t)formula;
         }
         if (s->length == 1) {
             if (value > 127)
@@ -668,8 +708,8 @@ void brr_patch_all(void)
                 s->fix, (unsigned long)s->length);
     }
     if (sound_sites)
-        brr_log("patched %d sites of the sound channel layer (sound_channels): 16 channels, 16 requests, "
-                "every vehicle's engine", sound_sites);
+        brr_log("patched %d sites of the sound channel layer (sound_channels): %d channels, %d requests, "
+                "every vehicle's engine", sound_sites, cfg.sound_channels, cfg.sound_channels);
     if (cfg.fix_vga) {
         /* Windows XP onwards, so looked up at run time: on Windows 95/98/ME the game's
          * port reads work natively, and the safety net isn't needed */

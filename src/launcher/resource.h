@@ -30,6 +30,8 @@
 #define IDC_MAXLIMIT     1226
 #define IDC_MAXLIMIT_LABEL 1227
 #define IDC_WIDESCREEN   1229
+#define IDC_ASPECT       1230
+#define IDC_ASPECT_LABEL 1231
 
 /* Renderer */
 #define IDC_PAGE_RENDERER 1300
@@ -71,7 +73,8 @@
 #define IDC_SFX_GROUP    1408
 #define IDC_DISTANCE_VOL 1409
 #define IDC_STEREO_PAN   1410
-#define IDC_CHANNELS16   1411
+#define IDC_CHANNELS     1411
+#define IDC_CHANNELS_LABEL 1412
 
 /* Controller */
 #define IDC_PAGE_PAD     1500

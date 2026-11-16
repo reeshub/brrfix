@@ -52,6 +52,8 @@
 
 #define MENU_W 320
 #define MENU_H 200
+#define RACE_MIN_W 320  /* Max's smallest race picture */
+#define RACE_MIN_H 200
 
 int brr_renderer_active;               /* the new renderer's sites are patched */
 int brr_full_colour;                   /* it presents 32-bit pictures */
@@ -65,8 +67,7 @@ static int window_w, window_h;         /* cnc-ddraw's window (ddraw.ini width, h
 static int final_w, final_h;           /* the last final picture's size, for the mouse */
 uint32_t brr_set_view_continue = 0x425F7D;  /* set_view after the 5 bytes site set_view_entry replaces */
 static int race_w, race_h;             /* Max: the race view we last gave the game (0: none) */
-static int view_held, screenshot_held; /* Max: a screenshot is being taken at 640x480 */
-uint32_t brr_orig_screenshot_race = 0x423B5C, brr_orig_screenshot_tape = 0x423C40;
+static int race_max_w, race_max_h;     /* Max: the race picture's size for this screen or window */
 
 /* ---- deciding (at patch time) ---- */
 
@@ -165,11 +166,17 @@ int brr_renderer_decide(int cnc_ddraw)
         brr_widescreen = cfg.widescreen && out_w * 3 > out_h * 4 && keeps_shape();
         wide_out_w = out_w;
         wide_out_h = out_h;
-        race_view_size(out_w, out_h, &brr_view_max_w, &brr_view_max_h);
+        race_view_size(out_w, out_h, &race_max_w, &race_max_h);
+        /* the engine's buffers: also for the game's own 640x480 pictures (split screen) */
+        brr_view_max_w = race_max_w > 640 ? race_max_w : 640;
+        brr_view_max_h = race_max_h > 480 ? race_max_h : 480;
+        brr_log("render: Max: races at %dx%d, 1/%d of the %dx%d %s's height%s (Max limit)", race_max_w, race_max_h,
+                cfg.render_max_part, out_w, out_h, windowed ? "window" : "screen",
+                cfg.render_max_rows > 0 ? " or fewer" : "");
         if (brr_widescreen)
             brr_log("render: native widescreen: races at %dx%d (the %dx%d %s's shape), the field of view from "
                     "the height; menus 4:3 by whole numbers in the middle of a picture of the screen's shape, "
-                    "which cnc-ddraw enlarges to fill its height", brr_view_max_w, brr_view_max_h,
+                    "which cnc-ddraw enlarges to fill its height", race_max_w, race_max_h,
                     out_w, out_h, windowed ? "window" : "screen");
         else if (cfg.widescreen && out_w * 3 <= out_h * 4)
             brr_log("render: native widescreen: off, as the %s is %dx%d (no wider than 4:3)",
@@ -720,40 +727,39 @@ void brr_render_palette_check(void)
 /* ---- Max: races drawn bigger (experimental) ---- */
 
 /* The race view for a final picture of out_w x out_h, which cnc-ddraw enlarges to the screen:
- * 4:3 (the game's own field of view, and the shape its landscape grid is drawn for), a multiple
- * of 16 wide, as tall as the picture but at most [display] render_max_height rows (1080 by
- * default; the game draws in software) and RENDER_LIMIT_W x RENDER_LIMIT_H, and never smaller
- * than the game's 640x480. For example 1056x792 on 1280x800 and 1440x1080 on 1920x1080; on
- * 2560x1440 and 3840x2160, 1440x1080, or 1920x1440 with a limit of 1440, and with none
- * 2880x2160 on 3840x2160. */
+ * 4:3 (the game's own field of view, and the shape its landscape grid is drawn for) or, with
+ * native widescreen, the picture's own shape; a multiple of 16 wide; [display]
+ * render_max_height's part of the picture's height (the launcher's "Max limit": half by default;
+ * the game draws in software, so rows cost frame rate), within RENDER_LIMIT_W x RENDER_LIMIT_H,
+ * and never smaller than 320 wide and 200 rows (the game's own low resolution; the HUD's art
+ * is 320 wide). A whole part of a common screen is enlarged exactly: 960x540 (half) on
+ * 1920x1080, 640x400 on 1280x800, 384x216 (a fifth) on 1920x1080; 4:3: 720x540 on 1920x1080. */
 static void race_view_size(int out_w, int out_h, int *w, int *h)
 {
-    int hh = out_h, ww;
+    int part = cfg.render_max_part > 0 ? cfg.render_max_part : 1;
+    int sw = brr_widescreen ? out_w : 4, sh = brr_widescreen ? out_h : 3;  /* the shape */
+    int hh = out_h / part, ww;
     if (cfg.render_max_rows > 0 && hh > cfg.render_max_rows)
         hh = cfg.render_max_rows;
     if (hh > RENDER_LIMIT_H)
         hh = RENDER_LIMIT_H;
-    if (brr_widescreen) {  /* the screen's own shape: 1280x800, 1920x1080 (and on 2560x1440 and 4K) */
-        ww = hh * out_w / out_h;
-        if (ww > out_w)
-            ww = out_w;
-        if (ww > RENDER_LIMIT_W)
-            ww = RENDER_LIMIT_W;
-        ww &= ~15;
-        hh = ww * out_h / out_w;
-        *w = ww >= 640 && hh >= 480 ? ww : 640;
-        *h = ww >= 640 && hh >= 480 ? hh : 480;
-        return;
-    }
-    ww = hh * 4 / 3;
+    ww = hh * sw / sh;
     if (ww > out_w)
         ww = out_w;
     if (ww > RENDER_LIMIT_W)
         ww = RENDER_LIMIT_W;
     ww &= ~15;
-    hh = ww * 3 / 4;
-    *w = ww >= 640 && hh >= 480 ? ww : 640;
-    *h = ww >= 640 && hh >= 480 ? hh : 480;
+    hh = ww * sh / sw;
+    if (ww < RACE_MIN_W || hh < RACE_MIN_H)
+        for (ww = RACE_MIN_W; ww * sh / sw < RACE_MIN_H; ww += 16)
+            ;
+    hh = ww * sh / sw;
+    if (ww == MENU_W && hh == MENU_H) {  /* that size is the menus' (game_picture) */
+        ww += 16;
+        hh = ww * sh / sw;
+    }
+    *w = ww;
+    *h = hh;
 }
 
 /* Site set_view_entry: every call of the game's set_view (0x425F78; width in EAX, height in
@@ -770,12 +776,12 @@ uint32_t __cdecl brr_view_size(uint32_t width, uint32_t height)
         out_h = window_h;
     }
     brr_proj_scale = 0;
-    if ((width & 0xFFFF) != 640 || (height & 0xFFFF) != 480 || SPLIT_SCREEN || out_w <= 0 || view_held)
+    if ((width & 0xFFFF) != 640 || (height & 0xFFFF) != 480 || SPLIT_SCREEN || out_w <= 0)
         return (height & 0xFFFF) << 16 | (width & 0xFFFF);
     race_view_size(out_w, out_h, &w, &h);
-    if (w > brr_view_max_w || h > brr_view_max_h) {  /* the engine's buffers were made for this */
-        w = brr_view_max_w;
-        h = brr_view_max_h;
+    if (w > race_max_w || h > race_max_h) {  /* the engine's buffers were made for this */
+        w = race_max_w;
+        h = race_max_h;
     }
     race_w = w;
     race_h = h;
@@ -824,34 +830,6 @@ int __cdecl brr_landscape_width(int q)
     return w;
 }
 
-/* Sites screenshot_race_call and screenshot_tape_call (run_screen_frame 0x428D9E, the race's
- * PrtSc, and 0x428D62, the numbered TAPEDECK pictures): the game redraws the race and saves
- * it as a PCX (0x4239BC), packing each row into a 1,280-byte buffer on the stack, which is
- * just enough for 640 pixels (PCX packing can double a row). So with Max, the view goes back
- * to 640x480 for the screenshot, and to ours after it. */
-void __cdecl brr_screenshot_begin(void)
-{
-    static int logged;
-    brr_screenshot_drawing = 1;  /* the game's own sky bands in the PCX (sky.c) */
-    screenshot_held = race_w > 640 && VIEW_W == race_w && VIEW_H == race_h;
-    if (screenshot_held) {
-        if (logged++ < 4)
-            brr_log("render: Max: the game's screenshot drawn at 640x480 (its PCX writer's row buffer)");
-        view_held = 1;
-        brr_call_set_view(640, 480);
-    }
-}
-
-void __cdecl brr_screenshot_end(void)
-{
-    brr_screenshot_drawing = 0;
-    if (screenshot_held) {
-        view_held = 0;
-        brr_call_set_view(640, 480);  /* ours again, through site set_view_entry */
-        screenshot_held = 0;
-    }
-}
-
 /* ---- DirectDraw at the picture's own size ---- */
 
 /* the game's dd_set_mode (0x42D044; EAX width, EDX height, BL 0: no window swap), thunks.asm */
@@ -878,26 +856,44 @@ uint32_t __cdecl brr_render_mode(uint32_t windowed)
     return (uint32_t)mode_h << 16 | (uint32_t)mode_w;
 }
 
-/* Widescreen: the DirectDraw mode for a picture of w x h. Races: the race picture. Menus
- * (320x200): as tall as their largest whole-number enlargement that fits the race picture's
- * height, at the screen's shape, so cnc-ddraw enlarges the whole picture to fill the screen's
- * height (by its sharp scaling, as the 4:3 presets do: 1.125 times at 900 rows), the menu 4:3
- * in its middle with black bars at the sides. The same size as a race at 800 rows. */
+/* Widescreen: the DirectDraw mode for a picture of w x h. Races: the race picture (and the
+ * game's own pictures that fit in it, such as split screen's 640x480, in its middle; bigger
+ * ones get a picture of the screen's shape as tall as theirs). Menus (320x200): as tall as
+ * their largest whole-number enlargement that fits the screen's height (whatever Max limit
+ * says: below 600 rows there's no 4:3 whole-number shape for them), at the screen's shape, so
+ * cnc-ddraw enlarges the whole picture to fill the screen's height (by its sharp scaling, as
+ * the 4:3 presets do: 1.125 times at 900 rows), the menu 4:3 in its middle with black bars at
+ * the sides. */
 static void widescreen_mode(int w, int h, int *mode_w_out, int *mode_h_out)
 {
-    int k, mh, mw;
-    if (w != MENU_W || h != MENU_H || wide_out_h <= 0) {
+    int k, mh, mw, out_w = wide_out_w, out_h = wide_out_h;
+    if (out_h <= 0) {
         *mode_w_out = brr_view_max_w;
         *mode_h_out = brr_view_max_h;
         return;
     }
-    k = brr_view_max_h / MENU_H;
+    if (out_w > RENDER_LIMIT_W)
+        out_w = RENDER_LIMIT_W;
+    if (out_h > RENDER_LIMIT_H)
+        out_h = RENDER_LIMIT_H;
+    if (w != MENU_W || h != MENU_H) {
+        if (w <= race_max_w && h <= race_max_h) {
+            *mode_w_out = race_max_w;
+            *mode_h_out = race_max_h;
+        } else {
+            mw = ((h * wide_out_w + wide_out_h / 2) / wide_out_h) & ~1;
+            *mode_w_out = mw > w ? mw : w;
+            *mode_h_out = h;
+        }
+        return;
+    }
+    k = out_h / MENU_H;
     if (k < 1)
         k = 1;
     mh = MENU_H * k;
     mw = ((mh * wide_out_w + wide_out_h / 2) / wide_out_h) & ~1;
-    if (mw > brr_view_max_w)
-        mw = brr_view_max_w;
+    if (mw > out_w)
+        mw = out_w;
     *mode_w_out = mw;
     *mode_h_out = mh;
 }

@@ -84,10 +84,20 @@ static void load_config(void)
     cfg.renderer_new = lstrcmpiA(text, "original") != 0;
     GetPrivateProfileStringA("display", "render_resolution", "max", text, sizeof text, path);
     cfg.render_max = !lstrcmpiA(text, "max");
-    GetPrivateProfileStringA("display", "render_max_height", "screen", text, sizeof text, path);
-    cfg.render_max_rows = !lstrcmpiA(text, "screen") ? 0 : atoi(text);
-    if (cfg.render_max_rows != 0 && cfg.render_max_rows < 480)
-        cfg.render_max_rows = 1080;
+    /* "1/2" (the default, director 2026-11-16) to "1/5": that part of the screen's (or window's)
+     * height; "screen": all of it; a number (before 2026-11-16: 1080, 1440): at most those rows */
+    GetPrivateProfileStringA("display", "render_max_height", "1/2", text, sizeof text, path);
+    cfg.render_max_part = 1;
+    cfg.render_max_rows = 0;
+    if (text[0] == '1' && text[1] == '/' && atoi(text + 2) >= 1 && atoi(text + 2) <= 8)
+        cfg.render_max_part = atoi(text + 2);
+    else if (lstrcmpiA(text, "screen") != 0) {
+        cfg.render_max_rows = atoi(text);
+        if (cfg.render_max_rows < 200) {  /* unreadable: the default */
+            cfg.render_max_rows = 0;
+            cfg.render_max_part = 2;
+        }
+    }
     GetPrivateProfileStringA("display", "language", "ENG", text, sizeof text, path);
     {
         static const char *const codes[] = {"ENG", "USA", "FRE", "GER", "ITA", "SPA", "JAP"};
@@ -135,7 +145,7 @@ static void load_config(void)
     cfg.smooth_shading = ini_int(path, "display", "smooth_shading", 1);
     GetPrivateProfileStringA("display", "hud", "lowres", text, sizeof text, path);
     cfg.hud_lowres = lstrcmpiA(text, "game") != 0;
-    cfg.hud_aspect43 = ini_int(path, "display", "hud_aspect43", 1);
+    cfg.hud_aspect43 = ini_int(path, "display", "hud_aspect43", 0);
     GetPrivateProfileStringA("display", "hud_size", "small", text, sizeof text, path);
     cfg.hud_large = !lstrcmpiA(text, "large");
     GetPrivateProfileStringA("display", "hud_map", "large", text, sizeof text, path);
@@ -182,7 +192,9 @@ static void load_config(void)
     cfg.music_follow_game = ini_int(path, "music", "follow_game_volume", 1);
     cfg.distance_volume = ini_int(path, "sound", "distance_volume", 1);
     cfg.stereo_pan = ini_int(path, "sound", "stereo_pan", 1);
-    cfg.sound_channels = ini_int(path, "sound", "channels", 16) == 8 ? 8 : 16;
+    cfg.sound_channels = ini_int(path, "sound", "channels", 32);
+    if (cfg.sound_channels != 8 && cfg.sound_channels != 16)
+        cfg.sound_channels = 32;
     GetPrivateProfileStringA("music", "folder", "Music", cfg.music_folder, sizeof cfg.music_folder, path);
     GetPrivateProfileStringA("display", "mode", "fullscreen", text, sizeof text, path);
     cfg.display_mode = !lstrcmpiA(text, "fullscreen") ? DISPLAY_FULLSCREEN
@@ -278,13 +290,13 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
         brr_log("Big Red Launcher %s (PATCH.DLL)", BRRFIX_VERSION);
         brr_log("config: vga=%d clock=%d cap=%d interpolation=%d camera=%d menu_keys=%d source=%s "
                 "tick_rate=%u.%03u catch_up_cap=%d frame_limit=%d vsync=%d pacing=%s delay=%d.%03u camera_smoothing=%d fine_angles=%d roll_fix=%d "
-                "resolution=%s renderer=%s render_resolution=%s render_max_height=%d widescreen=%d hud=%s hud_aspect43=%d aspect=%s max_draw_distance=%d",
+                "resolution=%s renderer=%s render_resolution=%s render_max_height=1/%d,%d widescreen=%d hud=%s hud_aspect43=%d aspect=%s max_draw_distance=%d",
                 cfg.fix_vga, cfg.fix_clock, cfg.fix_cap, cfg.fix_interpolation, cfg.fix_camera, cfg.fix_menu_keys,
                 cfg.clock_original ? "original" : "qpc", cfg.rate_milli / 1000,
                 cfg.rate_milli % 1000, cfg.cap, cfg.frame_limit, cfg.vsync, cfg.pacing_dropin ? "dropin" : "cnc-ddraw",
                 cfg.interp_delay_milli / 1000, cfg.interp_delay_milli % 1000, cfg.camera_smoothing, cfg.fine_angles, cfg.camera_roll_fix,
                 cfg.resolution_high ? "high" : "low", cfg.renderer_new ? "new" : "original",
-                cfg.render_max ? "max" : "original", cfg.render_max_rows, cfg.widescreen,
+                cfg.render_max ? "max" : "original", cfg.render_max_part, cfg.render_max_rows, cfg.widescreen,
                 cfg.hud_lowres ? "lowres" : "game", cfg.hud_aspect43,
                 cfg.window_aspect43 ? "4:3" : "square", cfg.max_draw_distance);
         brr_sound_setup();

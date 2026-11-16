@@ -31,27 +31,29 @@ BEGIN
 
     /* Display (launcher.c, layout_display, shows each renderer's rows and moves the rows below
      * them) */
-    GROUPBOX        "Display", IDC_DISPLAY_GROUP, 12, 24, 150, 122
-    LTEXT           "&Renderer:", IDC_RENDERER_LABEL, 18, 38, 40, 8
-    COMBOBOX        IDC_RENDERER, 62, 36, 94, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    LTEXT           "&Mode:", IDC_PAGE_DISPLAY, 18, 52, 40, 8
-    COMBOBOX        IDC_MODE, 62, 50, 94, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    LTEXT           "Resolutio&n:", IDC_PAGE_DISPLAY, 18, 66, 44, 8
-    COMBOBOX        IDC_RESOLUTION, 62, 64, 94, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    LTEXT           "Ma&x limit:", IDC_MAXLIMIT_LABEL, 18, 80, 44, 8
-    COMBOBOX        IDC_MAXLIMIT, 62, 78, 94, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    GROUPBOX        "Display", IDC_DISPLAY_GROUP, 12, 24, 156, 136
+    LTEXT           "&Renderer:", IDC_RENDERER_LABEL, 18, 38, 54, 8
+    COMBOBOX        IDC_RENDERER, 74, 36, 88, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "&Mode:", IDC_PAGE_DISPLAY, 18, 52, 54, 8
+    COMBOBOX        IDC_MODE, 74, 50, 88, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Resolutio&n:", IDC_PAGE_DISPLAY, 18, 66, 54, 8
+    COMBOBOX        IDC_RESOLUTION, 74, 64, 88, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Ma&x limit:", IDC_MAXLIMIT_LABEL, 18, 80, 54, 8
+    COMBOBOX        IDC_MAXLIMIT, 74, 78, 88, 80, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
     AUTOCHECKBOX    "Na&tive widescreen", IDC_WIDESCREEN, 18, 92, 140, 10, WS_TABSTOP
-    LTEXT           "Scalin&g:", IDC_PRESET_LABEL, 18, 80, 44, 8
-    COMBOBOX        IDC_PRESET, 62, 78, 94, 70, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    LTEXT           "&Window size:", IDC_SCALE_LABEL, 18, 94, 44, 8
-    COMBOBOX        IDC_SCALE, 62, 92, 94, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    LTEXT           "&Colour depth:", IDC_COLOUR_LABEL, 18, 107, 44, 8
-    COMBOBOX        IDC_COLOUR, 62, 105, 94, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Scaling &aspect:", IDC_ASPECT_LABEL, 18, 80, 54, 8
+    COMBOBOX        IDC_ASPECT, 74, 78, 88, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Scalin&g:", IDC_PRESET_LABEL, 18, 80, 54, 8
+    COMBOBOX        IDC_PRESET, 74, 78, 88, 80, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "&Window size:", IDC_SCALE_LABEL, 18, 94, 54, 8
+    COMBOBOX        IDC_SCALE, 74, 92, 88, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "&Colour depth:", IDC_COLOUR_LABEL, 18, 107, 54, 8
+    COMBOBOX        IDC_COLOUR, 74, 105, 88, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
 
-    GROUPBOX        "Frame rate", IDC_PAGE_DISPLAY, 168, 24, 144, 46
-    LTEXT           "&Framerate cap:", IDC_PAGE_DISPLAY, 174, 38, 60, 8
-    COMBOBOX        IDC_FRAMES, 236, 36, 70, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
-    AUTOCHECKBOX    "&Vsync", IDC_VSYNC, 174, 54, 134, 10, WS_TABSTOP
+    GROUPBOX        "Frame rate", IDC_PAGE_DISPLAY, 174, 24, 138, 46
+    LTEXT           "&Framerate cap:", IDC_PAGE_DISPLAY, 180, 38, 56, 8
+    COMBOBOX        IDC_FRAMES, 238, 36, 68, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    AUTOCHECKBOX    "&Vsync", IDC_VSYNC, 180, 54, 128, 10, WS_TABSTOP
 
     /* Renderer (launcher.c, layout_renderer: the Modern renderer's groups, or with the Original
      * just Smoothness and Miscellaneous) */
@@ -95,7 +97,8 @@ BEGIN
     GROUPBOX        "Sound effects", IDC_SFX_GROUP, 12, 106, 300, 44
     AUTOCHECKBOX    "Distant vehicles &quieter", IDC_DISTANCE_VOL, 18, 119, 140, 10, WS_TABSTOP
     AUTOCHECKBOX    "Natural &stereo", IDC_STEREO_PAN, 18, 133, 140, 10, WS_TABSTOP
-    AUTOCHECKBOX    "16 sound &channels (1996: 8)", IDC_CHANNELS16, 160, 119, 140, 10, WS_TABSTOP
+    LTEXT           "Sound &channels:", IDC_CHANNELS_LABEL, 160, 120, 56, 8
+    COMBOBOX        IDC_CHANNELS, 218, 118, 50, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
 
     /* Controller */
     GROUPBOX        "Controller", IDC_PAD_GROUP, 12, 24, 300, 82
