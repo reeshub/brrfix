@@ -24,6 +24,7 @@
         extrn   _brr_count_unlit:dword
         extrn   _brr_shading_threshold:near
         extrn   _brr_lod_select:near
+        extrn   _brr_lod_scale:near
         extrn   _brr_landscape_width:near
         extrn   _brr_hud_begin:near
         extrn   _brr_hud_end:near
@@ -108,6 +109,7 @@
         public  _brr_hook_proj_scale, _brr_hook_landscape_width
         public  _brr_backface, _brr_clip_t_x, _brr_clip_t_y, _brr_cull_margin, _brr_shading_restore
         public  _brr_project_x, _brr_project_y, _brr_hook_shading_threshold, _brr_hook_lod
+        public  _brr_hook_fit_depth
 
         .code
 
@@ -601,6 +603,22 @@ _brr_hook_lod:
         add     esp, 4
         popad
         cmp     dword ptr ds:[54B488h], 0
+        ret
+
+; Site fit_depth (scenery_fit_lods_to_ground 0x42B744, where its two branches meet: XOR EAX,EAX;
+; MOV AX,[ECX+22h]; ESI = the object's centre depth, ECX its model) -> CALL here and a NOP:
+; ESI the depth as the level-of-detail choice sees it (brr_lod_scale), so the version that's
+; drawn is the one fitted to the ground; then the two instructions. EBX and EDX are reloaded
+; after.
+_brr_hook_fit_depth:
+        push    ecx
+        push    esi
+        call    _brr_lod_scale
+        add     esp, 4
+        mov     esi, eax
+        pop     ecx
+        xor     eax, eax
+        mov     ax, word ptr [ecx + 22h]
         ret
 
 ; Site shading_threshold (display_list_draw 0x42B8BA, 31 bytes: EBP = clamp(vision - 9, 3, 8),

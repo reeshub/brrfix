@@ -727,6 +727,22 @@
    "sha256": "233272a4a2c52c6f3f251d66af4000482a114e1ec2938d5f333f8c7f3517b231"
   },
   {
+   "name": "fit_depth",
+   "fix": "object_detail",
+   "address": "0x42B744",
+   "length": 6,
+   "patch": "Modern renderer, [display] object_detail. scenery_fit_lods_to_ground (0x42B6EC; ground-hugging scenery such as wooden fences, fitted to the ground just before they're drawn): XOR EAX,EAX; MOV AX,[ECX+0x22] where its two branches meet, ESI the object's centre depth -> CALL brr_hook_fit_depth (thunks.asm) and a NOP: ESI the depth as the level-of-detail choice sees it (brr_lod_scale), then the same two instructions. It fits only the versions whose distance band holds the depth, so with matched detail the version drawn hadn't been fitted to the spot: fences leant at odd angles, twitching, until the game's own depth reached its band",
+   "sha256": "e05955ca1f480bf866e1523dc19f208c2c53119a4669290a7afd71ce3d4a2406"
+  },
+  {
+   "name": "if_distance_depth",
+   "fix": "object_detail",
+   "address": "0x441525",
+   "length": 4,
+   "patch": "Modern renderer, [display] object_detail. model_op_if_distance (model opcode 15, the models' own 'if nearer than' tests, which choose detailed parts such as the armco barriers' high-resolution texture): MOV ECX,[0x54B488] -> MOV ECX,[brr_lod_depth], the depth object_draw's level-of-detail choice has just worked out for the same object (site lod_select), so the models' parts switch where their versions do",
+   "sha256": "233272a4a2c52c6f3f251d66af4000482a114e1ec2938d5f333f8c7f3517b231"
+  },
+  {
    "name": "record_init_base",
    "fix": "big_lists",
    "address": "0x42B7E6",

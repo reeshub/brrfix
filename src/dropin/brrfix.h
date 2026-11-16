@@ -231,6 +231,8 @@ void brr_hook_landscape_width(void);
 void brr_backface(void);                   /* thunks.asm: [display] precise_3d, object_lighting */
 void brr_project_x(void);
 void brr_hook_lod(void);                   /* thunks.asm: site lod_select; render.c */
+void brr_hook_fit_depth(void);              /* thunks.asm: site fit_depth */
+int32_t __cdecl brr_lod_scale(int32_t depth);
 extern int32_t brr_lod_depth;
 void brr_hook_shading_threshold(void);
 int __cdecl brr_shading_threshold(void);

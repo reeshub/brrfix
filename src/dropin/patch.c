@@ -333,8 +333,11 @@ static int replacement(const struct site_info *s, uint8_t *out)
     } else if (!strcmp(n, "lod_select") && s->length == 7) {
         out[0] = 0xE8;  /* CALL brr_hook_lod: brr_lod_depth for the loop, then the game's CMP */
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_lod);
-    } else if (!strcmp(n, "lod_compare") && s->length == 4) {
-        put_abs32(out, (void *)&brr_lod_depth);  /* CMP ECX,[0x54B488] -> CMP ECX,[brr_lod_depth] */
+    } else if ((!strcmp(n, "lod_compare") || !strcmp(n, "if_distance_depth")) && s->length == 4) {
+        put_abs32(out, (void *)&brr_lod_depth);  /* [0x54B488] -> [brr_lod_depth] */
+    } else if (!strcmp(n, "fit_depth") && s->length == 6) {
+        out[0] = 0xE8;  /* CALL brr_hook_fit_depth: the matched depth, then XOR EAX,EAX; MOV AX,[ECX+22h] */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_fit_depth);
     } else if (!strcmp(n, "shading_threshold") && s->length == 31) {
         out[0] = 0xE8;  /* CALL brr_hook_shading_threshold (EBP), then the XOR EDI,EDI it replaced */
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_shading_threshold);

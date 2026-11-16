@@ -844,17 +844,25 @@ static void lod_log(const int32_t *table)
             i, text, table[2 * i] == -1 ? ", then not drawn" : ", ...");
 }
 
+/* A depth (in any units) as the level-of-detail choices see it: the depth the object would
+ * have in the game's 640-wide picture (matched), 0 (highest: the nearest of everything), or
+ * itself. Also for the ground fitting (site fit_depth) and the models' own distance tests
+ * (site if_distance_depth, through brr_lod_depth), so all three agree. */
+int32_t __cdecl brr_lod_scale(int32_t depth)
+{
+    int32_t scale = *(volatile int32_t *)0x542000;
+    if (cfg.object_detail == 2)
+        return depth < 0 ? depth : 0;
+    if (cfg.object_detail == 1 && scale > 512)
+        return (int32_t)((int64_t)depth * 512 / scale);
+    return depth;
+}
+
 void __cdecl brr_lod_select(const int32_t *table)
 {
-    int32_t z = *(volatile int32_t *)0x54B488, scale = *(volatile int32_t *)0x542000;
     if (cfg.debug_lod_log)
         lod_log(table);
-    if (cfg.object_detail == 2)
-        brr_lod_depth = z < 0 ? z : 0;
-    else if (cfg.object_detail == 1 && scale > 512)
-        brr_lod_depth = (int32_t)((int64_t)z * 512 / scale);
-    else
-        brr_lod_depth = z;
+    brr_lod_depth = brr_lod_scale(*(volatile int32_t *)0x54B488);
 }
 
 /* Site shading_threshold: the distance in squares inside which display_list_draw lights objects
