@@ -33,11 +33,15 @@
         extrn   _brr_orig_hud_draw:dword
         extrn   _brr_orig_hud_icon:dword
         extrn   _brr_raw_loaded:near
+        extrn   _brr_persp_setup:near
+        extrn   _brr_persp_setup_original:dword
         extrn   _brr_sprite_scaled_continue:dword
         extrn   _brr_orig_race_tick:dword
         extrn   _brr_orig_race_draw:dword
         extrn   _brr_orig_playback_tick:dword
         extrn   _brr_orig_playback_draw:dword
+        extrn   _brr_orig_preview_tick:dword
+        extrn   _brr_orig_preview_draw:dword
         extrn   _brr_orig_camera_update:dword
         extrn   _brr_fine_angles_active:dword
         extrn   _brr_rotation_continue:dword
@@ -92,6 +96,7 @@
         public  _brr_hook_clock_read, _brr_hook_retrace, _brr_hook_race_tick
         public  _brr_hook_race_draw, _brr_hook_camera_update, _brr_hook_rotation
         public  _brr_hook_playback_tick, _brr_hook_playback_draw
+        public  _brr_hook_preview_tick, _brr_hook_preview_draw
         public  _brr_rotation_original, _brr_call_rotation_original
         public  _brr_call_game_atan, _brr_hook_cam4, _brr_hook_present_window
         public  _brr_hook_display_choice, _brr_hook_present, _brr_hook_joystick
@@ -107,7 +112,7 @@
         public  _brr_call_dd_set_mode
         public  _brr_hook_sprite_rows, _brr_hook_sprite_columns
         public  _brr_hook_hud_draw, _brr_hook_hud_icon, _brr_hook_sprite_scaled
-        public  _brr_hook_raw_name
+        public  _brr_hook_raw_name, _brr_hook_persp_setup, _brr_hook_scenery_pos
         public  _brr_hook_proj_scale, _brr_hook_landscape_width
         public  _brr_backface, _brr_clip_t_x, _brr_clip_t_y, _brr_cull_margin, _brr_shading_restore
         public  _brr_project_x, _brr_project_y, _brr_hook_shading_threshold, _brr_hook_lod
@@ -191,6 +196,28 @@ _brr_hook_playback_draw:
         call    _brr_before_draw
         popad
         call    dword ptr [_brr_orig_playback_draw]
+        pushad
+        call    _brr_after_draw
+        popad
+        ret
+
+; Track select's View (screen 0x10, track_preview: the helicopter flyover): its tick and draw,
+; wrapped like the race's, for interpolation and the mouse's first second
+_brr_hook_preview_tick:
+        pushad
+        call    _brr_before_tick
+        popad
+        call    dword ptr [_brr_orig_preview_tick]
+        pushad
+        call    _brr_after_tick
+        popad
+        ret
+
+_brr_hook_preview_draw:
+        pushad
+        call    _brr_before_draw
+        popad
+        call    dword ptr [_brr_orig_preview_draw]
         pushad
         call    _brr_after_draw
         popad
@@ -680,6 +707,67 @@ _brr_hook_hud_draw:
         pushad
         call    _brr_hud_end
         popad
+        ret
+
+; Site persp_setup_hook (engine_draw_polygon type 4 stores this in poly_setup_hook 0x5430D4
+; instead of poly_setup_perspective 0x446FF0; called once per polygon by 0x442B04 and 0x442C42,
+; which rely on EBX, ECX, ESI and EBP afterwards): without the depth buffer (render_flags
+; 0x542008 bit 0x10, how the ground is drawn) brr_persp_setup (persp.c) sets the polygon up
+; with more precision; with it, or if that declines (returns 0), the game's own set-up.
+_brr_hook_persp_setup:
+        test    dword ptr ds:[542008h], 10h
+        jz      short ps_game                   ; depth buffer on: the game's set-up
+        pushfd
+        pushad
+        cld
+        call    _brr_persp_setup                ; EAX = 1 done, 0 not
+        test    eax, eax
+        popad                                   ; keeps the flags from TEST
+        jz      short ps_fallback
+        popfd
+        ret
+ps_fallback:
+        popfd
+ps_game:
+        jmp     dword ptr [_brr_persp_setup_original]   ; 0x446FF0, which returns to our caller
+
+; Site scenery_snap (object_transform 0x448D06: MOV EAX,[ESI]; MOV EBX,[ESI+4]; MOV ECX,[ESI+8],
+; the object's position, for drawing) -> CALL here + 3 NOPs: the same loads; then, for the level's
+; own objects (scenery_objects, 39-byte records from *0x498054, the count a word at 0x498572),
+; an x or z one unit past a multiple of 256 is put back on it. The level editor placed about half
+; the pieces meant to meet (tunnel sections, the start's billboards) one unit apart, a slit of
+; sky at today's resolutions. Drawing only: the records themselves aren't changed. EDX and the
+; flags are kept (both paths into 0x448D06 have EDX set).
+_brr_hook_scenery_pos:
+        mov     eax, [esi]
+        mov     ebx, [esi + 4]
+        mov     ecx, [esi + 8]
+        pushfd
+        push    edx
+        push    ebx
+        mov     edx, dword ptr ds:[498054h]
+        cmp     esi, edx
+        jb      short sp_done
+        movzx   ebx, word ptr ds:[498572h]
+        imul    ebx, ebx, 39
+        add     ebx, edx
+        cmp     esi, ebx
+        jae     short sp_done
+        mov     edx, eax
+        and     edx, 0FFh
+        cmp     edx, 1
+        jne     short sp_z
+        dec     eax
+sp_z:
+        mov     edx, ecx
+        and     edx, 0FFh
+        cmp     edx, 1
+        jne     short sp_done
+        dec     ecx
+sp_done:
+        pop     ebx
+        pop     edx
+        popfd
         ret
 
 ; Site raw_name_call (raw_picture_load 0x412B2F: CALL file_open, the .RAW's name in EAX) -> here:

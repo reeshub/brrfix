@@ -346,6 +346,28 @@ void brr_race_draw(void)
         log_after_draw(-1);
 }
 
+/* Track select's View (screen 0x10: a helicopter flyover, vehicle 6 on the level's 6.REC):
+ * its tick and draw wrapped as the race's, so it's blended too (the director, 2026-11-16).
+ * It starts with race_enter, which restarts the tick count, so after_tick starts afresh. */
+void brr_preview_tick(void)
+{
+    game_preview_tick();
+    after_tick();
+}
+
+void brr_preview_draw(void)
+{
+    brr_frames_drawn++;
+    have_game_camera = 0;
+    before_draw();
+    brr_in_race_draw = 1;
+    brr_fine_active = OPTION(OPT_FINE_ANGLES) != 0;
+    game_preview_draw();
+    brr_fine_active = 0;
+    brr_in_race_draw = 0;
+    restore();
+}
+
 /* ---- the camera, at draw time: fine angles and the roll fix ---- */
 
 static s32 yaw_at(struct view_state *v, s32 when)

@@ -43,6 +43,9 @@ struct brr_config {
     int widescreen_menus;    /* [display] widescreen_menus: menu backgrounds across the whole width (render.c) */
     int precise_3d;          /* [display] precise_3d: the 3D maths in 64 bits and culling by the real scale */
     int object_lighting;     /* [display] object_lighting: far objects lit after effects (the game left them unlit) */
+    int sort_footprint;      /* [display] sort_footprint: objects drawn in order of their footprint, not their height */
+    int ground_perspective;  /* [display] ground_perspective: every textured ground square perspective-correct (persp.c) */
+    int close_gaps;          /* [display] close_gaps: level pieces one unit apart drawn together; exact edge slopes */
     int object_shading;      /* [display] object_shading: 0 game (smooth near, flat beyond 8 squares), 1 smooth, 2 flat */
     int texture_distance;    /* [display] texture_distance with max_draw_distance: 0 the slider's, else squares */
     int object_detail;       /* [display] object_detail: 0 original, 1 matched to the resolution, 2 highest */
@@ -100,6 +103,9 @@ extern uint32_t brr_orig_race_tick, brr_orig_race_draw, brr_orig_camera_update;
 extern uint32_t brr_orig_playback_tick, brr_orig_playback_draw;
 void brr_hook_playback_tick(void);
 void brr_hook_playback_draw(void);
+extern uint32_t brr_orig_preview_tick, brr_orig_preview_draw;
+void brr_hook_preview_tick(void);
+void brr_hook_preview_draw(void);
 
 /* main.c */
 void brr_log(const char *format, ...);
@@ -172,6 +178,10 @@ void brr_hud_setup(void);
 void brr_hook_hud_draw(void);
 void brr_hook_hud_icon(void);
 void brr_hook_raw_name(void);              /* thunks.asm: site raw_name_call */
+void brr_hook_persp_setup(void);           /* thunks.asm: site persp_setup_hook */
+void brr_hook_scenery_pos(void);           /* thunks.asm: site scenery_snap */
+int __cdecl brr_persp_setup(void);         /* persp.c */
+extern uint32_t brr_persp_setup_original, brr_count_persp;
 void brr_hook_sprite_scaled(void);
 int brr_hud_overlay(const uint8_t *origin, int w, int h, void *out, int out_w, int out_h, int out_pitch,
                     int px, int py, int sx, int sy, const uint32_t *colours, int again);

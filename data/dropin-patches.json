@@ -135,6 +135,22 @@
    "sha256": "fb0b7c7ea16cf4c74fab569a44887fb5217dd56ce0f967e92782283b5af1d188"
   },
   {
+   "name": "preview_tick_callback",
+   "fix": "interpolation",
+   "address": "0x401FF8",
+   "length": 4,
+   "patch": "WndProc, screen 0x10 (track select's View: track_preview, a helicopter flyover on the level's 6.REC): MOV EDX,0x423CCC (its tick) -> brr_hook_preview_tick (before/after tick hooks, as the race's)",
+   "sha256": "835967aea78089315381060f542e068fd0564a13f5c8e735abd546bf8c480721"
+  },
+  {
+   "name": "preview_draw_callback",
+   "fix": "interpolation",
+   "address": "0x401FF3",
+   "length": 4,
+   "patch": "WndProc, screen 0x10: MOV EBX,0x423D24 (its draw) -> brr_hook_preview_draw (writes interpolated vehicles and the follow camera, the mouse's first second held still, draws, restores)",
+   "sha256": "c7c14f20102dc3a906b077a62c172f7e83d90fe8cd8ec989dbfc5bf586b79c69"
+  },
+  {
    "name": "joystick_call",
    "fix": "controller",
    "address": "0x428D1D",
@@ -621,6 +637,110 @@
    "length": 5,
    "patch": "raw_picture_load (0x412B2C; scn_load, car and track select, start-up): CALL file_open (0x411B78; the .RAW's name in EAX) -> CALL brr_hook_raw_name (thunks.asm): brr_raw_loaded (render.c) notes the name and the level, so the widescreen menu backgrounds know the globe's (THIRD3.RAW) and each level's picture (VIEW.RAW); then file_open",
    "sha256": "1d44f2bb9890982c87bbb3df9392ce16edf027553b5a909acdff98daa633170c"
+  },
+  {
+   "name": "scenery_snap",
+   "fix": "close_gaps",
+   "address": "0x448D06",
+   "length": 8,
+   "patch": "object_transform (0x448CA0): MOV EAX,[ESI]; MOV EBX,[ESI+4]; MOV ECX,[ESI+8] (the object's position) -> CALL brr_hook_scenery_pos (thunks.asm) + 3 NOPs: the same loads; for the level's own objects (scenery_objects *0x498054, 39-byte records, count 0x498572) an x or z one unit past a multiple of 256 is drawn on it. Across the 23 levels' MAP.DAT, 5,257 positions sit on a multiple of 256 and 5,053 one past it, the level editor's off-by-one: Italy's tunnel sections and the start's billboards were a world unit apart, a slit of sky 2 to 4 pixels wide at 1080 rows. Drawing only (object_transform's callers are object_draw, view_setup and light_level); 13 joints of BLOCK1 pieces made one unit apart on purpose open instead",
+   "sha256": "8e19fa130ed33ccc35aa76ae546ff822cefb2b407576f825c4c068b0f4a8d1a5"
+  },
+  {
+   "name": "edge_slope_1",
+   "fix": "close_gaps",
+   "address": "0x442D64",
+   "length": 31,
+   "patch": "edge_scan's first polygon type, edge set-up (the edge's x step): SHR EBX,15; ...; IMUL EAX,EBX, dx x floor(2^16 / dy) (EBX was 2^31 / dy, the reciprocal table's 2^32 / dy halved at 0x442D01) -> IMUL EBX; SHRD EAX,EDX,15: (dx x 2^31 / dy) >> 15 in 64 bits, the full precision the shading, texture and depth steps already have; the start x and the row count as before. The floor lost up to dx x dy / 65536 pixels along an edge, 5 to 30 at 1080 rows on long diagonals: cracks where edges aren't shared (T-junctions in some models, objects meeting the ground)",
+   "sha256": "388d9a885124e3b98339b5ea074757aa670613f2d31985b8d90e6766432f4b62"
+  },
+  {
+   "name": "edge_slope_2",
+   "fix": "close_gaps",
+   "address": "0x442DDD",
+   "length": 31,
+   "patch": "edge_scan's second polygon type: the same change as edge_slope_1",
+   "sha256": "388d9a885124e3b98339b5ea074757aa670613f2d31985b8d90e6766432f4b62"
+  },
+  {
+   "name": "edge_slope_3",
+   "fix": "close_gaps",
+   "address": "0x442E69",
+   "length": 31,
+   "patch": "edge_scan_no_depth (0x442E10): the same change as edge_slope_1",
+   "sha256": "388d9a885124e3b98339b5ea074757aa670613f2d31985b8d90e6766432f4b62"
+  },
+  {
+   "name": "ground_ring_routine",
+   "fix": "ground_perspective",
+   "address": "0x41CF26",
+   "length": 4,
+   "patch": "Modern renderer, [display] ground_perspective. landscape_setup's ring table (0x4552E0): the rings from landscape_ring_near + 1 to landscape_ring_textured got landscape_draw_cell_textured (0x41BD80: the square's corners projected, two affine screen-space triangles, fill 3) -> MOV ECX,0x41C9CC, landscape_draw_cell_near, as the nearest rings: camera-space corners and the engine's perspective-correct triangles (fill 0x204), the same tile, texture corners and diagonal. Squares are no longer drawn one way far off and another close up; the switch showed as banks' textures jumping and twitching (Phase 3c, 2026-11-16)",
+   "sha256": "2273874c6a5e437ed6c53572f88de287c41c0c25b9e5140dd66d46859ab3bc4d"
+  },
+  {
+   "name": "ground_near_range",
+   "fix": "ground_perspective",
+   "address": "0x41CAE6",
+   "length": 4,
+   "patch": "Modern renderer, [display] ground_perspective. landscape_draw_cell_near: a square is drawn perspective-correct when its nearest corner is within landscape_near_range (0x46BBB0: (texture distance - 3) x 512, capped at 0x800, 4 squares), else by landscape_draw_cell_near_affine, which projects it and draws it affine like the far squares -> MOV EDI,[0x46BB9C], landscape_texture_range (texture distance x 512): perspective-correct as far as the ground is textured. Beyond it the square still goes on to near_affine, near_flat and landscape_draw_cell_haze, the flat hazed colour the textured routine gave it. At 4 squares the affine mapping was 1.7 texels off (13 px on a bank at 1600x900), with half a texel more from the two span routines' rounding, and the test runs every frame, so squares at the boundary likely flipped back and forth as the camera bobbed",
+   "sha256": "ddd0d19a71c8c7c78679921cecf9d094b604c2a459111b5a8fdf41f9b62c077d"
+  },
+  {
+   "name": "persp_setup_hook",
+   "fix": "ground_perspective",
+   "address": "0x442057",
+   "length": 4,
+   "patch": "Modern renderer, [display] ground_perspective. engine_draw_polygon, type 4 (perspective- textured; the landscape's squares from site ground_ring_routine on): poly_setup_hook (0x5430D4) = poly_setup_perspective (0x446FF0) -> brr_hook_persp_setup. Without the depth buffer (render_flags bit 0x10, how the ground is drawn) brr_persp_setup does the same job more precisely: 1/z (+0x14) scaled by the same power of two for the whole polygon, as far as the span's log table allows, and u/z, v/z (+0x18, +0x1C) as u x 1/z / 2^24 with their fractions, so span_persp's log/exp tables give the same texel from larger whole numbers. The game's set-up keeps only whole parts: 2^21 / z is 164 at 25 squares and 68 at 60, 2.5 to 5 texels out; ours is within half a texel at any distance. It also keeps 1/z under 0x7FFF0000: clip_edge_near's 0x7FFFFFFF read past the log table. With the depth buffer, or for a ring it wasn't written for, the game's own set-up runs",
+   "sha256": "13e166d49246c188759404e71c9c7e0b3325fd3af5fee971b6eb60afdd49056c"
+  },
+  {
+   "name": "sort_radius_object",
+   "fix": "sort_footprint",
+   "address": "0x42BD81",
+   "length": 1,
+   "patch": "display_list_add_object (0x42BCF8): MOV EBX,[EBX+EAX+0xA] displacement 0x0A -> 0x0C: the sort key, the depth along the view less the model's radius read as the high half of the dword at shape_info + 0xA (the short at +0xC, a bounding sphere that includes the model's height: a tree 1,200 against a 137 footprint) -> +0xC, so the high half is the short at +0xE, its footprint radius: tall objects no longer sort up to 2 squares nearer than they are, and stop drawing over hill crests in front of them (the ground is drawn without the depth buffer, so only the order hides objects behind it)",
+   "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+  },
+  {
+   "name": "sort_radius_object_mode1",
+   "fix": "sort_footprint",
+   "address": "0x42BE5D",
+   "length": 1,
+   "patch": "display_list_add_object_mode1 (0x42BDD4): the same change as sort_radius_object",
+   "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+  },
+  {
+   "name": "sort_radius_ground_object",
+   "fix": "sort_footprint",
+   "address": "0x42C229",
+   "length": 1,
+   "patch": "display_list_add_ground_object (0x42C1A0): the same change as sort_radius_object",
+   "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+  },
+  {
+   "name": "sort_radius_ground_object_mode1",
+   "fix": "sort_footprint",
+   "address": "0x42C305",
+   "length": 1,
+   "patch": "display_list_add_ground_object_mode1 (0x42C27C): the same change as sort_radius_object",
+   "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+  },
+  {
+   "name": "sort_radius_fit",
+   "fix": "sort_footprint",
+   "address": "0x42B73E",
+   "length": 1,
+   "patch": "scenery_fit_lods_to_ground (0x42B6EC), its near-sorted branch: MOV EAX,[EDX+EAX+0xA] displacement 0x0A -> 0x0C, so it works the object's centre depth back out of the sort key with the same radius the key now uses (the far-sorted branch at 0x42B717 stays)",
+   "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+  },
+  {
+   "name": "car_select_zoom",
+   "fix": "wide_menus",
+   "address": "0x4052E5",
+   "length": 5,
+   "patch": "car_select_draw: MOV EBX,0xC8 (menu_draw_vehicle_model's zoom, 200: the camera at the model's size x 512 / zoom) -> MOV EBX,176: with the widescreen menu backgrounds, the car about 12% smaller, so it no longer reaches the menu's left edge (x 0 of the 320x200 picture), where it was cut off; in 1996 that was the screen's edge",
+   "sha256": "764088ba29afcfc556ff85a73eed4a27fc50946a301ea845fe769fbe37391e66"
   },
   {
    "name": "project_x",

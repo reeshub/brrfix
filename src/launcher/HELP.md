@@ -4,7 +4,7 @@ ctrl-alt-rees.com
 
 Big Red Launcher fixes and starts the Windows version of Big Red Racing (1996),
 and lets you choose its settings. This file explains every setting
-in its window. Rest the mouse on a setting to see a one-line reminder.
+in its window. Hover over a setting to see a one-line reminder.
 
 Start the game with **Big Red Racing.exe**. To see the settings window again
 after ticking "Skip this window next time", hold **Shift** while starting it,
@@ -29,8 +29,6 @@ from:
   renderer, with modern pads on.
 
 Each button sets every setting on every tab. Press Save or Play to keep them.
-The Defaults button at the bottom of the window chooses the set for your PC:
-Period defaults on Windows 95, 98 and ME, Modern defaults on anything newer.
 
 ## Display
 
@@ -318,8 +316,39 @@ with the menu's text, buttons and 3D drawn over it where they always were.
 As the picture is wider than it was, some of it is cropped: the top for
 most menus; the top and bottom on the globe where you choose a race (whose
 globe and lettering are drawn round, with square pixels); and on each
-level's picture whichever part keeps the level's title in view. Unticked:
-black bars at the sides.
+level's picture whichever part keeps the level's title in view. The mouse
+pointer stays inside the menu, so it's never cut off at its sides. On the
+car screen the car is drawn a little smaller, as its left side used to be cut
+off where the 1996 screen ended. Unticked: black bars at the sides.
+
+### Engine fixes (Modern renderer; all on by default)
+
+Three of the 1996 3D engine's own faults, which show more at today's
+resolutions and draw distances. Untick one to see the game as it was.
+
+**Steady ground textures**
+
+The game drew a ground square one way close up (with perspective) and a
+cheaper way from 4 squares out, and the texture jumped where they met: banks
+beside the road twitched as you came near. Every textured square is now
+drawn the first way, more precisely than the engine managed. About 1 ms a
+frame more.
+
+**Better draw order**
+
+The ground is drawn without the engine's depth buffer, so only the order
+things are drawn in keeps an object behind a hill. The game ordered objects
+by a sphere that counts their height, so a tall tree could be drawn as if two
+squares nearer and show through the hill in front of it. Objects are now
+ordered by their footprint.
+
+**Close gaps between polygons**
+
+The level designers' editor placed about half the pieces meant to meet (such
+as Italy's tunnel sections and the billboards at the start) one unit apart, a
+slit of sky at today's resolutions; they're now drawn together. Polygon edges
+are also worked out exactly, where the engine lost a little along long
+edges. Some slits remain where separate pieces meet at an angle.
 
 
 ## Audio
@@ -476,9 +505,6 @@ the file with your report.
   folder (the same game fixes, for DOS PCs and DOSBox), keeping the original as
   RACING.ORI. Press it again on a patched file to put the original back.
 - **Help:** opens this file (or press F1).
-- **Defaults:** puts every setting back to the defaults for your PC: Period
-  defaults on Windows 95, 98 and ME, Modern defaults on anything newer (see
-  General). Press Save or Play to keep them.
 - **Play:** saves the settings and starts the game. When the game ends, this
   window comes back (on the same tab), so you can change something and play
   again; Quit leaves. Started with -play, or with this window skipped, the

@@ -12,6 +12,7 @@
 int brr_patched;
 uint32_t brr_orig_race_tick = GAME_RACE_TICK, brr_orig_race_draw = GAME_RACE_DRAW;
 uint32_t brr_orig_playback_tick = 0x413400, brr_orig_playback_draw = 0x4131DC;
+uint32_t brr_orig_preview_tick = 0x423CCC, brr_orig_preview_draw = 0x423D24;
 uint32_t brr_orig_camera_update = 0x404908;
 uint32_t brr_rotation_continue = 0x446675, brr_game_atan = 0x412A20;
 uint32_t brr_orig_present_window = 0x42CD2C;
@@ -187,9 +188,14 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "hud")) return brr_hud_active;
     if (!strcmp(fix, "precise_3d")) return cfg.precise_3d && brr_renderer_active;
     if (!strcmp(fix, "object_lighting")) return cfg.object_lighting && brr_renderer_active;
+    if (!strcmp(fix, "sort_footprint")) return cfg.sort_footprint && brr_renderer_active;
+    if (!strcmp(fix, "ground_perspective")) return cfg.ground_perspective && brr_renderer_active;
+    if (!strcmp(fix, "close_gaps")) return cfg.close_gaps && brr_renderer_active;
     if (!strcmp(fix, "object_shading")) return cfg.object_shading && brr_renderer_active;
     if (!strcmp(fix, "object_detail")) return (cfg.object_detail != 0 || cfg.debug_lod_log) && brr_renderer_active;
     if (!strcmp(fix, "widescreen")) return brr_widescreen && brr_renderer_active && cfg.render_max;
+    if (!strcmp(fix, "wide_menus"))
+        return brr_widescreen && brr_renderer_active && cfg.render_max && cfg.widescreen_menus;
     if (!strcmp(fix, "menu_pad")) return cfg.menu_navigation;
     if (!strcmp(fix, "screenshot")) return (cfg.render_max && brr_renderer_active) || brr_sky_active;
     if (!strcmp(fix, "draw_distance")) return cfg.max_draw_distance > 0;  /* experimental, off by default */
@@ -235,6 +241,10 @@ static int replacement(const struct site_info *s, uint8_t *out)
         put_abs32(out, (void *)brr_hook_playback_tick);
     } else if (!strcmp(n, "playback_draw_callback") && s->length == 4) {
         put_abs32(out, (void *)brr_hook_playback_draw);
+    } else if (!strcmp(n, "preview_tick_callback") && s->length == 4) {
+        put_abs32(out, (void *)brr_hook_preview_tick);
+    } else if (!strcmp(n, "preview_draw_callback") && s->length == 4) {
+        put_abs32(out, (void *)brr_hook_preview_draw);
     } else if (!strcmp(n, "camera_update_call") && s->length == 5) {
         out[0] = 0xE8;
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_camera_update);
@@ -291,6 +301,40 @@ static int replacement(const struct site_info *s, uint8_t *out)
         size[0] = (uint16_t)brr_view_max_w;
         size[1] = (uint16_t)brr_view_max_h;
         memcpy(out, size, 4);
+    } else if (!strcmp(n, "scenery_snap") && s->length == 8) {
+        out[0] = 0xE8;  /* CALL brr_hook_scenery_pos: the position's loads, snapped; then 3 NOPs */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_scenery_pos);
+        out[5] = out[6] = out[7] = 0x90;
+    } else if (!strncmp(n, "edge_slope_", 11) && s->length == 31) {
+        /* the edge's x step from the full reciprocal: (dx x 2^31/dy) >> 15 in 64 bits, not dx x
+         * floor(2^16/dy); the start x and the row count as before (EAX the same after; EDX is
+         * cleared before its next use) */
+        static const uint8_t code[31] = {
+            0x8B, 0x45, 0x10,              /* MOV EAX,[EBP+0x10]   the far end's x */
+            0x2B, 0x46, 0x10,              /* SUB EAX,[ESI+0x10]   dx */
+            0xF7, 0xEB,                    /* IMUL EBX             EDX:EAX = dx x 2^31/dy */
+            0x0F, 0xAC, 0xD0, 0x0F,        /* SHRD EAX,EDX,15      the 16.16 step */
+            0x89, 0x07,                    /* MOV [EDI],EAX */
+            0x8B, 0x46, 0x10,              /* MOV EAX,[ESI+0x10] */
+            0xC1, 0xE0, 0x10,              /* SHL EAX,16 */
+            0x89, 0x47, 0x18,              /* MOV [EDI+0x18],EAX   the start x */
+            0x8B, 0xC1,                    /* MOV EAX,ECX */
+            0xC1, 0xE0, 0x10,              /* SHL EAX,16           the row count's word, as before */
+            0x89, 0x47, 0x30};             /* MOV [EDI+0x30],EAX */
+        memcpy(out, code, 31);
+    } else if (!strcmp(n, "ground_ring_routine") && s->length == 4) {
+        put_abs32(out, (void *)0x41C9CCu);  /* landscape_draw_cell_near, for every textured ring */
+    } else if (!strcmp(n, "ground_near_range") && s->length == 4) {
+        put_abs32(out, (void *)0x46BB9Cu);  /* landscape_texture_range: perspective as far as textured */
+    } else if (!strcmp(n, "persp_setup_hook") && s->length == 4) {
+        put_abs32(out, (void *)brr_hook_persp_setup);
+    } else if (!strncmp(n, "sort_radius_", 12) && s->length == 1) {
+        out[0] = 0x0C;  /* MOV reg,[shape + 0xC]: SAR 16 then gives the footprint radius (+0xE), not +0xC's */
+    } else if (!strcmp(n, "car_select_zoom") && s->length == 5) {
+        /* MOV EBX, 176 (was 200): the car about 12% smaller, so it no longer reaches the menu's
+         * left edge, which the widened background now shows (the director, 2026-11-16) */
+        static const uint8_t mov[5] = {0xBB, 176, 0, 0, 0};
+        memcpy(out, mov, 5);
     } else if (!strcmp(n, "raw_name_call") && s->length == 5) {
         out[0] = 0xE8;  /* CALL brr_hook_raw_name: which picture the screen loaded, then file_open */
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_raw_name);

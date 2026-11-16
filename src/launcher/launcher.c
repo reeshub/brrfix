@@ -286,6 +286,10 @@ static int hidden_by_choice(HWND dialog, int id)
     case IDC_GRADIENT_GROUP:
     case IDC_SMOOTH_SKY:
     case IDC_SMOOTH_SHADING:
+    case IDC_FIXES_GROUP:
+    case IDC_GROUND_PERSP:
+    case IDC_SORT_FOOT:
+    case IDC_CLOSE_GAPS:
         return !fresh;
     }
     return 0;
@@ -331,7 +335,8 @@ static void layout_display(HWND dialog)
 }
 
 /* The Renderer tab: Smoothness and Full colour on the left, Race world on the right (the
- * Modern renderer's), Miscellaneous below them, or under Smoothness with the Original */
+ * Modern renderer's), Miscellaneous below them (or under Smoothness with the Original), then
+ * Engine fixes (Modern; launcher.rc places it) */
 static void layout_renderer(HWND dialog)
 {
     int fresh = new_renderer(dialog), top = fresh ? 116 : 72;
@@ -426,6 +431,12 @@ static const struct { int id; const char *text; } tips[] = {
                      "sides; the menus 4:3 in the middle (their backgrounds across the screen, as below)."},
     {IDC_WIDEMENUS, "With native widescreen: each menu's background picture across the whole screen, sharp, "
                     "its top (or top and bottom) cropped; off: the menus 4:3 with black bars."},
+    {IDC_GROUND_PERSP, "Ground textures drawn the same way at every distance: the game switched method 4 squares away, "
+                       "so banks beside the road twitched as you came near."},
+    {IDC_SORT_FOOT, "Objects put in drawing order by their footprint, not their height, so trees and buildings stop "
+                    "showing through the hills in front of them."},
+    {IDC_CLOSE_GAPS, "Pieces the level designers placed a hair apart (Italy's tunnels, the start's billboards) drawn "
+                     "together, and polygon edges worked out exactly: fewer slits of sky."},
     {IDC_HUD43, "The race dashboard's pixels 1.2 times taller than wide, as the 320x200 art looked on a 1996 4:3 "
                 "monitor; off: square."},
     {IDC_SCALE, "How big the Modern renderer's window is, in whole multiples of 640x480; the picture is "
@@ -472,8 +483,6 @@ static const struct { int id; const char *text; } tips[] = {
                  "picture."},
     {IDC_HUDSIZE, "The race dashboard's size: Small (the default, about half) or Large, as big as the 1996 "
                   "low-resolution picture showed it."},
-    {IDC_DEFAULTS, "Puts every setting back to the defaults for this PC: Period defaults on Windows 95, 98 and ME, "
-                   "Modern defaults on anything newer (press Save or Play to keep them)."},
     {IDC_PERIOD, "Every setting for a 1990s PC: full screen at 320x200, the original renderer (press Save or Play "
                  "to keep them)."},
     {IDC_MODERN, "Every setting for a modern PC: full screen, races at the screen's resolution (Max), drawn as far as the "
@@ -631,6 +640,9 @@ static void load(HWND dialog, int defaults)
     check(dialog, IDC_WIDESCREEN, defaults ? 1 : ini_flag("display", "widescreen", 1));
     check(dialog, IDC_HUD43, defaults ? 1 : ini_flag("display", "hud_aspect43", 1));
     check(dialog, IDC_WIDEMENUS, defaults ? 1 : ini_flag("display", "widescreen_menus", 1));
+    check(dialog, IDC_GROUND_PERSP, defaults ? 1 : ini_flag("display", "ground_perspective", 1));
+    check(dialog, IDC_SORT_FOOT, defaults ? 1 : ini_flag("display", "sort_footprint", 1));
+    check(dialog, IDC_CLOSE_GAPS, defaults ? 1 : ini_flag("display", "close_gaps", 1));
     if (!defaults)
         check(dialog, IDC_SKIP, ini_flag("launcher", "skip", 0));
 #undef GET
@@ -693,6 +705,9 @@ static void save(HWND dialog)
     ini_set(brrfix_ini, "display", "widescreen", checked(dialog, IDC_WIDESCREEN) ? "1" : "0");
     ini_set(brrfix_ini, "display", "hud_aspect43", checked(dialog, IDC_HUD43) ? "1" : "0");
     ini_set(brrfix_ini, "display", "widescreen_menus", checked(dialog, IDC_WIDEMENUS) ? "1" : "0");
+    ini_set(brrfix_ini, "display", "ground_perspective", checked(dialog, IDC_GROUND_PERSP) ? "1" : "0");
+    ini_set(brrfix_ini, "display", "sort_footprint", checked(dialog, IDC_SORT_FOOT) ? "1" : "0");
+    ini_set(brrfix_ini, "display", "close_gaps", checked(dialog, IDC_CLOSE_GAPS) ? "1" : "0");
     ini_set(brrfix_ini, "launcher", "skip", checked(dialog, IDC_SKIP) ? "1" : "0");
     if (windows_9x)
         ini_set(brrfix_ini, "clock", "vsync", checked(dialog, IDC_VSYNC) ? "1" : "0");
@@ -903,9 +918,6 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
             return TRUE;
         case IDC_SAVE:
             save(dialog);
-            return TRUE;
-        case IDC_DEFAULTS:
-            load(dialog, windows_9x ? PERIOD_DEFAULTS : MODERN_DEFAULTS);
             return TRUE;
         case IDC_PERIOD:
             load(dialog, PERIOD_DEFAULTS);

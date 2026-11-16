@@ -1036,6 +1036,10 @@ void brr_display_list_report(void)
         brr_log("precise 3D: the game's 32-bit maths would have got %lu projected corners, %lu faces' facing and "
                 "%lu screen-edge clips wrong", (unsigned long)brr_count_project, (unsigned long)brr_count_backface,
                 (unsigned long)brr_count_clip);
+    if (brr_count_persp)
+        brr_log("ground perspective: %lu ground polygons set up with the precise perspective",
+                (unsigned long)brr_count_persp);
+    brr_count_persp = 0;
     if (brr_edge_squares)
         brr_log("draw distance: %lu squares at the screen's sides nearer than 8 squares filled in (the near "
                 "area's 4:3 shape left them out)", (unsigned long)brr_edge_squares);
@@ -1125,6 +1129,52 @@ void __cdecl brr_render_after_present(void)
     }
 }
 
+/* The menu pointer's pixels around the mouse (menu_hotspot_draw 0x427C7C draws ALWAYS.SPR's
+ * frame 0x44BF47 at x - 4, y - 4; frames 0 to the count at 0x44BF46, pointer_anim), over every
+ * frame: x0..x1, y0..y1, inclusive. 0 if the sprites aren't loaded. */
+#define ALWAYS_SPRITES (*(const uint8_t *volatile *)0x44BD88)
+#define POINTER_FRAMES (*(volatile uint8_t *)0x44BF46)
+
+static int pointer_extent(int *x0, int *y0, int *x1, int *y1)
+{
+    static const uint8_t *bank_seen;
+    static int ok, ex0, ey0, ex1, ey1;
+    const uint8_t *bank = ALWAYS_SPRITES;
+    int frames = POINTER_FRAMES, f, x, y;
+    if (!bank)
+        return 0;
+    if (bank != bank_seen) {
+        bank_seen = bank;
+        ex0 = ey0 = 1000;
+        ex1 = ey1 = -1000;
+        if (frames < 1 || frames > 32)
+            frames = 1;
+        for (f = 0; f < frames; f++) {
+            const uint8_t *s = bank + *(const int32_t *)(bank + f * 4 + 2);
+            int w = *(const int16_t *)s, h = *(const int16_t *)(s + 2);
+            if (w <= 0 || h <= 0 || w > 64 || h > 64)
+                continue;
+            for (y = 0; y < h; y++)
+                for (x = 0; x < w; x++)
+                    if (s[8 + y * w + x]) {
+                        if (x - 4 < ex0) ex0 = x - 4;
+                        if (x - 4 > ex1) ex1 = x - 4;
+                        if (y - 4 < ey0) ey0 = y - 4;
+                        if (y - 4 > ey1) ey1 = y - 4;
+                    }
+        }
+        ok = ex1 >= ex0 && ey1 >= ey0;
+        if (ok)
+            brr_log("menu: the pointer's pixels reach %d,%d to %d,%d from the mouse (%d frames)", ex0, ey0, ex1, ey1,
+                    frames);
+    }
+    *x0 = ex0;
+    *y0 = ey0;
+    *x1 = ex1;
+    *y1 = ey1;
+    return ok;
+}
+
 /* Site menu_mouse (in 0x4274FC, only when the race view isn't set): the menu's mouse
  * position from the pointer's position in the final picture, the inverse of the layout
  * above (the original mapped only at 640x480, to its doubled picture: x / 2, (y - 40) / 2).
@@ -1142,6 +1192,17 @@ uint32_t __cdecl brr_menu_mouse(void)
     if (x > MENU_W - 1) x = MENU_W - 1;
     if (y < 0) y = 0;
     if (y > MENU_H - 1) y = MENU_H - 1;
+    /* with the widescreen backgrounds, the menu's left and right edges are no longer the
+     * picture's: the pointer stops where it would start to be cut off (the director,
+     * 2026-11-16). The menu is as tall as the picture, so its top and bottom are the screen's
+     * edges, as in 1996 (and stopping 23 rows short would leave bottom buttons out of reach). */
+    if (brr_widescreen && cfg.widescreen_menus) {
+        int x0, y0, x1, y1;
+        if (pointer_extent(&x0, &y0, &x1, &y1)) {
+            if (x < -x0) x = -x0;
+            if (x > MENU_W - 1 - x1) x = MENU_W - 1 - x1;
+        }
+    }
     if (cfg.debug_log_mouse) {  /* each new position (the same one is asked for every tick) */
         static int logged, last_x = -1, last_y = -1;
         if ((MOUSE_X != last_x || MOUSE_Y != last_y) && logged++ < 40)

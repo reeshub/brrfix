@@ -184,7 +184,10 @@ vehicles as far as the ground), "Textures" (how far the ground is textured),
 to flat beyond 8 squares) and "Object detail" (every model at its most detailed
 by default, or its simpler versions picked by its size on screen, so fences don't
 change shape close up). The 3D engine's maths is done in 64 bits at today's resolutions,
-where its 32 bits overflowed ([display] precise_3d).
+where its 32 bits overflowed ([display] precise_3d). "Engine fixes": steady
+ground textures (no switch 4 squares out), objects ordered by their footprint
+so they don't show through hills, and gaps between level pieces closed
+([display] ground_perspective, sort_footprint, close_gaps).
 
 Original (renderer=original; the only one on Windows 95, 98 and ME): the 1996
 game's own drawing, as players saw it, with only the smooth-motion fixes and

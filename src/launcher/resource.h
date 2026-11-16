@@ -53,6 +53,10 @@
 #define IDC_HUDSIZE      1318
 #define IDC_HUDSIZE_LABEL 1319
 #define IDC_WIDEMENUS    1320
+#define IDC_FIXES_GROUP  1321
+#define IDC_GROUND_PERSP 1322
+#define IDC_SORT_FOOT    1323
+#define IDC_CLOSE_GAPS   1324
 
 /* Audio */
 #define IDC_PAGE_AUDIO   1400
@@ -92,7 +96,6 @@
 #define IDC_LOG          1604
 
 /* under the tabs, always shown */
-#define IDC_DEFAULTS     1043
 #define IDC_SKIP         1050
 #define IDC_SAVE         1051
 #define IDC_DOSPATCH     1052

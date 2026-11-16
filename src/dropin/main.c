@@ -144,6 +144,9 @@ static void load_config(void)
     cfg.widescreen_menus = ini_int(path, "display", "widescreen_menus", 1);
     cfg.precise_3d = ini_int(path, "display", "precise_3d", 1);
     cfg.object_lighting = ini_int(path, "display", "object_lighting", 1);
+    cfg.sort_footprint = ini_int(path, "display", "sort_footprint", 1);
+    cfg.ground_perspective = ini_int(path, "display", "ground_perspective", 1);
+    cfg.close_gaps = ini_int(path, "display", "close_gaps", 1);
     GetPrivateProfileStringA("display", "object_shading", "flat", text, sizeof text, path);
     cfg.object_shading = !lstrcmpiA(text, "smooth") ? 1 : !lstrcmpiA(text, "flat") ? 2 : 0;
     GetPrivateProfileStringA("display", "object_detail", "highest", text, sizeof text, path);

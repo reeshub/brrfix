@@ -22,6 +22,8 @@ extern void game_race_enter(void);           /* race screen: enter, tick, draw, 
 extern void game_race_tick(void);
 extern void game_race_draw(void);
 extern void game_race_leave(void);
+extern void game_preview_tick(void);         /* track preview (screen 0x10): tick, draw */
+extern void game_preview_draw(void);
 extern void game_camera_update(u8 *record);  /* record in EAX */
 extern void game_copy_frame(void);           /* the game's buffer to video memory */
 extern void game_copy_frame_split(void);     /* the same, split screen, first view */

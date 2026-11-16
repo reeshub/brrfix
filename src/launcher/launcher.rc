@@ -21,13 +21,13 @@ BEGIN
     LTEXT           "", IDC_TITLE, 14, 26, 296, 10
     LTEXT           "ctrl-alt-rees.com", IDC_PAGE_GENERAL, 14, 37, 296, 8
     LTEXT           "Big Red Launcher starts the Windows version of Big Red Racing (Big Red Software, 1996) on Windows 95 to today's Windows, and on Linux and Steam Deck through Proton, and makes it run smoothly: a steady clock, smooth motion at any refresh rate, no camera stutter, and a sharp picture on today's screens. It also plays the CD music from ripped tracks and adds modern pads. The physics is left exactly as it was.", IDC_PAGE_GENERAL, 14, 52, 296, 42
-    LTEXT           "Choose your settings on these tabs, then press Play. Rest the mouse on a setting for a one-line reminder; Help (or F1) explains every setting.", IDC_PAGE_GENERAL, 14, 98, 296, 16
+    LTEXT           "Choose your settings on these tabs, then press Play. Hover over a setting for a one-line reminder; Help (or F1) explains every setting.", IDC_PAGE_GENERAL, 14, 98, 296, 16
     GROUPBOX        "Defaults for your PC", IDC_PAGE_GENERAL, 12, 120, 300, 90
     PUSHBUTTON      "Period defaults", IDC_PERIOD, 20, 134, 64, 14, WS_TABSTOP
     LTEXT           "For a 1990s PC with Windows 95, 98 or ME: full screen at the game's low resolution (320x200), drawn as the 1996 game drew it.", IDC_PAGE_GENERAL, 90, 133, 216, 24
     PUSHBUTTON      "Modern defaults", IDC_MODERN, 20, 162, 64, 14, WS_TABSTOP
     LTEXT           "For today's Windows, Linux and Steam Deck: full screen, races at your screen's resolution and drawn as far as the engine allows, sharp and in full colour by the Modern renderer, with modern pads.", IDC_PAGE_GENERAL, 90, 161, 216, 24
-    LTEXT           "Each sets every setting; press Save or Play to keep them. Defaults, below, chooses the one for this PC.", IDC_PAGE_GENERAL, 20, 190, 286, 16
+    LTEXT           "Each sets every setting; press Save or Play to keep them.", IDC_PAGE_GENERAL, 20, 190, 286, 16
 
     /* Display (launcher.c, layout_display, shows each renderer's rows and moves the rows below
      * them) */
@@ -77,6 +77,10 @@ BEGIN
     LTEXT           "HUD si&ze:", IDC_HUDSIZE_LABEL, 18, 144, 40, 8
     COMBOBOX        IDC_HUDSIZE, 62, 142, 94, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
     AUTOCHECKBOX    "Widescreen &menu backgrounds", IDC_WIDEMENUS, 160, 143, 140, 10, WS_TABSTOP
+    GROUPBOX        "Engine fixes", IDC_FIXES_GROUP, 12, 164, 300, 44
+    AUTOCHECKBOX    "Steady &ground textures", IDC_GROUND_PERSP, 18, 176, 140, 10, WS_TABSTOP
+    AUTOCHECKBOX    "Better draw ord&er", IDC_SORT_FOOT, 160, 176, 140, 10, WS_TABSTOP
+    AUTOCHECKBOX    "&Close gaps between polygons", IDC_CLOSE_GAPS, 18, 190, 140, 10, WS_TABSTOP
 
     /* Audio */
     GROUPBOX        "Music", IDC_PAGE_AUDIO, 12, 24, 300, 78
@@ -123,7 +127,6 @@ BEGIN
     AUTOCHECKBOX    "S&kip this window next time (to see it again, hold Shift while starting, or use -setup)", IDC_SKIP, 8, 238, 310, 10, WS_TABSTOP
     PUSHBUTTON      "Patch the DOS ve&rsion...", IDC_DOSPATCH, 8, 256, 96, 14, WS_TABSTOP
     PUSHBUTTON      "Help", IDC_HELPFILE, 108, 256, 40, 14, WS_TABSTOP
-    PUSHBUTTON      "D&efaults", IDC_DEFAULTS, 152, 256, 40, 14, WS_TABSTOP
     DEFPUSHBUTTON   "&Play", IDOK, 214, 254, 34, 16, WS_TABSTOP
     PUSHBUTTON      "&Save", IDC_SAVE, 250, 254, 34, 16, WS_TABSTOP
     PUSHBUTTON      "&Quit", IDCANCEL, 286, 254, 32, 16, WS_TABSTOP
