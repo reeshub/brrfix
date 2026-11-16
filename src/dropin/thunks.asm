@@ -37,6 +37,9 @@
         extrn   _brr_persp_setup_original:dword
         extrn   _brr_horizon_cull:near
         extrn   _brr_horizon_drawn:near
+        extrn   _brr_sound_debug:near
+        extrn   _brr_sound_debug_on:dword
+        extrn   _brr_ds_pans:dword
         extrn   _brr_sprite_scaled_continue:dword
         extrn   _brr_orig_race_tick:dword
         extrn   _brr_orig_race_draw:dword
@@ -115,7 +118,7 @@
         public  _brr_hook_sprite_rows, _brr_hook_sprite_columns
         public  _brr_hook_hud_draw, _brr_hook_hud_icon, _brr_hook_sprite_scaled
         public  _brr_hook_raw_name, _brr_hook_persp_setup, _brr_hook_scenery_pos, _brr_hook_display_list
-        public  _brr_hook_sound_nearest
+        public  _brr_hook_sound_nearest, _brr_hook_ds_pan
         public  _brr_hook_proj_scale, _brr_hook_landscape_width
         public  _brr_backface, _brr_clip_t_x, _brr_clip_t_y, _brr_cull_margin, _brr_shading_restore
         public  _brr_project_x, _brr_project_y, _brr_hook_shading_threshold, _brr_hook_lod
@@ -741,6 +744,15 @@ ps_game:
 ; [ESP+0x48] (bytes); here 4 more for the return address. EAX, EBX and EDX are set afresh after
 ; it; EDI (0, the priority) and EBP are kept.
 _brr_hook_sound_nearest:
+        cmp     dword ptr [_brr_sound_debug_on], 0
+        je      short sn_start
+        pushad
+        lea     eax, [esp + 32 + 4]             ; the caller's frame: pans, then distances at +0x1C
+        push    eax
+        call    _brr_sound_debug
+        add     esp, 4
+        popad
+sn_start:
         mov     esi, -1
         mov     ebx, 7FFFh
         xor     eax, eax
@@ -759,6 +771,21 @@ sn_next:
         inc     eax
         cmp     eax, 7
         jl      short sn_loop
+        ret
+
+; Site ds_pan_curve (ds_set_pan 0x42ECC3-0x42ECF0: pan x 10,000 / 127, clamped) -> CALL here +
+; NOPs: EDX, the pan (-127 to 127, sign-extended), becomes DirectSound's from brr_ds_pans (sound.c).
+; EBX (the channel) is kept; EAX and ECX are set afresh after it.
+_brr_hook_ds_pan:
+        cmp     edx, -127
+        jge     short dp_low
+        mov     edx, -127
+dp_low:
+        cmp     edx, 127
+        jle     short dp_high
+        mov     edx, 127
+dp_high:
+        mov     edx, dword ptr [_brr_ds_pans + 127 * 4 + edx * 4]
         ret
 
 ; Site display_list_call (render_view 0x417808: CALL display_list_draw) -> here: horizon culling

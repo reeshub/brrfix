@@ -159,6 +159,10 @@ played within 1.1 dB of full volume. Big Red Launcher converts them properly
 ("Distant vehicles quieter", on by default; [sound] distance_volume), as the
 DOS version plays them: far trucks are quieter, the game's effects volume
 option works, and the three engines heard at once are the nearest trucks'.
+The stereo works too: the game panned a truck only a little off centre almost
+entirely into one speaker; it now moves smoothly between them ("Natural
+stereo"; [sound] stereo_pan). And it has 16 sound channels instead of 8, with
+every truck's engine heard instead of 3 ([sound] channels).
 
 Display and scaling
 -------------------

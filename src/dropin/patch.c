@@ -5,6 +5,7 @@
  * The game's code is identified by checksums only: no original bytes are stored. */
 #include "brrfix.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "sites.h"
 #include "sha256.h"
@@ -192,6 +193,10 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "ground_perspective")) return cfg.ground_perspective && brr_renderer_active;
     if (!strcmp(fix, "close_gaps")) return cfg.close_gaps && brr_renderer_active;
     if (!strcmp(fix, "distance_volume")) return cfg.distance_volume;  /* both renderers */
+    if (!strcmp(fix, "stereo_pan")) return cfg.stereo_pan;
+    if (!strcmp(fix, "sound_channels")) return cfg.sound_channels == 16;
+    /* the hook carries the sound log too */
+    if (!strcmp(fix, "distance_volume_order")) return cfg.distance_volume || cfg.debug_sound_log;
     /* its cover assumes close_gaps' exact edges: the game's could fall short by pixels */
     if (!strcmp(fix, "horizon_culling")) return cfg.horizon_culling && cfg.close_gaps && brr_renderer_active;
     if (!strcmp(fix, "object_shading")) return cfg.object_shading && brr_renderer_active;
@@ -312,6 +317,38 @@ static int replacement(const struct site_info *s, uint8_t *out)
         put_abs32(out + 3, (void *)brr_ds_volumes);
         out[7] = 0x98;
         out[8] = out[9] = 0x90;
+    } else if (!strncmp(n, "snd@", 4) && strchr(n, ':') && (s->length == 1 || s->length == 4)) {
+        /* 16 channels: "snd@ADDRESS:=VALUE" (a count or bound) or "snd@ADDRESS:TABLE+DELTA" (an
+         * address in one of the game's channel tables, now in ours: the same offset, or for a
+         * loop's start at the last channel, the new last channel's) */
+        const char *rule = strchr(n, ':') + 1;
+        uint32_t value;
+        if (*rule == '=')
+            value = (uint32_t)strtol(rule + 1, NULL, 10);
+        else {
+            static const struct { const char *name; void *base; } tables[] = {
+                {"KEEP", brr_snd_keep}, {"DATA", brr_snd_data}, {"BUSY", brr_snd_busy},
+                {"REQ", brr_snd_requests}, {"CH", brr_snd_channels}, {"DSB", brr_ds_buffers}};
+            size_t k, len;
+            for (k = 0; k < sizeof tables / sizeof tables[0]; k++) {
+                len = strlen(tables[k].name);
+                if (!strncmp(rule, tables[k].name, len) && (rule[len] == '+' || rule[len] == '-'))
+                    break;
+            }
+            if (k == sizeof tables / sizeof tables[0])
+                return 0;
+            value = (uint32_t)tables[k].base + (uint32_t)strtol(rule + strlen(tables[k].name), NULL, 10);
+        }
+        if (s->length == 1) {
+            if (value > 127)
+                return 0;
+            out[0] = (uint8_t)value;
+        } else
+            memcpy(out, &value, 4);
+    } else if (!strcmp(n, "ds_pan_curve") && s->length == 46) {
+        out[0] = 0xE8;  /* CALL brr_hook_ds_pan, then NOPs to the call of SetPan */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_ds_pan);
+        memset(out + 5, 0x90, 41);
     } else if (!strcmp(n, "sound_nearest_first") && s->length == 63) {
         /* CALL brr_hook_sound_nearest (ESI: the nearest vehicle still to gather, or -1), then NOPs */
         out[0] = 0xE8;
@@ -615,7 +652,7 @@ void brr_patch_all(void)
                                                    : "256 colours, as the game ([display] full_colour=0)",
                 brr_sky_active ? "; the sky as a smooth gradient" : "",
                 brr_shade_active ? "; lit polygons shaded smoothly" : "");
-    int applied = 0;
+    int applied = 0, sound_sites = 0;
     for (size_t i = 0; i < count; i++) {
         const struct site_info *s = &SITES[i];
         if (!enabled(s->fix))
@@ -623,9 +660,16 @@ void brr_patch_all(void)
         replacement(s, bytes);
         write_code(s->address, bytes, s->length);
         applied++;
+        if (!strncmp(s->name, "snd@", 4)) {
+            sound_sites++;
+            continue;  /* one line for all of them, below */
+        }
         brr_log("patched %s at 0x%06lX (%s, %lu bytes)", s->name, (unsigned long)s->address,
                 s->fix, (unsigned long)s->length);
     }
+    if (sound_sites)
+        brr_log("patched %d sites of the sound channel layer (sound_channels): 16 channels, 16 requests, "
+                "every vehicle's engine", sound_sites);
     if (cfg.fix_vga) {
         /* Windows XP onwards, so looked up at run time: on Windows 95/98/ME the game's
          * port reads work natively, and the safety net isn't needed */

@@ -70,6 +70,8 @@
 #define IDC_FOLDER_LABEL 1407
 #define IDC_SFX_GROUP    1408
 #define IDC_DISTANCE_VOL 1409
+#define IDC_STEREO_PAN   1410
+#define IDC_CHANNELS16   1411
 
 /* Controller */
 #define IDC_PAGE_PAD     1500

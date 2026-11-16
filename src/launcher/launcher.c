@@ -461,6 +461,10 @@ static const struct { int id; const char *text; } tips[] = {
     {IDC_VSYNC, "Waits for the screen's refresh before each picture: no tearing, slightly more input lag."},
     {IDC_DISTANCE_VOL, "Other vehicles' sounds fade with distance, as the game meant (on Windows every sound "
                        "played almost at full volume); also gives the game's effects volume its full range."},
+    {IDC_STEREO_PAN, "Vehicles to the right sound more from the right speaker, smoothly; the game's own panning sent "
+                     "anything a little off centre almost entirely to one side."},
+    {IDC_CHANNELS16, "Twice the game's 8 sound channels, and every truck's engine (the game allowed 3), so more of the "
+                     "field is heard at once."},
     {IDC_MUSIC, "Plays the CD music from ripped tracks (trackNN.flac, .ogg or .wav) instead of the CD."},
     {IDC_VOLUME, "Music volume, on top of the game's own CD volume option."},
     {IDC_FOLDER, "The folder with the ripped tracks: Music next to the launcher, or a full path."},
@@ -622,6 +626,8 @@ static void load(HWND dialog, int defaults)
     }
     check(dialog, IDC_MUSIC, defaults ? 1 : ini_flag("music", "music", 1));
     check(dialog, IDC_DISTANCE_VOL, defaults ? 1 : ini_flag("sound", "distance_volume", 1));
+    check(dialog, IDC_STEREO_PAN, defaults ? 1 : ini_flag("sound", "stereo_pan", 1));
+    check(dialog, IDC_CHANNELS16, defaults ? 1 : GetPrivateProfileIntA("sound", "channels", 16, brrfix_ini) != 8);
     fill(dialog, IDC_VOLUME, volumes, GET(f, "music", "volume", "100"));
     SetDlgItemTextA(dialog, IDC_FOLDER, GET(f, "music", "folder", "Music"));
     check(dialog, IDC_PAD, defaults ? 1 : ini_flag("controller", "enabled", 1));
@@ -719,6 +725,8 @@ static void save(HWND dialog)
     ini_set(brrfix_ini, "display", "close_gaps", checked(dialog, IDC_CLOSE_GAPS) ? "1" : "0");
     ini_set(brrfix_ini, "display", "horizon_culling", checked(dialog, IDC_HORIZON) ? "1" : "0");
     ini_set(brrfix_ini, "sound", "distance_volume", checked(dialog, IDC_DISTANCE_VOL) ? "1" : "0");
+    ini_set(brrfix_ini, "sound", "stereo_pan", checked(dialog, IDC_STEREO_PAN) ? "1" : "0");
+    ini_set(brrfix_ini, "sound", "channels", checked(dialog, IDC_CHANNELS16) ? "16" : "8");
     ini_set(brrfix_ini, "launcher", "skip", checked(dialog, IDC_SKIP) ? "1" : "0");
     if (windows_9x)
         ini_set(brrfix_ini, "clock", "vsync", checked(dialog, IDC_VSYNC) ? "1" : "0");

@@ -48,6 +48,8 @@ struct brr_config {
     int close_gaps;          /* [display] close_gaps: level pieces one unit apart drawn together; exact edge slopes */
     int horizon_culling;     /* [display] horizon_culling: skip what nearer ground will paint over (horizon.c) */
     int distance_volume;     /* [sound] distance_volume: the effects' full volume range, nearest vehicles first (sound.c) */
+    int stereo_pan;          /* [sound] stereo_pan: pans as a balance, not near hard left or right (sound.c) */
+    int sound_channels;      /* [sound] channels: 8 (the game's) or 16 (sound.c) */
     int object_shading;      /* [display] object_shading: 0 game (smooth near, flat beyond 8 squares), 1 smooth, 2 flat */
     int texture_distance;    /* [display] texture_distance with max_draw_distance: 0 the slider's, else squares */
     int object_detail;       /* [display] object_detail: 0 original, 1 matched to the resolution, 2 highest */
@@ -94,6 +96,7 @@ struct brr_config {
     char debug_level[16];           /* tests: race this level (e.g. CITY1) whatever the menus chose */
     int debug_shade_split;          /* tests: smooth shading on the picture's left half only */
     int debug_lod_log;              /* tests: each model's level-of-detail distances, once (render.c) */
+    int debug_sound_log;            /* tests: each vehicle's pan and distance every 2 s (sound.c) */
     int debug_horizon_log;          /* tests: N: the coverage line for N frames from tick 300; 999: no culling, timed (horizon.c) */
     int debug_shot_tick;            /* tests: save the full-colour picture at this race tick */
     int debug_shade_no_corners;     /* tests: smooth shading without the corners' fractions */
@@ -187,6 +190,13 @@ void brr_hook_display_list(void);          /* thunks.asm: site display_list_call
 void __cdecl brr_horizon_cull(void);       /* horizon.c */
 void brr_hook_sound_nearest(void);         /* thunks.asm: site sound_nearest_first */
 extern int32_t brr_ds_volumes[128];          /* sound.c: site ds_volume_curve */
+extern int32_t brr_ds_pans[255];             /* sound.c: site ds_pan_curve */
+extern int32_t brr_snd_keep[16], brr_snd_data[16], brr_snd_busy[16];  /* sound.c: sites snd@ */
+extern uint8_t brr_snd_requests[16 * 0x1B], brr_snd_channels[16 * 0x1B];
+extern void *brr_ds_buffers[16];
+extern int brr_sound_debug_on;
+void __cdecl brr_sound_debug(const int32_t *frame);
+void brr_hook_ds_pan(void);                 /* thunks.asm: site ds_pan_curve */
 void brr_sound_setup(void);
 extern uint32_t brr_horizon_records, brr_horizon_records_culled, brr_horizon_objects, brr_horizon_objects_culled;
 extern int64_t brr_horizon_time, brr_horizon_frames, brr_horizon_draw_time;

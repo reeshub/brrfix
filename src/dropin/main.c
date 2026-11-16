@@ -181,6 +181,8 @@ static void load_config(void)
         cfg.music_volume = 100;
     cfg.music_follow_game = ini_int(path, "music", "follow_game_volume", 1);
     cfg.distance_volume = ini_int(path, "sound", "distance_volume", 1);
+    cfg.stereo_pan = ini_int(path, "sound", "stereo_pan", 1);
+    cfg.sound_channels = ini_int(path, "sound", "channels", 16) == 8 ? 8 : 16;
     GetPrivateProfileStringA("music", "folder", "Music", cfg.music_folder, sizeof cfg.music_folder, path);
     GetPrivateProfileStringA("display", "mode", "fullscreen", text, sizeof text, path);
     cfg.display_mode = !lstrcmpiA(text, "fullscreen") ? DISPLAY_FULLSCREEN
@@ -218,6 +220,7 @@ static void load_config(void)
     cfg.debug_shade_split = ini_int(path, "debug", "shade_split", 0);
     cfg.debug_lod_log = ini_int(path, "debug", "lod_log", 0);
     cfg.debug_horizon_log = ini_int(path, "debug", "horizon_log", 0);
+    cfg.debug_sound_log = ini_int(path, "debug", "sound_log", 0);
     cfg.debug_shot_tick = ini_int(path, "debug", "shot_tick", 0);
     cfg.debug_shade_no_corners = ini_int(path, "debug", "shade_no_corners", 0);
     if (cfg.clock_original)

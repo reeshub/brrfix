@@ -648,11 +648,947 @@
   },
   {
    "name": "sound_nearest_first",
-   "fix": "distance_volume",
+   "fix": "distance_volume_order",
    "address": "0x416695",
    "length": 63,
    "patch": "sound_update_vehicles (0x416520): the loop choosing the next other vehicle whose sounds to gather (the lowest-numbered not yet done, active and nearer than 0x7FFF; only the first 3 vehicles gathered get an engine sound) -> CALL brr_hook_sound_nearest (thunks.asm; the nearest such vehicle in ESI, or -1) + 58 NOPs: near trucks' engines are heard before far ones. Each vehicle is still gathered once, so vehicle_sounds' rand() calls (shared with the physics) are as many: the physics is unchanged",
    "sha256": "e6070517767d61843198102fafd3fbbea09b822206173aad2075b14b71e1ba7b"
+  },
+  {
+   "name": "ds_pan_curve",
+   "fix": "stereo_pan",
+   "address": "0x42ECC3",
+   "length": 46,
+   "patch": "ds_set_pan (0x42EC8C): IMUL EDX,EDX,10000; ... IDIV 127; clamp to +-10,000 (the game's pan, the sine of the vehicle's bearing from the camera, -128 to 127, scaled straight to IDirectSoundBuffer::SetPan's -10,000 to 10,000, which is the far speaker's attenuation in hundredths of a decibel: 30 degrees off centre was 50 dB down, nearly hard-panned) -> CALL brr_hook_ds_pan (thunks.asm) + 41 NOPs: brr_ds_pans (sound.c), a balance: the far speaker's level in proportion (half: -6 dB, full: silent), as the DOS version's Miles pans",
+   "sha256": "1e2c8d0c12012b8231f8ff326e009630b1ddb97ff625fe47cf37f3206491ec38"
+  },
+  {
+   "name": "snd@413634:KEEP-4",
+   "fix": "sound_channels",
+   "address": "0x413634",
+   "length": 4,
+   "patch": "16 sound channels ([sound] channels=16): sound_channels_init: MOV [EAX+0x45295C],EDX: keep[-1]: loop base, EAX = 4..0x20 step 4 -> our array KEEP-4",
+   "sha256": "1f98f69f7d893f66aa40ee08071b74016090cc7943547a0074b65ca9db54d005"
+  },
+  {
+   "name": "snd@41363a:BUSY-4",
+   "fix": "sound_channels",
+   "address": "0x41363A",
+   "length": 4,
+   "patch": "sound_channels_init: MOV [EAX+0x45299C],EBX: busy[-1]: loop base (same value as data[7], but it is busy-4) -> our array BUSY-4",
+   "sha256": "77ef0349d79a40f002dc69bfde2f0b7cccfc29c471fe8bf558450679b7791fd6"
+  },
+  {
+   "name": "snd@413640:=64",
+   "fix": "sound_channels",
+   "address": "0x413640",
+   "length": 1,
+   "patch": "sound_channels_init: CMP EAX,0x20: end of loop = 8 x 4 bytes -> 16 x 4 -> 64",
+   "sha256": "36a9e7f1c95b82ffb99743e0c5c4ce95d83c9a430aac59f84ef3cbfab6145068"
+  },
+  {
+   "name": "snd@41365e:=16",
+   "fix": "sound_channels",
+   "address": "0x41365E",
+   "length": 1,
+   "patch": "sound_channels_shutdown: CMP EDX,0x8: ds_stop for channels 0..7 -> 0..15 -> 16",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "snd@413688:BUSY+0",
+   "fix": "sound_channels",
+   "address": "0x413688",
+   "length": 4,
+   "patch": "sound_channel_stop: CMP [EAX+busy],0: busy[ch] -> our array BUSY+0",
+   "sha256": "0404516c2138625461b7b64afe5d90c04edb162e6e2fbf6b0f72b123243cb3ae"
+  },
+  {
+   "name": "snd@413691:KEEP+0",
+   "fix": "sound_channels",
+   "address": "0x413691",
+   "length": 4,
+   "patch": "sound_channel_stop: MOV ECX,[EAX+keep]: keep[ch] -> our array KEEP+0",
+   "sha256": "fa32b6aa22014f148c1f18ebb121f0d6e07c935ff66988ef3dd775401ec6b27a"
+  },
+  {
+   "name": "snd@413699:DATA+0",
+   "fix": "sound_channels",
+   "address": "0x413699",
+   "length": 4,
+   "patch": "sound_channel_stop: MOV EBX,[EAX+data]: data[ch] -> our array DATA+0",
+   "sha256": "beb4944262a22ea1dd3a0558df278590e13d13bf5292574681c07e50063998a9"
+  },
+  {
+   "name": "snd@41369f:BUSY+0",
+   "fix": "sound_channels",
+   "address": "0x41369F",
+   "length": 4,
+   "patch": "sound_channel_stop: MOV [EAX+busy],ESI: busy[ch] = 0 -> our array BUSY+0",
+   "sha256": "0404516c2138625461b7b64afe5d90c04edb162e6e2fbf6b0f72b123243cb3ae"
+  },
+  {
+   "name": "snd@41372c:DATA+0",
+   "fix": "sound_channels",
+   "address": "0x41372C",
+   "length": 4,
+   "patch": "sound_channel_play: MOV [EDI*4+data],EAX: data[ch] -> our array DATA+0",
+   "sha256": "beb4944262a22ea1dd3a0558df278590e13d13bf5292574681c07e50063998a9"
+  },
+  {
+   "name": "snd@413733:BUSY+0",
+   "fix": "sound_channels",
+   "address": "0x413733",
+   "length": 4,
+   "patch": "sound_channel_play: MOV [EDI*4+busy],EDX: busy[ch] = 1 -> our array BUSY+0",
+   "sha256": "0404516c2138625461b7b64afe5d90c04edb162e6e2fbf6b0f72b123243cb3ae"
+  },
+  {
+   "name": "snd@41379f:KEEP+0",
+   "fix": "sound_channels",
+   "address": "0x41379F",
+   "length": 4,
+   "patch": "sound_channel_play: MOV [EAX+keep],ECX: keep[ch] = 0 -> our array KEEP+0",
+   "sha256": "fa32b6aa22014f148c1f18ebb121f0d6e07c935ff66988ef3dd775401ec6b27a"
+  },
+  {
+   "name": "snd@4137a7:KEEP+0",
+   "fix": "sound_channels",
+   "address": "0x4137A7",
+   "length": 4,
+   "patch": "sound_channel_play: MOV dword [EAX+keep],-1: keep[ch] = -1 -> our array KEEP+0",
+   "sha256": "fa32b6aa22014f148c1f18ebb121f0d6e07c935ff66988ef3dd775401ec6b27a"
+  },
+  {
+   "name": "snd@413882:=16",
+   "fix": "sound_channels",
+   "address": "0x413882",
+   "length": 1,
+   "patch": "sound_stop_all: CMP EDX,0x8: sound_channel_stop for channels 0..7 -> 0..15 -> 16",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "snd@415970:CH+18",
+   "fix": "sound_channels",
+   "address": "0x415970",
+   "length": 4,
+   "patch": "sound_channel_mark_oneshot: MOV [EAX+0x4544DA],EBX: channels[ch].nearness = 0 -> our array CH+18",
+   "sha256": "ce1a824a66f3127a07121282d357b213c4287014d808a30939fb14553345d7fc"
+  },
+  {
+   "name": "snd@415978:CH+26",
+   "fix": "sound_channels",
+   "address": "0x415978",
+   "length": 4,
+   "patch": "sound_channel_mark_oneshot: MOV [EAX+0x4544E2],DL: channels[ch].priority = 0xFA -> our array CH+26",
+   "sha256": "448ced75743a810f4298b46f3e6c52dea82d5ced983edc124e80fcceffa12304"
+  },
+  {
+   "name": "snd@415980:CH+1",
+   "fix": "sound_channels",
+   "address": "0x415980",
+   "length": 4,
+   "patch": "sound_channel_mark_oneshot: MOV [EAX+0x4544C9],BL: channels[ch].kind = 6 -> our array CH+1",
+   "sha256": "199b608ba8e94bef6a0be680f41c2edfb4d53ab94ecb2bfd83f840365ea40a36"
+  },
+  {
+   "name": "snd@415986:CH+0",
+   "fix": "sound_channels",
+   "address": "0x415986",
+   "length": 4,
+   "patch": "sound_channel_mark_oneshot: MOV [EAX+0x4544C8],DH: channels[ch].owner = 8 (one-shot) -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@41598c:CH+10",
+   "fix": "sound_channels",
+   "address": "0x41598C",
+   "length": 4,
+   "patch": "sound_channel_mark_oneshot: MOV dword [EAX+0x4544D2],0x100: channels[ch].volume = 0x100 -> our array CH+10",
+   "sha256": "a466f418291b018ab81d26abb0b6777368fedead4a09ecb8f2cbf4b9d8315e7c"
+  },
+  {
+   "name": "snd@4159fa:=16",
+   "fix": "sound_channels",
+   "address": "0x4159FA",
+   "length": 1,
+   "patch": "sound_channel_find_free: CMP EDX,0x8: scan channels 0..7 for an idle one -> 0..15 -> 16",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "snd@415a05:=16",
+   "fix": "sound_channels",
+   "address": "0x415A05",
+   "length": 4,
+   "patch": "sound_channel_find_free: MOV ECX,0x8: divisor: sound_channel_next = (next+1) % 8 -> % 16 -> 16",
+   "sha256": "dc765660b06ee03dd16fd7ca5b957e8c805161ac2c4af28c5a100ab2ab432ca1"
+  },
+  {
+   "name": "snd@415d4f:=432",
+   "fix": "sound_channels",
+   "address": "0x415D4F",
+   "length": 4,
+   "patch": "sound_channels_reset: MOV EBX,0xD8: memset size of sound_channels = 8 x 0x1B -> 16 x 0x1B -> 432",
+   "sha256": "305b0569ad0b657003b5c9961c05d9feba78bf951b71df1a412ab18f6cbd5d1e"
+  },
+  {
+   "name": "snd@415d54:CH+0",
+   "fix": "sound_channels",
+   "address": "0x415D54",
+   "length": 4,
+   "patch": "sound_channels_reset: MOV EAX,sound_channels: memset base -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@415d60:=432",
+   "fix": "sound_channels",
+   "address": "0x415D60",
+   "length": 4,
+   "patch": "sound_channels_reset: MOV EBX,0xD8: memset size of sound_requests = 8 x 0x1B -> 16 x 0x1B -> 432",
+   "sha256": "305b0569ad0b657003b5c9961c05d9feba78bf951b71df1a412ab18f6cbd5d1e"
+  },
+  {
+   "name": "snd@415d65:REQ+0",
+   "fix": "sound_channels",
+   "address": "0x415D65",
+   "length": 4,
+   "patch": "sound_channels_reset: MOV EAX,sound_requests: memset base -> our array REQ+0",
+   "sha256": "191c1846b801ce3cb595dfdd14193e4b2152d2cb35b726f2b4ffa33c8b5e9c13"
+  },
+  {
+   "name": "snd@415d79:CH-27",
+   "fix": "sound_channels",
+   "address": "0x415D79",
+   "length": 4,
+   "patch": "sound_channels_reset: MOV [EAX+0x4544AD],DL: channels[-1].owner: loop base, EAX = 0x1B..0xD8 (NOT requests+0xBD, although the value is equal) -> our array CH-27",
+   "sha256": "7bd107f96636e161d4a384364362f23c6b2e74b823bdca895d34d257885f51dc"
+  },
+  {
+   "name": "snd@415d7e:=432",
+   "fix": "sound_channels",
+   "address": "0x415D7E",
+   "length": 4,
+   "patch": "sound_channels_reset: CMP EAX,0xD8: loop end: owner = 0xFF for 8 channels -> 16 -> 432",
+   "sha256": "305b0569ad0b657003b5c9961c05d9feba78bf951b71df1a412ab18f6cbd5d1e"
+  },
+  {
+   "name": "snd@415da7:=16",
+   "fix": "sound_channels",
+   "address": "0x415DA7",
+   "length": 1,
+   "patch": "sound_request_add: CMP [sound_request_count],0x8: request cap 8 -> 16 (sound_request_count itself stays where it is) -> 16",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "snd@415e07:REQ+0",
+   "fix": "sound_channels",
+   "address": "0x415E07",
+   "length": 4,
+   "patch": "sound_request_add: LEA EDI,[EDX+sound_requests]: destination requests[count] -> our array REQ+0",
+   "sha256": "191c1846b801ce3cb595dfdd14193e4b2152d2cb35b726f2b4ffa33c8b5e9c13"
+  },
+  {
+   "name": "snd@415e5e:=15",
+   "fix": "sound_channels",
+   "address": "0x415E5E",
+   "length": 4,
+   "patch": "sound_channel_find: MOV EDX,0x7: first (last) channel index 7 -> 15 -> 15",
+   "sha256": "e8613f5a5bc9f9feeda32a8e7c80b69dd4878e47b6a91723fb15eb84236b6a2b"
+  },
+  {
+   "name": "snd@415e63:CH+405",
+   "fix": "sound_channels",
+   "address": "0x415E63",
+   "length": 4,
+   "patch": "sound_channel_find: MOV EAX,0x454585: channels[7].owner, loop start (walks down 0x1B) -> channels[15] -> our array CH+405",
+   "sha256": "ddb727881b055fe1ee4463b6b9019f05a282d5e45d2c226443aa0e208f4ba0ca"
+  },
+  {
+   "name": "snd@415fbf:CH+0",
+   "fix": "sound_channels",
+   "address": "0x415FBF",
+   "length": 4,
+   "patch": "vehicle_sounds: MOV ECX,sound_channels: base for channels[found].owner = 0xFF after sound_channel_stop -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@416002:CH+0",
+   "fix": "sound_channels",
+   "address": "0x416002",
+   "length": 4,
+   "patch": "vehicle_sounds: MOV ECX,sound_channels: base for channels[found].owner = 0xFF after sound_channel_stop -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@416065:CH+0",
+   "fix": "sound_channels",
+   "address": "0x416065",
+   "length": 4,
+   "patch": "vehicle_sounds: MOV ECX,sound_channels: base for channels[found].owner = 0xFF after sound_channel_stop -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@4160a8:CH+0",
+   "fix": "sound_channels",
+   "address": "0x4160A8",
+   "length": 4,
+   "patch": "vehicle_sounds: MOV ECX,sound_channels: base for channels[found].owner = 0xFF after sound_channel_stop -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@41610f:CH+0",
+   "fix": "sound_channels",
+   "address": "0x41610F",
+   "length": 4,
+   "patch": "vehicle_sounds: MOV ECX,sound_channels: base for channels[found].owner = 0xFF after sound_channel_stop -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@416164:CH+0",
+   "fix": "sound_channels",
+   "address": "0x416164",
+   "length": 4,
+   "patch": "vehicle_sounds: MOV EBX,sound_channels: base for channels[found].owner = 0xFF after sound_channel_stop -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@4160e7:=7",
+   "fix": "sound_channels",
+   "address": "0x4160E7",
+   "length": 1,
+   "patch": "vehicle_sounds: CMP [sound_engine_count],0x3: engine-sound cap: at most 3 engine requests per update (JGE skips + stops the rest). Optional: raise (imm8, max 127; 7 = every vehicle) -> 7",
+   "sha256": "084fed08b978af4d7d196a7446a86b58009e636b611db16211b65a9aadff29c5"
+  },
+  {
+   "name": "snd@416214:=24",
+   "fix": "sound_channels",
+   "address": "0x416214",
+   "length": 1,
+   "patch": "sound_update_channels: SUB ESP,0x10: frame: flags[8]@0, ptr@8, best@0xC -> flags[16]@0, ptr@0x10, best@0x14 -> 24",
+   "sha256": "c555eab45d08845ae9f10d452a99bfcb06f74a50b988fe7e48dd323789b88ee3"
+  },
+  {
+   "name": "snd@416216:=16",
+   "fix": "sound_channels",
+   "address": "0x416216",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EBX,0x8: memset(flags, 0, 8): one \"taken\" byte per REQUEST -> 16 -> 16",
+   "sha256": "dc765660b06ee03dd16fd7ca5b957e8c805161ac2c4af28c5a100ab2ab432ca1"
+  },
+  {
+   "name": "snd@416224:=15",
+   "fix": "sound_channels",
+   "address": "0x416224",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EDX,0x7: idle sweep: first channel 7 -> 15 -> 15",
+   "sha256": "e8613f5a5bc9f9feeda32a8e7c80b69dd4878e47b6a91723fb15eb84236b6a2b"
+  },
+  {
+   "name": "snd@416229:=405",
+   "fix": "sound_channels",
+   "address": "0x416229",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EBX,0xBD: idle sweep: offset of channel 7 (7 x 0x1B) -> 15 x 0x1B -> 405",
+   "sha256": "665f136f317949c6550ee7fc9f757b9c9c02642e6c36cbe0be917c026f6eff55"
+  },
+  {
+   "name": "snd@41623a:CH+0",
+   "fix": "sound_channels",
+   "address": "0x41623A",
+   "length": 4,
+   "patch": "sound_update_channels: MOV byte [EBX+sound_channels],0xFF: channels[i].owner = 0xFF when idle -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@41625a:=16",
+   "fix": "sound_channels",
+   "address": "0x41625A",
+   "length": 1,
+   "patch": "sound_update_channels: MOV [ESP+0x8],sound_requests (disp8): local ptr moves 8 -> 0x10 -> 16",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "snd@41625b:REQ+0",
+   "fix": "sound_channels",
+   "address": "0x41625B",
+   "length": 4,
+   "patch": "sound_update_channels: MOV [ESP+0x8],sound_requests (imm32): local ptr = &requests[0] -> our array REQ+0",
+   "sha256": "191c1846b801ce3cb595dfdd14193e4b2152d2cb35b726f2b4ffa33c8b5e9c13"
+  },
+  {
+   "name": "snd@416264:=16",
+   "fix": "sound_channels",
+   "address": "0x416264",
+   "length": 1,
+   "patch": "sound_update_channels: MOV EBX,[ESP+0x8]: local ptr -> 16",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "snd@416266:=15",
+   "fix": "sound_channels",
+   "address": "0x416266",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EDX,0x7: inline find (owner,kind): first channel 7 -> 15 -> 15",
+   "sha256": "e8613f5a5bc9f9feeda32a8e7c80b69dd4878e47b6a91723fb15eb84236b6a2b"
+  },
+  {
+   "name": "snd@41626b:CH+405",
+   "fix": "sound_channels",
+   "address": "0x41626B",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EAX,0x454585: inline find: &channels[7] -> &channels[15] -> our array CH+405",
+   "sha256": "ddb727881b055fe1ee4463b6b9019f05a282d5e45d2c226443aa0e208f4ba0ca"
+  },
+  {
+   "name": "snd@41629a:REQ+2",
+   "fix": "sound_channels",
+   "address": "0x41629A",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EDX,[ESI+0x4543F2]: requests[i].sample -> our array REQ+2",
+   "sha256": "4fbf0245d1b93d96d0211e72063e8ecc12d08e15219113840128228b879887ae"
+  },
+  {
+   "name": "snd@4162b1:REQ+22",
+   "fix": "sound_channels",
+   "address": "0x4162B1",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EBX,[ESI+0x454406]: requests[i].rate -> our array REQ+22",
+   "sha256": "030f861847a29521db5f8b6feb297880d490a95737d18ba9bf05a38e7397fddf"
+  },
+  {
+   "name": "snd@4162b7:CH+22",
+   "fix": "sound_channels",
+   "address": "0x4162B7",
+   "length": 4,
+   "patch": "sound_update_channels: CMP EBX,[EDI+0x4544DE]: channels[c].rate -> our array CH+22",
+   "sha256": "d322750941c68e83eef71ae94ad53c027272e486127e843515af325a6341524a"
+  },
+  {
+   "name": "snd@4162c4:REQ+22",
+   "fix": "sound_channels",
+   "address": "0x4162C4",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EAX,[ESI+0x454406]: requests[i].rate -> our array REQ+22",
+   "sha256": "030f861847a29521db5f8b6feb297880d490a95737d18ba9bf05a38e7397fddf"
+  },
+  {
+   "name": "snd@4162ca:CH+22",
+   "fix": "sound_channels",
+   "address": "0x4162CA",
+   "length": 4,
+   "patch": "sound_update_channels: MOV [EDI+0x4544DE],EAX: channels[c].rate -> our array CH+22",
+   "sha256": "d322750941c68e83eef71ae94ad53c027272e486127e843515af325a6341524a"
+  },
+  {
+   "name": "snd@4162d3:REQ+10",
+   "fix": "sound_channels",
+   "address": "0x4162D3",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EAX,[ESI+0x4543FA]: requests[i].volume -> our array REQ+10",
+   "sha256": "3960c989f30e3e7c9705fc9b86f610e99ab6abbfdc76337eaf8bb5d9cbb46436"
+  },
+  {
+   "name": "snd@4162d9:CH+10",
+   "fix": "sound_channels",
+   "address": "0x4162D9",
+   "length": 4,
+   "patch": "sound_update_channels: CMP EAX,[EBX+0x4544D2]: channels[c].volume -> our array CH+10",
+   "sha256": "a466f418291b018ab81d26abb0b6777368fedead4a09ecb8f2cbf4b9d8315e7c"
+  },
+  {
+   "name": "snd@4162ea:REQ+10",
+   "fix": "sound_channels",
+   "address": "0x4162EA",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EAX,[ESI+0x4543FA]: requests[i].volume -> our array REQ+10",
+   "sha256": "3960c989f30e3e7c9705fc9b86f610e99ab6abbfdc76337eaf8bb5d9cbb46436"
+  },
+  {
+   "name": "snd@4162f0:CH+10",
+   "fix": "sound_channels",
+   "address": "0x4162F0",
+   "length": 4,
+   "patch": "sound_update_channels: MOV [EBX+0x4544D2],EAX: channels[c].volume -> our array CH+10",
+   "sha256": "a466f418291b018ab81d26abb0b6777368fedead4a09ecb8f2cbf4b9d8315e7c"
+  },
+  {
+   "name": "snd@4162f9:REQ+14",
+   "fix": "sound_channels",
+   "address": "0x4162F9",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EAX,[ESI+0x4543FE]: requests[i].pan -> our array REQ+14",
+   "sha256": "07bdf6ef22986ff46ef1c6b2e5af3f9487acc16652ca52c820f3d3f6492ccd8a"
+  },
+  {
+   "name": "snd@4162ff:CH+14",
+   "fix": "sound_channels",
+   "address": "0x4162FF",
+   "length": 4,
+   "patch": "sound_update_channels: CMP EAX,[EBX+0x4544D6]: channels[c].pan -> our array CH+14",
+   "sha256": "bce80637dcee8c3bcd0b24214b6d2cb02849f4b6cae15adbce4bf1f0dfd4c2bf"
+  },
+  {
+   "name": "snd@416310:REQ+14",
+   "fix": "sound_channels",
+   "address": "0x416310",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EAX,[ESI+0x4543FE]: requests[i].pan -> our array REQ+14",
+   "sha256": "07bdf6ef22986ff46ef1c6b2e5af3f9487acc16652ca52c820f3d3f6492ccd8a"
+  },
+  {
+   "name": "snd@416316:CH+14",
+   "fix": "sound_channels",
+   "address": "0x416316",
+   "length": 4,
+   "patch": "sound_update_channels: MOV [EBX+0x4544D6],EAX: channels[c].pan -> our array CH+14",
+   "sha256": "bce80637dcee8c3bcd0b24214b6d2cb02849f4b6cae15adbce4bf1f0dfd4c2bf"
+  },
+  {
+   "name": "snd@41631f:REQ+26",
+   "fix": "sound_channels",
+   "address": "0x41631F",
+   "length": 4,
+   "patch": "sound_update_channels: MOV AL,[ESI+0x45440A]: requests[i].priority -> our array REQ+26",
+   "sha256": "de4a5a050a39444c8b40fe3028959b44a3290a1a0f00a44aef2734454e7cb27f"
+  },
+  {
+   "name": "snd@416325:CH+26",
+   "fix": "sound_channels",
+   "address": "0x416325",
+   "length": 4,
+   "patch": "sound_update_channels: MOV [ECX+0x4544E2],AL: channels[c].priority -> our array CH+26",
+   "sha256": "448ced75743a810f4298b46f3e6c52dea82d5ced983edc124e80fcceffa12304"
+  },
+  {
+   "name": "snd@41632c:=16",
+   "fix": "sound_channels",
+   "address": "0x41632C",
+   "length": 1,
+   "patch": "sound_update_channels: MOV EBX,[ESP+0x8]: local ptr -> 16",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "snd@41633d:=16",
+   "fix": "sound_channels",
+   "address": "0x41633D",
+   "length": 1,
+   "patch": "sound_update_channels: MOV [ESP+0x8],EBX: local ptr -> 16",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "snd@416358:=20",
+   "fix": "sound_channels",
+   "address": "0x416358",
+   "length": 1,
+   "patch": "sound_update_channels: MOV [ESP+0xC],EBP: local best -> 20",
+   "sha256": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977"
+  },
+  {
+   "name": "snd@416369:REQ+26",
+   "fix": "sound_channels",
+   "address": "0x416369",
+   "length": 4,
+   "patch": "sound_update_channels: MOV BL,[EDX+0x45440A]: requests[i].priority (pick highest untaken) -> our array REQ+26",
+   "sha256": "de4a5a050a39444c8b40fe3028959b44a3290a1a0f00a44aef2734454e7cb27f"
+  },
+  {
+   "name": "snd@416376:=20",
+   "fix": "sound_channels",
+   "address": "0x416376",
+   "length": 1,
+   "patch": "sound_update_channels: MOV [ESP+0xC],EAX: local best -> 20",
+   "sha256": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977"
+  },
+  {
+   "name": "snd@416388:=20",
+   "fix": "sound_channels",
+   "address": "0x416388",
+   "length": 1,
+   "patch": "sound_update_channels: CMP [ESP+0xC],0x0: local best -> 20",
+   "sha256": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977"
+  },
+  {
+   "name": "snd@41639d:=20",
+   "fix": "sound_channels",
+   "address": "0x41639D",
+   "length": 1,
+   "patch": "sound_update_channels: MOV EAX,[ESP+0xC]: local best -> 20",
+   "sha256": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977"
+  },
+  {
+   "name": "snd@4163a1:=405",
+   "fix": "sound_channels",
+   "address": "0x4163A1",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EDX,0xBD: victim search: offset of channel 7 -> 15 x 0x1B -> 405",
+   "sha256": "665f136f317949c6550ee7fc9f757b9c9c02642e6c36cbe0be917c026f6eff55"
+  },
+  {
+   "name": "snd@4163aa:CH+405",
+   "fix": "sound_channels",
+   "address": "0x4163AA",
+   "length": 4,
+   "patch": "sound_update_channels: MOV BL,[0x454585]: channels[7].owner -> channels[15].owner -> our array CH+405",
+   "sha256": "ddb727881b055fe1ee4463b6b9019f05a282d5e45d2c226443aa0e208f4ba0ca"
+  },
+  {
+   "name": "snd@4163af:=15",
+   "fix": "sound_channels",
+   "address": "0x4163AF",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EAX,0x7: victim search: first channel 7 -> 15 -> 15",
+   "sha256": "e8613f5a5bc9f9feeda32a8e7c80b69dd4878e47b6a91723fb15eb84236b6a2b"
+  },
+  {
+   "name": "snd@4163c1:CH+26",
+   "fix": "sound_channels",
+   "address": "0x4163C1",
+   "length": 4,
+   "patch": "sound_update_channels: MOV BL,[EDX+0x4544E2]: channels[c].priority -> our array CH+26",
+   "sha256": "448ced75743a810f4298b46f3e6c52dea82d5ced983edc124e80fcceffa12304"
+  },
+  {
+   "name": "snd@4163d7:CH+0",
+   "fix": "sound_channels",
+   "address": "0x4163D7",
+   "length": 4,
+   "patch": "sound_update_channels: CMP byte [EDX+0x4544C8],0xFF: channels[c].owner == free? -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@4163eb:=20",
+   "fix": "sound_channels",
+   "address": "0x4163EB",
+   "length": 1,
+   "patch": "sound_update_channels: IMUL EAX,[ESP+0xC],0x1B: local best -> 20",
+   "sha256": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977"
+  },
+  {
+   "name": "snd@4163f7:CH+0",
+   "fix": "sound_channels",
+   "address": "0x4163F7",
+   "length": 4,
+   "patch": "sound_update_channels: LEA EDI,[ESI+0x4544C8]: copy dest &channels[c] -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@4163fd:REQ+0",
+   "fix": "sound_channels",
+   "address": "0x4163FD",
+   "length": 4,
+   "patch": "sound_update_channels: LEA ESI,[EAX+0x4543F0]: copy source &requests[best] -> our array REQ+0",
+   "sha256": "191c1846b801ce3cb595dfdd14193e4b2152d2cb35b726f2b4ffa33c8b5e9c13"
+  },
+  {
+   "name": "snd@41640a:REQ+14",
+   "fix": "sound_channels",
+   "address": "0x41640A",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EDI,[EAX+0x4543FE]: requests[best].pan -> our array REQ+14",
+   "sha256": "07bdf6ef22986ff46ef1c6b2e5af3f9487acc16652ca52c820f3d3f6492ccd8a"
+  },
+  {
+   "name": "snd@416410:REQ+10",
+   "fix": "sound_channels",
+   "address": "0x416410",
+   "length": 4,
+   "patch": "sound_update_channels: MOV ECX,[EAX+0x4543FA]: requests[best].volume -> our array REQ+10",
+   "sha256": "3960c989f30e3e7c9705fc9b86f610e99ab6abbfdc76337eaf8bb5d9cbb46436"
+  },
+  {
+   "name": "snd@416417:REQ+2",
+   "fix": "sound_channels",
+   "address": "0x416417",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EDX,[EAX+0x4543F2]: requests[best].sample -> our array REQ+2",
+   "sha256": "4fbf0245d1b93d96d0211e72063e8ecc12d08e15219113840128228b879887ae"
+  },
+  {
+   "name": "snd@416425:=20",
+   "fix": "sound_channels",
+   "address": "0x416425",
+   "length": 1,
+   "patch": "sound_update_channels: CMP [ESP+0xC],0x0: local best -> 20",
+   "sha256": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977"
+  },
+  {
+   "name": "snd@41642f:=24",
+   "fix": "sound_channels",
+   "address": "0x41642F",
+   "length": 1,
+   "patch": "sound_update_channels: ADD ESP,0x10: frame -> 24",
+   "sha256": "c555eab45d08845ae9f10d452a99bfcb06f74a50b988fe7e48dd323789b88ee3"
+  },
+  {
+   "name": "snd@416725:CH+0",
+   "fix": "sound_channels",
+   "address": "0x416725",
+   "length": 4,
+   "patch": "sound_stop_vehicles: MOV EDI,sound_channels: base for channels[found].owner = 0xFF (x4 below) -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@42e8d4:=16",
+   "fix": "sound_channels",
+   "address": "0x42E8D4",
+   "length": 1,
+   "patch": "ds_shutdown: CMP EAX,0x8: release buffers 0..7 -> 0..15 -> 16",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "snd@42e8e5:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42E8E5",
+   "length": 4,
+   "patch": "ds_shutdown: MOV EDI,[EAX+ds_buffers]: ds_buffers[ch] (Stop) -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42e8fb:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42E8FB",
+   "length": 4,
+   "patch": "ds_shutdown: MOV EBP,[ESI+ds_buffers]: ds_buffers[ch] (Release) -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42e90e:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42E90E",
+   "length": 4,
+   "patch": "ds_shutdown: MOV [ESI+ds_buffers],EAX: ds_buffers[ch] = 0 -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42e9d0:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42E9D0",
+   "length": 4,
+   "patch": "ds_load_sample: MOV EDX,[EAX+ds_buffers]: ds_buffers[ch] (Stop) -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42ea3f:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EA3F",
+   "length": 4,
+   "patch": "ds_load_sample: MOV ECX,[EBX+ds_buffers]: ds_buffers[ch] (Release) -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42ea55:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EA55",
+   "length": 4,
+   "patch": "ds_load_sample: MOV [EBX+ds_buffers],EBP: ds_buffers[ch] = 0 -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42ea5d:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EA5D",
+   "length": 4,
+   "patch": "ds_load_sample: MOV EBP,ds_buffers: &ds_buffers[0] (+ch*4 = CreateSoundBuffer out-param) -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42eab9:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EAB9",
+   "length": 4,
+   "patch": "ds_load_sample: MOV EAX,[EBX+ds_buffers]: ds_buffers[ch] (Lock) -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42ead0:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EAD0",
+   "length": 4,
+   "patch": "ds_load_sample: MOV EAX,[EBX+ds_buffers]: ds_buffers[ch] (Restore) -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42eb18:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EB18",
+   "length": 4,
+   "patch": "ds_load_sample: MOV EAX,[EAX*4+ds_buffers]: ds_buffers[ch] (Unlock) -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42eb4d:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EB4D",
+   "length": 4,
+   "patch": "ds_play: CMP [ESI*4+ds_buffers],0: ds_buffers[ch] -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42eb71:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EB71",
+   "length": 4,
+   "patch": "ds_play: MOV EAX,[ESI+ds_buffers]: ds_buffers[ch] (Play) -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42eb86:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EB86",
+   "length": 4,
+   "patch": "ds_play: MOV EAX,[ESI+ds_buffers]: ds_buffers[ch] (Restore) -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42ebbe:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EBBE",
+   "length": 4,
+   "patch": "ds_stop: MOV EDX,[EAX+ds_buffers]: ds_buffers[ch] -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42ebfa:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EBFA",
+   "length": 4,
+   "patch": "ds_set_volume: CMP [EBX*4+ds_buffers],0: ds_buffers[ch] -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42ec2c:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EC2C",
+   "length": 4,
+   "patch": "ds_set_volume: MOV EAX,[EAX*4+ds_buffers]: ds_buffers[ch] (SetVolume); first byte after ds_volume_curve -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42ec64:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EC64",
+   "length": 4,
+   "patch": "ds_set_frequency: MOV EBX,[EDX+ds_buffers]: ds_buffers[ch] -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42eca5:=16",
+   "fix": "sound_channels",
+   "address": "0x42ECA5",
+   "length": 1,
+   "patch": "ds_set_pan: CMP EAX,0x8: bounds check ch < 8 -> < 16 (else returns 0: pan silently ignored) -> 16",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "snd@42ecb2:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42ECB2",
+   "length": 4,
+   "patch": "ds_set_pan: CMP [EAX*4+ds_buffers],0: ds_buffers[ch] -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42ecf8:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42ECF8",
+   "length": 4,
+   "patch": "ds_set_pan: MOV EAX,[EAX*4+ds_buffers]: ds_buffers[ch] (SetPan); 4 bytes after ds_pan_curve ends -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42ed2e:=16",
+   "fix": "sound_channels",
+   "address": "0x42ED2E",
+   "length": 1,
+   "patch": "ds_is_playing: CMP EAX,0x8: bounds check ch < 8 -> < 16 (else \"not playing\": channels 8-15 would look idle forever) -> 16",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "snd@42ed3f:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42ED3F",
+   "length": 4,
+   "patch": "ds_is_playing: MOV EDX,[EAX+ds_buffers]: ds_buffers[ch] (GetStatus) -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@410afb:REQ+0",
+   "fix": "sound_channels",
+   "address": "0x410AFB",
+   "length": 4,
+   "patch": "diag_sound_panel: MOV CL,[EDI+sound_requests]: requests[i].owner -> our array REQ+0",
+   "sha256": "191c1846b801ce3cb595dfdd14193e4b2152d2cb35b726f2b4ffa33c8b5e9c13"
+  },
+  {
+   "name": "snd@410b17:REQ-26",
+   "fix": "sound_channels",
+   "address": "0x410B17",
+   "length": 4,
+   "patch": "diag_sound_panel: MOV CL,[EDI+0x4543D6]: requests[i].kind after EDI += 0x1B (requests - 0x1B + 1) -> our array REQ-26",
+   "sha256": "dd2cd24e6363e64232714475585d41a9cbe30f1622d4349a470a65f6739cd72d"
+  },
+  {
+   "name": "snd@410b47:CH+0",
+   "fix": "sound_channels",
+   "address": "0x410B47",
+   "length": 4,
+   "patch": "diag_sound_panel: MOV CL,[EDI+sound_channels]: channels[i].owner -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@410b5d:CH+1",
+   "fix": "sound_channels",
+   "address": "0x410B5D",
+   "length": 4,
+   "patch": "diag_sound_panel: MOV CL,[EDI+0x4544C9]: channels[i].kind -> our array CH+1",
+   "sha256": "199b608ba8e94bef6a0be680f41c2edfb4d53ab94ecb2bfd83f840365ea40a36"
+  },
+  {
+   "name": "snd@410b6e:=432",
+   "fix": "sound_channels",
+   "address": "0x410B6E",
+   "length": 4,
+   "patch": "diag_sound_panel: CMP EDI,0xD8: rows for 8 channels -> 16 (16 rows x 6 px from y 100 still fit in 200) -> 432",
+   "sha256": "305b0569ad0b657003b5c9961c05d9feba78bf951b71df1a412ab18f6cbd5d1e"
+  },
+  {
+   "name": "snd@415e22:=15",
+   "fix": "sound_channels",
+   "address": "0x415E22",
+   "length": 4,
+   "patch": "dead@0x415E1C (find owner+kind+sample): MOV EDX,0x7: first channel 7 -> 15 -> 15 (code nothing calls)",
+   "sha256": "e8613f5a5bc9f9feeda32a8e7c80b69dd4878e47b6a91723fb15eb84236b6a2b"
+  },
+  {
+   "name": "snd@415e27:CH+405",
+   "fix": "sound_channels",
+   "address": "0x415E27",
+   "length": 4,
+   "patch": "dead@0x415E1C (find owner+kind+sample): MOV EAX,0x454585: &channels[7] -> [15] -> our array CH+405 (code nothing calls)",
+   "sha256": "ddb727881b055fe1ee4463b6b9019f05a282d5e45d2c226443aa0e208f4ba0ca"
+  },
+  {
+   "name": "snd@415e90:=15",
+   "fix": "sound_channels",
+   "address": "0x415E90",
+   "length": 4,
+   "patch": "dead@0x415E8C (find + stop + free): MOV EDX,0x7: first channel 7 -> 15 -> 15 (code nothing calls)",
+   "sha256": "e8613f5a5bc9f9feeda32a8e7c80b69dd4878e47b6a91723fb15eb84236b6a2b"
+  },
+  {
+   "name": "snd@415e97:CH+405",
+   "fix": "sound_channels",
+   "address": "0x415E97",
+   "length": 4,
+   "patch": "dead@0x415E8C (find + stop + free): MOV EAX,0x454585: &channels[7] -> [15] -> our array CH+405 (code nothing calls)",
+   "sha256": "ddb727881b055fe1ee4463b6b9019f05a282d5e45d2c226443aa0e208f4ba0ca"
+  },
+  {
+   "name": "snd@415ec7:CH+0",
+   "fix": "sound_channels",
+   "address": "0x415EC7",
+   "length": 4,
+   "patch": "dead@0x415E8C (find + stop + free): MOV EBX,0x4544C8: base for channels[found].owner = 0xFF -> our array CH+0 (code nothing calls)",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
   },
   {
    "name": "display_list_call",
@@ -1151,7 +2087,7 @@
    "sha256": "ee617de270097cad1ebc33aadf85d88d65e1cc9b52db789610b265c73883836f"
   }
  ],
- "protected_about": "Game functions reachable from the race tick (direct calls, Phase 3 call graph) except approach_clamped and FUN_004274fc (the menus' mouse position, skipped in a race), which are patched on purpose, and (2026-11-16, [sound] distance_volume) ds_set_volume and sound_update_vehicles: the volume DirectSound is given, and the order the vehicles' sounds are gathered in (each still once, so as many rand() calls); neither changes the game's state. The DLL hashes them before and after patching.",
+ "protected_about": "Game functions reachable from the race tick (direct calls, Phase 3 call graph) except approach_clamped and FUN_004274fc (the menus' mouse position, skipped in a race), which are patched on purpose, and (2026-11-16, [sound] distance_volume) ds_set_volume, ds_set_pan ([sound] stereo_pan) and sound_update_vehicles: the volume and pan DirectSound is given, and the order the vehicles' sounds are gathered in (each still once, so as many rand() calls); neither changes the game's state. The DLL hashes them before and after patching. With [sound] channels=16 the sound channel layer is patched throughout (ds_is_playing, ds_load_sample, ds_play, ds_set_frequency, ds_shutdown, ds_stop, sound_channel_find, sound_channel_find_free, sound_channel_mark_oneshot, sound_channel_play, sound_channel_stop, sound_channels_shutdown, sound_request_add, sound_update_channels, vehicle_sounds): its tables move to 16 channels and requests of our own, with the same layout, and its loops and limits follow; vehicle_sounds still calls rand() once per vehicle, so the game's state is unchanged.",
  "protected": [
   {
    "name": "fixed_mul15",
@@ -1628,24 +2564,6 @@
    "sha256": "721c76c6e90389445633a0959a23e552e68b6c2d6a0bad01bd31cef821afdaad"
   },
   {
-   "name": "sound_channels_shutdown",
-   "address": "0x413650",
-   "size": 25,
-   "sha256": "3722389f579735c5c697e77b65efa8859231f70b87e05198d549eed94e827fa5"
-  },
-  {
-   "name": "sound_channel_stop",
-   "address": "0x413674",
-   "size": 72,
-   "sha256": "44f13e0a911efb299f7370e0ebbffc2fa12c811bd47051ae7c3d6e06b329e67d"
-  },
-  {
-   "name": "sound_channel_play",
-   "address": "0x4136BC",
-   "size": 278,
-   "sha256": "d36238367760fa223ec5cda3b26297d460123275ba517207c9b185b8abefe2eb"
-  },
-  {
    "name": "sound_channel_idle",
    "address": "0x4137D4",
    "size": 17,
@@ -1760,18 +2678,6 @@
    "sha256": "0b21d5cf3acb10d4a8f3d6decace25f2e21a090ebff8cc6cf877df9567e7465d"
   },
   {
-   "name": "sound_channel_mark_oneshot",
-   "address": "0x41595C",
-   "size": 59,
-   "sha256": "0420c5111e62991939dc5ed2efe80b0a20211824b5ace4d3433203effa1dd0ac"
-  },
-  {
-   "name": "sound_channel_find_free",
-   "address": "0x415998",
-   "size": 144,
-   "sha256": "84877469fec94fc0d0fccc4b37de93cc652103c2751933d51cf4462c3bb4b092"
-  },
-  {
    "name": "sound_play_sample",
    "address": "0x415A28",
    "size": 114,
@@ -1800,30 +2706,6 @@
    "address": "0x415D00",
    "size": 74,
    "sha256": "980e781a4906235ade06db0435edc4494087127a1d3f42fd38f3d20120b7bf98"
-  },
-  {
-   "name": "sound_request_add",
-   "address": "0x415D9C",
-   "size": 128,
-   "sha256": "5c64ddfe12512ac902ad7a09e9ab639d73b920939c28c0f37f3d30d131370bcd"
-  },
-  {
-   "name": "sound_channel_find",
-   "address": "0x415E58",
-   "size": 52,
-   "sha256": "3c60fef4c3bf113ec50f32188ac6f9f68dd7a7a1d1261f5a550de5aafe053c73"
-  },
-  {
-   "name": "vehicle_sounds",
-   "address": "0x415EE0",
-   "size": 810,
-   "sha256": "0dcc1d2ef87c675f94d8f9f9bca624e48eccea5caad63c2b99564088b766e2d5"
-  },
-  {
-   "name": "sound_update_channels",
-   "address": "0x41620C",
-   "size": 555,
-   "sha256": "abe155f21325005ba9b847d5f2c65d561586ab1c600394b581c8fb2336625baa"
   },
   {
    "name": "sound_source_from_camera",
@@ -2348,52 +3230,10 @@
    "sha256": "48c846dee4f77570788e8b8b25ae50a56aec6f8b388359eb47a41880476d62b8"
   },
   {
-   "name": "ds_shutdown",
-   "address": "0x42E8B4",
-   "size": 166,
-   "sha256": "5f90630f31b8b0bf210fa0211be976a4a6b7b9156756e4f9a10e98722a017619"
-  },
-  {
    "name": "ds_copy_sample",
    "address": "0x42E964",
    "size": 67,
    "sha256": "ff8410effad35a26632ced4149a3e96505a4a8576fb6dbe968338007b64b1c71"
-  },
-  {
-   "name": "ds_load_sample",
-   "address": "0x42E9A8",
-   "size": 392,
-   "sha256": "9dc02bfafc4780f75b3dd82ceb5ed465a90d7e616118404960d1a7f65d47e454"
-  },
-  {
-   "name": "ds_play",
-   "address": "0x42EB30",
-   "size": 117,
-   "sha256": "77ac78259cbcaddebdae91e42aa3b114c29e0896135cb3aff954efcaab95b388"
-  },
-  {
-   "name": "ds_stop",
-   "address": "0x42EBA8",
-   "size": 60,
-   "sha256": "03a5b16b737de8484e9f0466a87b4ff56cd0021479a57533d952e779bfead18b"
-  },
-  {
-   "name": "ds_set_frequency",
-   "address": "0x42EC48",
-   "size": 67,
-   "sha256": "c8f6dcc2d58cd76e2117cde5fb4e16b73fe4e0066efd01820c2d4670ddbe8491"
-  },
-  {
-   "name": "ds_set_pan",
-   "address": "0x42EC8C",
-   "size": 139,
-   "sha256": "7392d4a12954492a8caa29cd1a1be5b2ccb46ad10c029da0244140b5c034628d"
-  },
-  {
-   "name": "ds_is_playing",
-   "address": "0x42ED18",
-   "size": 98,
-   "sha256": "007b094977a28fb25225283b8aeaf2d255df35cdd3c6641217371d4a38a4f6fe"
   },
   {
    "name": "memset",

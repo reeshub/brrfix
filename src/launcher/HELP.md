@@ -395,6 +395,25 @@ options screen) to life, which barely changed anything before, and the game's
 three engine sounds go to the nearest trucks rather than the first three in
 its list. Unticked: as the 1996 Windows version.
 
+**Natural stereo** (on by default)
+
+The game does play vehicles in stereo: a truck on your right is louder on the
+right. But the Windows version scaled its stereo position straight into
+DirectSound's decibel scale, so a truck only a little to one side was 50 dB
+quieter on the other speaker: nearly everything sat hard left or hard right,
+and only trucks straight ahead were heard from both. Ticked, a truck's sound
+moves smoothly between the speakers as it moves round you (half way to the
+side: the far speaker 6 dB quieter), as the DOS version did.
+
+**16 sound channels (1996: 8)** (on by default)
+
+The game mixes its sound effects on 8 channels and gathers at most 8 sounds
+at a time, and played only 3 trucks' engines: one busy truck (its engine,
+skid, ground and nitro, and its knocks) could take every channel. Ticked, it
+has 16 channels and plays every truck's engine, so more of the field is
+heard at once, the nearest first; far trucks are quiet anyway with "Distant
+vehicles quieter".
+
 ## Controller
 
 **Configure**

@@ -92,8 +92,10 @@ BEGIN
     EDITTEXT        IDC_FOLDER, 62, 66, 198, 12, ES_AUTOHSCROLL | WS_TABSTOP
     PUSHBUTTON      "&Browse...", IDC_BROWSE, 264, 65, 42, 14, WS_TABSTOP
     LTEXT           "", IDC_TRACKS, 62, 84, 244, 8
-    GROUPBOX        "Sound effects", IDC_SFX_GROUP, 12, 106, 300, 30
-    AUTOCHECKBOX    "Distant vehicles &quieter", IDC_DISTANCE_VOL, 18, 119, 200, 10, WS_TABSTOP
+    GROUPBOX        "Sound effects", IDC_SFX_GROUP, 12, 106, 300, 44
+    AUTOCHECKBOX    "Distant vehicles &quieter", IDC_DISTANCE_VOL, 18, 119, 140, 10, WS_TABSTOP
+    AUTOCHECKBOX    "Natural &stereo", IDC_STEREO_PAN, 18, 133, 140, 10, WS_TABSTOP
+    AUTOCHECKBOX    "16 sound &channels (1996: 8)", IDC_CHANNELS16, 160, 119, 140, 10, WS_TABSTOP
 
     /* Controller */
     GROUPBOX        "Controller", IDC_PAD_GROUP, 12, 24, 300, 82
