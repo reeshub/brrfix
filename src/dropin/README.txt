@@ -181,8 +181,9 @@ rate), and the
 of 25 squares, Far at 44 or Max out at 60, the default, with the scenery and
 vehicles as far as the ground), "Textures" (how far the ground is textured),
 "Object lighting" (flat everywhere by default, or smooth; the game switched
-to flat beyond 8 squares) and "Object detail" (each model's simpler versions picked
-by its size on screen, so fences don't change shape close up). The 3D engine's maths is done in 64 bits at today's resolutions,
+to flat beyond 8 squares) and "Object detail" (every model at its most detailed
+by default, or its simpler versions picked by its size on screen, so fences don't
+change shape close up). The 3D engine's maths is done in 64 bits at today's resolutions,
 where its 32 bits overflowed ([display] precise_3d).
 
 Original (renderer=original; the only one on Windows 95, 98 and ME): the 1996

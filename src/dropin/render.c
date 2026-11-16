@@ -972,9 +972,9 @@ uint32_t brr_count_project, brr_count_backface, brr_count_clip, brr_count_unlit;
  * the model's table whose depth is at least the object's, and nothing at all beyond the last.
  * The depths suit the game's 640-wide picture; at today's sizes an object at the same depth is
  * drawn several times bigger, so the switch to a coarser model (a fence's thickness, a barrier's
- * detail) shows, and objects vanish nearer than they look. [display] object_detail: matched (the
- * default) picks by the depth the object would have at 640 wide (its depth x 512 / the scale),
- * highest always the most detailed, original as the game. */
+ * detail) shows, and objects vanish nearer than they look. [display] object_detail: highest (the
+ * default since 2026-11-16, the director) always the most detailed; matched picks by the depth the
+ * object would have at 640 wide (its depth x 512 / the scale); original as the game. */
 int32_t brr_lod_depth;
 
 static void lod_log(const int32_t *table)

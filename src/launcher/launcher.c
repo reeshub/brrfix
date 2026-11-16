@@ -21,8 +21,9 @@
  * holding Shift while starting also shows it. Anything else goes to the game. When the
  * window was shown, it comes back when the game ends (on the same tab); Quit leaves.
  *
- * The window's settings are on five tabs (General, Video, Audio, Controller, Advanced),
- * with the buttons below them; General has the Period and Modern defaults.
+ * The window's settings are on six tabs (General, Display, Renderer, Audio, Controller,
+ * Advanced), with the buttons below them; General has the Period and Modern defaults. Choices
+ * that are the 1996 game's own are marked "(1996)" (the director, 2026-11-16).
  *
  * The "Patch the DOS version" button patches (or restores) the DOS version's RACING.EXE
  * on disk, with the same code as BRRPATCH.EXE, for players on modern Windows. */
@@ -53,17 +54,18 @@ static const struct choice modes[] = {
 /* the Original renderer shows the first two; Max is the Modern renderer's (resolution=high
  * with render_resolution=max in BRRFIX.INI) */
 static const struct choice resolutions[] = {
-    {"High (640x480)", "high"}, {"Low (320x200)", "low"}, {"Max", "max"}, {0, 0}};
+    {"Low (320x200) (1996)", "low"}, {"High (640x480) (1996)", "high"}, {"Max", "max"}, {0, 0}};
 #define ORIGINAL_RESOLUTIONS 2
 static const struct choice renderers[] = {{"Modern", "new"}, {"Original", "original"}, {0, 0}};
-static const struct choice distances[] = {{"In-game sliders", "0"}, {"Engine max (25)", "25"},
+static const struct choice distances[] = {{"In-game sliders (1996)", "0"}, {"Engine max (25)", "25"},
                                           {"Far (44)", "44"}, {"Max out (60)", "60"}, {0, 0}};
 static const struct choice texture_distances[] = {{"As draw distance", "draw"}, {"Engine max (25)", "25"},
-                                                  {"In-game slider", "slider"}, {0, 0}};
-static const struct choice lightings[] = {{"Flat", "flat"}, {"Smooth", "smooth"}, {"Original", "game"}, {0, 0}};
-static const struct choice details[] = {{"Matched", "matched"}, {"Original", "original"}, {"Highest", "highest"}, {0, 0}};
+                                                  {"In-game slider (1996)", "slider"}, {0, 0}};
+static const struct choice lightings[] = {{"Flat", "flat"}, {"Smooth", "smooth"}, {"Original (1996)", "game"}, {0, 0}};
+static const struct choice details[] = {
+    {"Highest", "highest"}, {"Matched", "matched"}, {"Original (1996)", "original"}, {0, 0}};
 static const struct choice hud_sizes[] = {{"Small", "small"}, {"Large (1996)", "large"}, {0, 0}};
-static const struct choice colour_depths[] = {{"256 colours (original)", "0"}, {"Full colour", "1"}, {0, 0}};
+static const struct choice colour_depths[] = {{"256 colours (1996)", "0"}, {"Full colour", "1"}, {0, 0}};
 static const struct choice languages[] = {
     {"English", "ENG"}, {"USA", "USA"}, {"French", "FRE"},
     {"German", "GER"}, {"Italian", "ITA"}, {"Spanish", "SPA"}, {"Japanese", "JAP"}, {0, 0}};
@@ -164,7 +166,7 @@ static void enable(HWND dialog, int id, int on) { EnableWindow(GetDlgItem(dialog
 /* ---- the tabs ---- */
 /* All the settings are in one dialog; a tab shows its own controls and hides the rest.
  * resource.h numbers each tab's controls in its own hundred, from 1100. */
-static const char *const tab_names[] = {"General", "Video", "Audio", "Controller", "Advanced"};
+static const char *const tab_names[] = {"General", "Display", "Renderer", "Audio", "Controller", "Advanced"};
 #define TAB_COUNT ((int)(sizeof tab_names / sizeof tab_names[0]))
 
 /* controls that this PC never shows (Windows 9x, Proton), whichever tab is chosen */
@@ -281,10 +283,10 @@ static int hidden_by_choice(HWND dialog, int id)
     case IDC_HUDSIZE:
     case IDC_HUDSIZE_LABEL:
     case IDC_WIDEMENUS:
-        return !fresh;
+    case IDC_GRADIENT_GROUP:
     case IDC_SMOOTH_SKY:
     case IDC_SMOOTH_SHADING:
-        return !full_colour(dialog);
+        return !fresh;
     }
     return 0;
 }
@@ -302,11 +304,11 @@ static void place(HWND dialog, int id, int x, int y, int w, int h)
                  SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
-/* The Display group's rows below Resolution (the Modern renderer's Max limit first), the group
- * as tall as the rows shown, and Miscellaneous just below it (launcher.rc) */
-static void layout_video(HWND dialog)
+/* The Display tab: the Display group's rows below Resolution (the Modern renderer's Max limit
+ * first), the group as tall as the rows shown (launcher.rc) */
+static void layout_display(HWND dialog)
 {
-    int fresh = new_renderer(dialog), bottom, top, y = 78;
+    int fresh = new_renderer(dialog), bottom, y = 78;
     if (fresh) {
         place(dialog, IDC_MAXLIMIT_LABEL, 18, y + 2, 44, 8);
         place(dialog, IDC_MAXLIMIT, 62, y, 94, 60);
@@ -323,16 +325,16 @@ static void layout_video(HWND dialog)
         y += 13;
         place(dialog, IDC_COLOUR_LABEL, 18, y + 2, 44, 8);
         place(dialog, IDC_COLOUR, 62, y, 94, 60);
-        place(dialog, IDC_SMOOTH_SKY, 18, y + 15, 140, 10);
-        place(dialog, IDC_SMOOTH_SHADING, 18, y + 27, 140, 10);
     }
-    bottom = !fresh ? 96 : full_colour(dialog) ? y + 41 : y + 15;
+    bottom = !fresh ? 96 : y + 15;
     place(dialog, IDC_DISPLAY_GROUP, 12, 24, 150, bottom - 24);
-    /* Race world (Modern) under Smoothness, on the right; Miscellaneous below both */
-    top = !fresh ? 98 : 176;
-    if (bottom > top)
-        top = bottom;
-    top += 4;
+}
+
+/* The Renderer tab: Smoothness and Full colour on the left, Race world on the right (the
+ * Modern renderer's), Miscellaneous below them, or under Smoothness with the Original */
+static void layout_renderer(HWND dialog)
+{
+    int fresh = new_renderer(dialog), top = fresh ? 116 : 72;
     place(dialog, IDC_MISC_GROUP, 12, top, 300, fresh ? 44 : 30);
     place(dialog, IDC_COLOUR_ANIM, 18, top + 12, fresh ? 140 : 280, 10);
     place(dialog, IDC_HUD43, 160, top + 12, 140, 10);
@@ -392,7 +394,11 @@ static void update_enabled(HWND dialog)
     }
     enable(dialog, IDC_PRESET_LABEL, full || fresh);
     enable(dialog, IDC_PRESET, full || fresh);
-    layout_video(dialog);
+    /* the gradients need full colour (Display tab) */
+    enable(dialog, IDC_SMOOTH_SKY, full_colour(dialog));
+    enable(dialog, IDC_SMOOTH_SHADING, full_colour(dialog));
+    layout_display(dialog);
+    layout_renderer(dialog);
     show_page(dialog, current_page);
     for (i = 0; i < sizeof music_controls / sizeof music_controls[0]; i++)
         enable(dialog, music_controls[i], checked(dialog, IDC_MUSIC));
@@ -412,8 +418,8 @@ static const struct { int id; const char *text; } tips[] = {
                    "like. Original: the 1996 game's own drawing, as it was."},
     {IDC_MODE, "Full screen, or a window: Original, the game's own with its 1996 menu bar; Modern, Alt+Enter for "
                "full screen."},
-    {IDC_RESOLUTION, "High: 640x480. Low: 320x200, as the game starts. Max (Modern): races with as "
-                     "many pixels as Max limit allows. Original: keypad + and - switch in the game."},
+    {IDC_RESOLUTION, "Low: 320x200, as the game starts. High: 640x480, its sharper mode. Max (Modern): races with "
+                     "as many pixels as Max limit allows. Original: keypad + and - switch in the game."},
     {IDC_MAXLIMIT, "How many rows Max draws races with at most, or the screen's own height. The game draws "
                    "in software, so more rows cost frame rate: 1080 is smooth on any modern PC."},
     {IDC_WIDESCREEN, "With Max, in full screen on a wide screen: races at the screen's own shape, seeing more at the "
@@ -424,10 +430,11 @@ static const struct { int id; const char *text; } tips[] = {
                 "monitor; off: square."},
     {IDC_SCALE, "How big the Modern renderer's window is, in whole multiples of 640x480; the picture is "
                 "scaled into it as Scaling says."},
-    {IDC_COLOUR, "256 colours, as the game drew them, or full colour, for the smoother gradients below."},
-    {IDC_SMOOTH_SKY, "The sky as a smooth gradient instead of the game's 16 flat bands."},
+    {IDC_COLOUR, "256 colours, as the game drew them, or full colour, for the smoother gradients (Renderer tab)."},
+    {IDC_SMOOTH_SKY, "The sky as a smooth gradient instead of the game's 16 flat bands (with full colour: Display "
+                     "tab, Colour depth)."},
     {IDC_SMOOTH_SHADING, "Lit surfaces (buildings, trees, vehicles, tunnels) shaded smoothly, not a palette shade at "
-                         "a time."},
+                         "a time (with full colour: Display tab, Colour depth)."},
     {IDC_COLOUR_ANIM, "The colour cycling of four levels (CHOPPER3, CITY4 Italy, MOON2, RIG4) that the DOS version "
                       "had and the Windows version lost."},
     {IDC_PRESET, "How cnc-ddraw enlarges the picture to the screen (or the Modern window): whole numbers, "
@@ -460,8 +467,9 @@ static const struct { int id; const char *text; } tips[] = {
                    "squares, or the options menu's slider. Beyond, it's plain shaded colour, which is quicker."},
     {IDC_LIGHTING, "How trees, buildings and vehicles are lit. Smooth: from their corners, everywhere. Original: "
                    "smooth near, flat beyond 8 squares (they change as they pass). Flat: by face, everywhere."},
-    {IDC_DETAIL, "Which of a model's versions is drawn. Matched: picked by its size on screen, so fences and barriers "
-                 "don't change shape close up. Original: by distance, for the 1996 picture. Highest: always the most detailed."},
+    {IDC_DETAIL, "Which of a model's versions is drawn. Highest: always the most detailed. Matched: picked by its size "
+                 "on screen, so fences and barriers don't change shape close up. Original: by distance, for the 1996 "
+                 "picture."},
     {IDC_HUDSIZE, "The race dashboard's size: Small (the default, about half) or Large, as big as the 1996 "
                   "low-resolution picture showed it."},
     {IDC_DEFAULTS, "Puts every setting back to the defaults for this PC: Period defaults on Windows 95, 98 and ME, "
@@ -614,7 +622,7 @@ static void load(HWND dialog, int defaults)
     fill(dialog, IDC_DRAWDIST, distances, !lstrcmpiA(v, "1") ? "25" : v);  /* 1: the first experiment's on */
     fill(dialog, IDC_TEXTURES, texture_distances, GET(f, "display", "texture_distance", "draw"));
     fill(dialog, IDC_LIGHTING, lightings, GET(f, "display", "object_shading", "flat"));  /* the director, 2026-11-16 */
-    fill(dialog, IDC_DETAIL, details, GET(f, "display", "object_detail", "matched"));
+    fill(dialog, IDC_DETAIL, details, GET(f, "display", "object_detail", "highest"));  /* the director, 2026-11-16 */
     fill(dialog, IDC_HUDSIZE, hud_sizes, GET(f, "display", "hud_size", "small"));
     fill(dialog, IDC_COLOUR, colour_depths, defaults ? "1" : (ini_flag("display", "full_colour", 1) ? "1" : "0"));
     check(dialog, IDC_SMOOTH_SKY, defaults ? 1 : ini_flag("display", "smooth_sky", 1));

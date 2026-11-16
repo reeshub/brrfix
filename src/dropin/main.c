@@ -146,7 +146,7 @@ static void load_config(void)
     cfg.object_lighting = ini_int(path, "display", "object_lighting", 1);
     GetPrivateProfileStringA("display", "object_shading", "flat", text, sizeof text, path);
     cfg.object_shading = !lstrcmpiA(text, "smooth") ? 1 : !lstrcmpiA(text, "flat") ? 2 : 0;
-    GetPrivateProfileStringA("display", "object_detail", "matched", text, sizeof text, path);
+    GetPrivateProfileStringA("display", "object_detail", "highest", text, sizeof text, path);
     cfg.object_detail = !lstrcmpiA(text, "original") ? 0 : !lstrcmpiA(text, "highest") ? 2 : 1;
     cfg.colour_animation = ini_int(path, "display", "colour_animation", 1);
     cfg.menu_navigation = ini_int(path, "controller", "menu_navigation", 1);

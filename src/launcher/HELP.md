@@ -10,7 +10,8 @@ Start the game with **Big Red Racing.exe**. To see the settings window again
 after ticking "Skip this window next time", hold **Shift** while starting it,
 or start it with **-setup**.
 
-The settings are on five tabs: General, Video, Audio, Controller and Advanced.
+The settings are on six tabs: General, Display, Renderer, Audio, Controller
+and Advanced.
 Click a tab, or use the arrow keys while the tabs are selected (as they are
 when the window opens). This file follows the same order.
 
@@ -22,7 +23,7 @@ from:
 - **Period defaults:** for a 1990s PC with Windows 95, 98 or ME, where the
   game's 640x480 3D is heavy work: full screen at the game's low resolution
   (320x200), drawn by the original renderer, with interpolation on and the
-  frame limit at the display rate.
+  framerate cap at the display rate.
 - **Modern defaults:** for today's Windows, Linux and Steam Deck: full screen
   at high resolution (640x480), drawn sharp in full colour by the Modern
   renderer, with modern pads on.
@@ -31,16 +32,19 @@ Each button sets every setting on every tab. Press Save or Play to keep them.
 The Defaults button at the bottom of the window chooses the set for your PC:
 Period defaults on Windows 95, 98 and ME, Modern defaults on anything newer.
 
-## Video
+## Display
 
-The Video tab shows the settings of the renderer you choose (the first
-setting below). Each renderer has its own:
+The Display tab chooses the renderer (the first setting below) and shows its
+display settings; the Renderer tab, after it, has the rest of its settings.
+Each renderer has its own:
 
 - **Original** is the 1996 game's own drawing, as close to what players saw
   then as possible, with only the smooth-motion fixes and cnc-ddraw's
   full-screen scaling added. It stays as it is from now on.
 - **Modern** is where the improvements go: sharp at any size, full colour
   with smoother gradients, further draw distances, more pixels in races.
+
+Choices marked **(1996)** are the game's own, as it was in 1996.
 
 ### Display
 
@@ -78,11 +82,11 @@ Tab) broke its window, so it's removed.
 
 **Resolution**
 
-- **High (640x480)** (the Original renderer's default): the game's own sharper mode, which it
-  only offered through its window's Modes menu or keypad +. It applies from
-  the first screen. Races are drawn at 640x480; the menus are always 320x200
-  pictures.
-- **Low (320x200):** as the game starts.
+- **Low (320x200) (1996):** as the game starts.
+- **High (640x480) (1996)** (the Original renderer's default): the game's own
+  sharper mode, which it only offered through its window's Modes menu or
+  keypad +. It applies from the first screen. Races are drawn at 640x480; the
+  menus are always 320x200 pictures.
 - **Max** (Modern renderer only, and its default): races and the attract-mode
   demo drawn with as many pixels as your screen (or window) is tall, up to
   the Max limit below, at your screen's shape (native widescreen, below) or
@@ -165,19 +169,28 @@ as Scaling says.
 **Colour depth** (Modern renderer)
 
 - **Full colour** (the default): the picture is made in full colour from the
-  game's own 256, which allows the smoother gradients below.
-- **256 colours (original):** the game's own colours, as it drew them.
+  game's own 256, which allows the smoother gradients (Renderer tab, Full
+  colour).
+- **256 colours (1996):** the game's own colours, as it drew them.
 
-**Smoother sky gradients** (full colour; on by default)
+### Frame rate
 
-The sky as a smooth gradient, worked out for every pixel, instead of the
-game's 16 flat bands of colour.
+**Framerate cap**
 
-**Smoother game object gradients** (full colour; on by default)
+The most pictures drawn each second. "Display rate" matches your screen's
+refresh rate, which is usually best. "Unlocked" draws as many as your PC can.
+The game itself runs at the same speed whatever you choose.
 
-Lit surfaces (buildings, trees, vehicles, tunnel walls) shaded smoothly. The
-game shades them a whole palette colour at a time, which shows as stripes;
-the shade in between is worked out for every pixel instead.
+**Vsync**
+
+Waits for the screen to finish each refresh before showing the next picture,
+so there are no horizontal tears when the camera turns. It can add a little
+input lag.
+
+## Renderer
+
+How the race world and the pictures are drawn. With the Original renderer
+(and on Windows 95, 98 and ME) only Smoothness and Colour animation are here.
 
 ### Smoothness
 
@@ -193,17 +206,21 @@ The physics itself is exactly the same either way.
 Experimental: softens the camera's movement further. The camera stutter is
 already fixed without it, so leave it Off unless you want to experiment.
 
-**Frame limit**
+### Full colour (Modern renderer)
 
-The most pictures drawn each second. "Display rate" matches your screen's
-refresh rate, which is usually best. "Unlocked" draws as many as your PC can.
-The game itself runs at the same speed whatever you choose.
+Both need Colour depth: Full colour (Display tab); with 256 colours they're
+greyed out.
 
-**Vsync**
+**Smoother sky gradients** (full colour; on by default)
 
-Waits for the screen to finish each refresh before showing the next picture,
-so there are no horizontal tears when the camera turns. It can add a little
-input lag.
+The sky as a smooth gradient, worked out for every pixel, instead of the
+game's 16 flat bands of colour.
+
+**Smoother game object gradients** (full colour; on by default)
+
+Lit surfaces (buildings, trees, vehicles, tunnel walls) shaded smoothly. The
+game shades them a whole palette colour at a time, which shows as stripes;
+the shade in between is worked out for every pixel instead.
 
 ### Race world (Modern renderer)
 
@@ -211,8 +228,8 @@ input lag.
 
 How far the ground, trees, buildings and the other vehicles are drawn:
 
-- **In-game sliders:** the vision and texture distance sliders in the game's
-  options menu, as in 1996.
+- **In-game sliders (1996):** the vision and texture distance sliders in the
+  game's options menu, as in 1996.
 - **Engine max (25):** as far as the game's engine draws on its own: 25
   landscape squares instead of the slider's 22. In widescreen the sides it
   can't hold are filled in by extra passes.
@@ -227,7 +244,7 @@ and your own settings are kept for when you go back.
 **Textures** (with a draw distance chosen here)
 
 How far the ground is textured: **As draw distance** (the default), **Engine
-max (25)**, or the options menu's **In-game slider** (which stops at 14).
+max (25)**, or the options menu's **In-game slider (1996)** (which stops at 14).
 Beyond it the ground is plain shaded colour, which is quicker to draw.
 
 **Object lighting**
@@ -237,8 +254,8 @@ How trees, buildings and vehicles are lit by the level's sun:
 - **Flat** (the default): by face, everywhere, so an object looks the same
   near and far.
 - **Smooth:** from their corners, everywhere.
-- **Original:** smooth close up and flat (by face) beyond 8 squares, as in
-  1996. Objects change as they cross that distance, and the smooth look is
+- **Original (1996):** smooth close up and flat (by face) beyond 8 squares,
+  as in 1996. Objects change as they cross that distance, and the smooth look is
   darker on boxy shapes, so they seem to go dark as they come near.
 
 **Object detail**
@@ -247,13 +264,15 @@ The game keeps up to six versions of each model, simpler with distance (a
 fence is a thin board far away and has thickness close up), and doesn't draw
 it at all beyond the last, usually 39 squares.
 
-- **Matched** (the default): each version is picked by the object's size on
-  screen, as the game picked it for its 640x480 picture. At today's sizes
-  the changes happen further away, where they can't be seen, and objects
-  reach the far draw distances.
-- **Original:** by distance, as in 1996: at today's sizes fences and barriers
-  visibly change shape close up, and objects stop at 39 squares.
-- **Highest:** always the most detailed version (more to draw).
+- **Highest** (the default): always the most detailed version, at any
+  distance. There's more to draw, though in our tests on Italy it made no
+  measurable difference to how long each picture took.
+- **Matched:** each version is picked by the object's size on screen, as the
+  game picked it for its 640x480 picture. At today's sizes the changes happen
+  further away, where they can't be seen, and objects reach the far draw
+  distances.
+- **Original (1996):** by distance, as in 1996: at today's sizes fences and
+  barriers visibly change shape close up, and objects stop at 39 squares.
 
 ### Miscellaneous
 
