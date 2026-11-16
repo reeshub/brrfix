@@ -246,6 +246,7 @@ void brr_clock_report(int final)
     }
     stats_draw = stats_present = 0;
     stats_draw_frames = 0;
+    brr_display_list_report();
     if (cfg.clock_original && cb_count) {
         int64_t mean_us = cb_sum * 1000000 / freq / cb_count;
         brr_log("original timer: %lu callbacks, interval mean %ld us, min %ld us, max %ld us; "

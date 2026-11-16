@@ -38,6 +38,10 @@ struct brr_config {
                               * enlarged by whole numbers (hud.c; the new renderer only); game = the game's own */
     int hud_aspect43;        /* [display] hud_aspect43: the HUD's blocks the 4:3 monitor's shape (1) or square */
     int widescreen;          /* [display] widescreen: Max races at the screen's shape (render.c) */
+    int precise_3d;          /* [display] precise_3d: the 3D maths in 64 bits and culling by the real scale */
+    int object_lighting;     /* [display] object_lighting: far objects lit after effects (the game left them unlit) */
+    int object_shading;      /* [display] object_shading: 0 game (smooth near, flat beyond 8 squares), 1 smooth, 2 flat */
+    int texture_distance;    /* [display] texture_distance with max_draw_distance: 0 the slider's, else squares */
     int colour_animation;    /* [display] colour_animation: the levels' palette cycling, as in DOS (palanim.c) */
     int menu_navigation;     /* [controller] menu_navigation: B, and the stick's left and right, in menus (keys.c) */
     int language;            /* [display] language: 1-7 (ENG, USA, FRE, GER, ITA, SPA, JAP) */
@@ -107,6 +111,7 @@ float brr_clock_frame_fraction(void);
 int64_t brr_qpc(void);
 int64_t brr_qpc_freq(void);
 void brr_clock_report(int final);
+void brr_display_list_report(void);  /* render.c: the display list's fill, every report */
 
 /* patch.c */
 void brr_patch_all(void);
@@ -180,6 +185,11 @@ extern uint32_t brr_render_view_continue;
 extern uint32_t brr_draw_vision, brr_draw_texture;
 #define DRAW_DISTANCE_GRID_MAX 25
 #define DRAW_DISTANCE_FAR_MAX 60   /* keeps depths under 32,767 and the tables' sums in 32 bits */
+#define BRR_RECORDS 8192           /* distance.c: the display list's landscape records and object nodes */
+#define BRR_NODES 8192
+extern uint8_t brr_records[], brr_nodes[];
+extern uint32_t brr_record_limit;
+extern int32_t brr_object_vision;           /* the squares objects are gathered from (site object_radius_vision) */
 void brr_hook_render_view(void);
 
 /* distance.c: the far passes beyond the grid (site landscape_walk_call) */
@@ -215,6 +225,17 @@ extern int32_t brr_proj_scale;
 int __cdecl brr_landscape_width(int q);
 void brr_hook_proj_scale(void);             /* thunks.asm: sites proj_scale_store, landscape_width */
 void brr_hook_landscape_width(void);
+void brr_backface(void);                   /* thunks.asm: [display] precise_3d, object_lighting */
+void brr_project_x(void);
+void brr_hook_shading_threshold(void);
+int __cdecl brr_shading_threshold(void);
+extern uint32_t brr_count_unlit;
+void brr_project_y(void);
+extern uint32_t brr_count_project, brr_count_backface, brr_count_clip;
+void brr_clip_t_x(void);
+void brr_clip_t_y(void);
+void brr_cull_margin(void);
+void brr_shading_restore(void);
 void brr_reciprocals_fill(void);
 void brr_hook_sprite_rows(void);     /* thunks.asm: sites sprite_scale_rows and _columns */
 void brr_hook_sprite_columns(void);

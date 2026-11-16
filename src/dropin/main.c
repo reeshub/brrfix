@@ -121,6 +121,8 @@ static void load_config(void)
     GetPrivateProfileStringA("display", "aspect", "4:3", text, sizeof text, path);
     cfg.window_aspect43 = !lstrcmpiA(text, "4:3");
     cfg.max_draw_distance = ini_int(path, "display", "max_draw_distance", 0);
+    GetPrivateProfileStringA("display", "texture_distance", "draw", text, sizeof text, path);
+    cfg.texture_distance = !lstrcmpiA(text, "draw") ? -1 : !lstrcmpiA(text, "slider") ? 0 : atoi(text);
     if (cfg.max_draw_distance < 0)
         cfg.max_draw_distance = 0;
     else if (cfg.max_draw_distance > 0 && cfg.max_draw_distance < DRAW_DISTANCE_GRID_MAX)
@@ -135,6 +137,10 @@ static void load_config(void)
     cfg.hud_lowres = lstrcmpiA(text, "game") != 0;
     cfg.hud_aspect43 = ini_int(path, "display", "hud_aspect43", 1);
     cfg.widescreen = ini_int(path, "display", "widescreen", 1);
+    cfg.precise_3d = ini_int(path, "display", "precise_3d", 1);
+    cfg.object_lighting = ini_int(path, "display", "object_lighting", 1);
+    GetPrivateProfileStringA("display", "object_shading", "smooth", text, sizeof text, path);
+    cfg.object_shading = !lstrcmpiA(text, "smooth") ? 1 : !lstrcmpiA(text, "flat") ? 2 : 0;
     cfg.colour_animation = ini_int(path, "display", "colour_animation", 1);
     cfg.menu_navigation = ini_int(path, "controller", "menu_navigation", 1);
     cfg.show_version = ini_int(path, "display", "show_version", 1);

@@ -205,6 +205,42 @@ Waits for the screen to finish each refresh before showing the next picture,
 so there are no horizontal tears when the camera turns. It can add a little
 input lag.
 
+### Race world (Modern renderer)
+
+**Draw distance**
+
+How far the ground, trees, buildings and the other vehicles are drawn:
+
+- **In-game sliders** (the default): the vision and texture distance sliders
+  in the game's options menu, as in 1996.
+- **Engine max (25):** as far as the game's engine draws on its own: 25
+  landscape squares instead of the slider's 22. In widescreen the sides it
+  can't hold are filled in by extra passes.
+- **Far (44):** the ground, scenery and vehicles go on to 44 squares, the
+  ground beyond 25 drawn in extra passes.
+- **Max out (60):** as far as the engine's numbers allow.
+
+The further, the more there is to draw: it costs frame rate, as the game
+draws in software. With any but the first, the in-game sliders are ignored,
+and your own settings are kept for when you go back.
+
+**Textures** (with a draw distance chosen here)
+
+How far the ground is textured: **As draw distance** (the default), **Engine
+max (25)**, or the options menu's **In-game slider** (which stops at 14).
+Beyond it the ground is plain shaded colour, which is quicker to draw.
+
+**Object lighting**
+
+How trees, buildings and vehicles are lit by the level's sun:
+
+- **Smooth** (the default): from their corners, everywhere, so an object
+  looks the same near and far.
+- **As the game:** smooth close up and flat (by face) beyond 8 squares, as in
+  1996. Objects change as they cross that distance, and the smooth look is
+  darker on boxy shapes, so they seem to go dark as they come near.
+- **Flat:** by face, everywhere.
+
 ### Miscellaneous
 
 **Colour animation (as in DOS)** (on by default; both renderers)
@@ -222,23 +258,6 @@ a little taller than wide (3x4 screen pixels on the Steam Deck, 4x5 at 1080
 rows), as the 320x200 art looked on a 1996 4:3 monitor. Unticked, square
 (4x4, 5x5): a little wider, as the art is in the files.
 
-**Draw distance** (Modern renderer)
-
-How far races and replays are drawn:
-
-- **In-game sliders (in options menu)** (the default): the vision and texture
-  distance sliders in the game's options menu, as in 1996.
-- **Original engine max (25):** as far as the game's engine allows on its
-  own: 25 landscape squares instead of the slider's 22, with textures all the
-  way out instead of stopping at 14.
-- **Max out (experimental):** the ground goes on to 44 squares, drawn in
-  extra passes beyond the engine's own limit. Trees, buildings and other
-  scenery still appear at 25.
-
-With either of the last two, the in-game sliders are ignored, and your own
-settings are kept for when you go back. If something looks wrong (missing
-patches of ground, cracks, flicker in the distance), go back to the in-game
-sliders and tell us.
 
 ## Audio
 

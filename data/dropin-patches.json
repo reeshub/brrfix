@@ -615,6 +615,254 @@
    "sha256": "231d153bea89e06544fe0f67a08ecfd45b0348ca8c50f5b33f6bffdc0339158a"
   },
   {
+   "name": "project_x",
+   "fix": "precise_3d",
+   "address": "0x4413B0",
+   "length": 8,
+   "patch": "Modern renderer, [display] precise_3d. model_op_vertices: IMUL EAX,[0x542000]; CDQ (x x the horizontal scale in 32 bits, then sign-extended for IDIV by the depth) -> CALL brr_project_x (thunks.asm) and 3 NOPs: IMUL dword ptr [0x542000], the product in EDX:EAX, counting the ones that wouldn't fit 32 bits. x is view space x 256, so the 32-bit product overflowed for corners more than about 10.7 squares to the side at 1,440 rows (32 at 640x480): the corner landed anywhere on screen, a spike across the picture. The quotient stays within 3.4 million (x < 2^23, the scale < 6,600, the depth >= 16,384), so the IDIV can't overflow",
+   "sha256": "76729edab1a039c639fc0d3535e80fdd74a88296e40a98af11db5151d2845c0a"
+  },
+  {
+   "name": "project_y",
+   "fix": "precise_3d",
+   "address": "0x4413C5",
+   "length": 8,
+   "patch": "Modern renderer, [display] precise_3d. model_op_vertices: IMUL EAX,[0x542004]; CDQ -> CALL brr_project_y and 3 NOPs, as project_x for y",
+   "sha256": "ec9ba065f9a1ec4820d453f89e86b5c058edb3bb5b1cd6779e179f5bcc3b459c"
+  },
+  {
+   "name": "backface_model",
+   "fix": "precise_3d",
+   "address": "0x445C19",
+   "length": 15,
+   "patch": "Modern renderer, [display] precise_3d. poly_cull_outcodes (model polygons): IMUL EAX,EDX; SUB EDI,EBX; MOV EBX,[ESI+0xC]; SUB EBX,ECX; IMUL EDI,EBX; SUB EDI,EAX (the screen cross product, 32 bits) -> CALL brr_backface (thunks.asm) and NOPs: the same in 64 bits, its sign for the JS after. With corners far off screen the 32-bit product's sign was wrong: faces dropped or back faces drawn",
+   "sha256": "6575fa8bdab13c4c6e2f25f3e9585b5cbac80ce440d51de0c56c3104e4a8c1e0"
+  },
+  {
+   "name": "backface_polygon",
+   "fix": "precise_3d",
+   "address": "0x445E39",
+   "length": 15,
+   "patch": "Modern renderer, [display] precise_3d. poly_cull_visible (engine_draw_polygon's polygons): the same as backface_model",
+   "sha256": "6575fa8bdab13c4c6e2f25f3e9585b5cbac80ce440d51de0c56c3104e4a8c1e0"
+  },
+  {
+   "name": "clip_x_t",
+   "fix": "precise_3d",
+   "address": "0x4431F9",
+   "length": 15,
+   "patch": "Modern renderer, [display] precise_3d. clip_edge_x: SHL EAX,16; NEG ECX; JZ; CDQ; IDIV ECX; MOV [ESI+0x10],EBX; MOV ECX,EAX (the fraction of the edge at the screen's left or right edge, from (x0 - edge) << 16 in 32 bits) -> CALL brr_clip_t_x and NOPs: the dividend in 64 bits. Wrong beyond 32,767 pixels off screen",
+   "sha256": "fc08f1c7164b3c57efc665e9c54bfd0b5cb127155289c93c25e435062a692332"
+  },
+  {
+   "name": "clip_x_lerp",
+   "fix": "precise_3d",
+   "address": "0x443210",
+   "length": 6,
+   "patch": "Modern renderer, [display] precise_3d. clip_edge_x: IMUL EAX,ECX; SAR EAX,16 ((y1 - y0) x the fraction, 32 bits) -> IMUL ECX; SHRD EAX,EDX,16, as the game interpolates the depth just after",
+   "sha256": "aa0b39c95b5cbf9e8d16e81f40319d9ee12d605da89f68b727a3b09d0de200e2"
+  },
+  {
+   "name": "clip_y_t",
+   "fix": "precise_3d",
+   "address": "0x443289",
+   "length": 15,
+   "patch": "Modern renderer, [display] precise_3d. clip_edge_y: as clip_x_t for the top and bottom edges (MOV [ESI+0xC],EBX) -> CALL brr_clip_t_y",
+   "sha256": "e19620139e37ec8cc55734e90fa8fa6e7e6bb1060348a2ac090f56a828910dac"
+  },
+  {
+   "name": "clip_y_lerp",
+   "fix": "precise_3d",
+   "address": "0x4432A0",
+   "length": 6,
+   "patch": "Modern renderer, [display] precise_3d. clip_edge_y: as clip_x_lerp, for x",
+   "sha256": "aa0b39c95b5cbf9e8d16e81f40319d9ee12d605da89f68b727a3b09d0de200e2"
+  },
+  {
+   "name": "cull_margin",
+   "fix": "precise_3d",
+   "address": "0x4487B8",
+   "length": 7,
+   "patch": "Modern renderer, [display] precise_3d. object_cull_sphere: SHL dword ptr [0x54B498],7 (the radius x 128, the margin for the screen-edge tests, against x x the projection scale) -> CALL brr_cull_margin and NOPs: the radius x the larger scale. x 128 was half the radius at 320 wide and a twelfth at 1,440 rows: objects vanished at the screen's sides while mostly still in view",
+   "sha256": "abba69e48a4574e3d7b9b286c7a007d6faf48fa4065c9a85385e953b95911324"
+  },
+  {
+   "name": "unlit_restore_6",
+   "fix": "object_lighting",
+   "address": "0x42BAFF",
+   "length": 13,
+   "patch": "Modern renderer, [display] object_lighting. display_list_draw, node type 6 (effects: dust, smoke, drawn unlit): CMP DI,2; JNZ; PUSH 2; CALL engine_set_shading (put back the near objects' smooth lighting only once the list had reached them) -> CALL brr_shading_restore and NOPs: mode 2 then, else 1. The game left the engine unlit, so far objects drawn after an effect came out unlit, flickering bright and lit as dust came and went",
+   "sha256": "06e7e44c48db2151c8fa4b93e92d2884d5c4f03932a787f8bc429b2782d3eb7a"
+  },
+  {
+   "name": "unlit_restore_9",
+   "fix": "object_lighting",
+   "address": "0x42BB26",
+   "length": 13,
+   "patch": "Modern renderer, [display] object_lighting. display_list_draw, node type 9 (also drawn unlit): as unlit_restore_6; the JNZ's target is the JMP that follows",
+   "sha256": "3dbbea2f9ee7b2d4dcfcdbfd37142b7dd3c61e62bf0c7ecc77ed91c5005b6e17"
+  },
+  {
+   "name": "shading_threshold",
+   "fix": "object_shading",
+   "address": "0x42B8BA",
+   "length": 31,
+   "patch": "Modern renderer, [display] object_shading smooth or flat. display_list_draw's start: MOV EBP,[0x44B044]; SUB EBP,9; XOR EDI,EDI; clamp EBP to 3-8 (the distance in squares inside which objects get smooth vertex lighting; flat face lighting beyond) -> CALL brr_hook_shading_threshold (thunks.asm; EBP from brr_shading_threshold, render.c: 4,096 every object smooth, -4,096 none), XOR EDI,EDI and NOPs",
+   "sha256": "071b19be3cad5ec55e72dd589525faade95f0249c3e3f5e38d049af07aed5835"
+  },
+  {
+   "name": "record_init_base",
+   "fix": "big_lists",
+   "address": "0x42B7E6",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_init (start-up and each level's reset): MOV EDX,0x4CA430, the first landscape record -> brr_records (distance.c, 8,192 records of 0xBD bytes), so the game prepares ours (type 7, two 3-point triangles)",
+   "sha256": "3219aa7bb226b033d6cc51f52b53f01f12a3e6aa8a8f4f12b38d28e4d8d58983"
+  },
+  {
+   "name": "record_init_end",
+   "fix": "big_lists",
+   "address": "0x42B7EC",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_init: CMP EDX,0x5268C0, the records' end before the loop -> the end of ours",
+   "sha256": "65daaf18d2a6cd5fba4b47558eb8375127600deff471bf0eab0df0521b806c67"
+  },
+  {
+   "name": "record_init_loop",
+   "fix": "big_lists",
+   "address": "0x42B81A",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_init: the same CMP at the loop's end -> the end of ours",
+   "sha256": "65daaf18d2a6cd5fba4b47558eb8375127600deff471bf0eab0df0521b806c67"
+  },
+  {
+   "name": "record_rewind",
+   "fix": "big_lists",
+   "address": "0x42B857",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_rewind (each landscape walk): MOV EDX,0x4CA430 -> brr_records",
+   "sha256": "3219aa7bb226b033d6cc51f52b53f01f12a3e6aa8a8f4f12b38d28e4d8d58983"
+  },
+  {
+   "name": "record_limit",
+   "fix": "big_lists",
+   "address": "0x41D642",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). landscape_walk: CMP EDX,0x523980 (stop when the next column might not fit: 64 records short of 2,000) -> 64 short of our 8,192. At 44 squares in 16:9 the game's 1,936 were 93% full; 60 squares needs about 3,400",
+   "sha256": "5e99b9ca83e9560c535e217517761c5f5289bdf9ab8c9e16cbfbbc1c9bd632a7"
+  },
+  {
+   "name": "node_first",
+   "fix": "big_lists",
+   "address": "0x42B82D",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_clear (each view): MOV ECX,0x5268D1, the first object node -> brr_nodes (distance.c, 8,192 nodes of 17 bytes instead of 999)",
+   "sha256": "fc088c0710593debfdb75fcfeccf2ffc13a572e1e07953c69abc231e61bfe64a"
+  },
+  {
+   "name": "node_hint",
+   "fix": "big_lists",
+   "address": "0x42B87E",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_rewind: MOV [0x52D6EC],0x5268D1 (the cells' insertion hint: the first node) -> brr_nodes",
+   "sha256": "fc088c0710593debfdb75fcfeccf2ffc13a572e1e07953c69abc231e61bfe64a"
+  },
+  {
+   "name": "node_limit_after_last",
+   "fix": "big_lists",
+   "address": "0x42BCC7",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_add_after_last: CMP ...,0x52AB28 (the object nodes' end: 999 nodes) -> the end of brr_nodes (8,192). Seen 157 at most at 25 squares; objects out to 60 need about 900",
+   "sha256": "d423bf964bcc68a31ef51aa7038a55f48ec7942f8c53237089c100b7e93a5769"
+  },
+  {
+   "name": "node_limit_object",
+   "fix": "big_lists",
+   "address": "0x42BD0E",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_add_object: CMP ...,0x52AB28 (the object nodes' end: 999 nodes) -> the end of brr_nodes (8,192). Seen 157 at most at 25 squares; objects out to 60 need about 900",
+   "sha256": "d423bf964bcc68a31ef51aa7038a55f48ec7942f8c53237089c100b7e93a5769"
+  },
+  {
+   "name": "node_limit_object_mode1",
+   "fix": "big_lists",
+   "address": "0x42BDEA",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_add_object_mode1: CMP ...,0x52AB28 (the object nodes' end: 999 nodes) -> the end of brr_nodes (8,192). Seen 157 at most at 25 squares; objects out to 60 need about 900",
+   "sha256": "d423bf964bcc68a31ef51aa7038a55f48ec7942f8c53237089c100b7e93a5769"
+  },
+  {
+   "name": "node_limit_vehicle",
+   "fix": "big_lists",
+   "address": "0x42BEC6",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_add_vehicle: CMP ...,0x52AB28 (the object nodes' end: 999 nodes) -> the end of brr_nodes (8,192). Seen 157 at most at 25 squares; objects out to 60 need about 900",
+   "sha256": "d423bf964bcc68a31ef51aa7038a55f48ec7942f8c53237089c100b7e93a5769"
+  },
+  {
+   "name": "node_limit_texture_tile",
+   "fix": "big_lists",
+   "address": "0x42BFB5",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_add_texture_tile: CMP ...,0x52AB28 (the object nodes' end: 999 nodes) -> the end of brr_nodes (8,192). Seen 157 at most at 25 squares; objects out to 60 need about 900",
+   "sha256": "d423bf964bcc68a31ef51aa7038a55f48ec7942f8c53237089c100b7e93a5769"
+  },
+  {
+   "name": "node_limit_object_mode0",
+   "fix": "big_lists",
+   "address": "0x42BFFE",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_add_object_mode0: CMP ...,0x52AB28 (the object nodes' end: 999 nodes) -> the end of brr_nodes (8,192). Seen 157 at most at 25 squares; objects out to 60 need about 900",
+   "sha256": "d423bf964bcc68a31ef51aa7038a55f48ec7942f8c53237089c100b7e93a5769"
+  },
+  {
+   "name": "node_limit_object_far",
+   "fix": "big_lists",
+   "address": "0x42C0DA",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_add_object_far: CMP ...,0x52AB28 (the object nodes' end: 999 nodes) -> the end of brr_nodes (8,192). Seen 157 at most at 25 squares; objects out to 60 need about 900",
+   "sha256": "d423bf964bcc68a31ef51aa7038a55f48ec7942f8c53237089c100b7e93a5769"
+  },
+  {
+   "name": "node_limit_ground_object",
+   "fix": "big_lists",
+   "address": "0x42C1B6",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_add_ground_object: CMP ...,0x52AB28 (the object nodes' end: 999 nodes) -> the end of brr_nodes (8,192). Seen 157 at most at 25 squares; objects out to 60 need about 900",
+   "sha256": "d423bf964bcc68a31ef51aa7038a55f48ec7942f8c53237089c100b7e93a5769"
+  },
+  {
+   "name": "node_limit_ground_object_mode1",
+   "fix": "big_lists",
+   "address": "0x42C292",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_add_ground_object_mode1: CMP ...,0x52AB28 (the object nodes' end: 999 nodes) -> the end of brr_nodes (8,192). Seen 157 at most at 25 squares; objects out to 60 need about 900",
+   "sha256": "d423bf964bcc68a31ef51aa7038a55f48ec7942f8c53237089c100b7e93a5769"
+  },
+  {
+   "name": "node_limit_ground_object_far",
+   "fix": "big_lists",
+   "address": "0x42C36E",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_add_ground_object_far: CMP ...,0x52AB28 (the object nodes' end: 999 nodes) -> the end of brr_nodes (8,192). Seen 157 at most at 25 squares; objects out to 60 need about 900",
+   "sha256": "d423bf964bcc68a31ef51aa7038a55f48ec7942f8c53237089c100b7e93a5769"
+  },
+  {
+   "name": "node_limit_polygon",
+   "fix": "big_lists",
+   "address": "0x42C44B",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_add_polygon: CMP ...,0x52AB28 (the object nodes' end: 999 nodes) -> the end of brr_nodes (8,192). Seen 157 at most at 25 squares; objects out to 60 need about 900",
+   "sha256": "d423bf964bcc68a31ef51aa7038a55f48ec7942f8c53237089c100b7e93a5769"
+  },
+  {
+   "name": "object_radius_vision",
+   "fix": "draw_distance_far",
+   "address": "0x41772D",
+   "length": 4,
+   "patch": "Modern renderer, max_draw_distance above 25. render_view: MOV EAX,[0x44B044] (the vision distance, for the radius objects and other vehicles are gathered within: isqrt(vision^2 + (camera height / 512)^2) squares) -> brr_object_vision (patch.c: the far distance), so trees, buildings and vehicles are drawn as far as the ground; the vision distance stays 25 for the near pass. Their distance fade (display_list_draw) already follows the far distance",
+   "sha256": "89bfbf28c21915ae4b99201b3f22f8933f8bab436d5bb736ea98c8257b9ffa4a"
+  },
+  {
    "name": "set_view_entry",
    "fix": "render_max",
    "address": "0x425F78",

@@ -18,6 +18,7 @@ uint32_t brr_orig_present_window = 0x42CD2C;
 uint32_t brr_orig_music_check = 0x409F00;
 uint32_t brr_render_view_continue = 0x4176CA;  /* render_view after its six PUSHes */
 uint32_t brr_draw_vision = DRAW_DISTANCE_GRID_MAX, brr_draw_texture = DRAW_DISTANCE_GRID_MAX;
+int32_t brr_object_vision = DRAW_DISTANCE_GRID_MAX;
 /* shown on the main menu instead of the build date: "V2.25WR FIX0.1.0" (it fits where
  * "V2.24WR (09-05-96)" was) */
 static const char version_text[] = "FIX" BRRFIX_VERSION;
@@ -184,11 +185,19 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "sky")) return brr_sky_active || brr_shade_active;  /* the 3D view's start, for both */
     if (!strcmp(fix, "shading")) return brr_shade_active;
     if (!strcmp(fix, "hud")) return brr_hud_active;
+    if (!strcmp(fix, "precise_3d")) return cfg.precise_3d && brr_renderer_active;
+    if (!strcmp(fix, "object_lighting")) return cfg.object_lighting && brr_renderer_active;
+    if (!strcmp(fix, "object_shading")) return cfg.object_shading && brr_renderer_active;
     if (!strcmp(fix, "widescreen")) return brr_widescreen && brr_renderer_active && cfg.render_max;
     if (!strcmp(fix, "menu_pad")) return cfg.menu_navigation;
     if (!strcmp(fix, "screenshot")) return (cfg.render_max && brr_renderer_active) || brr_sky_active;
     if (!strcmp(fix, "draw_distance")) return cfg.max_draw_distance > 0;  /* experimental, off by default */
-    if (!strcmp(fix, "draw_distance_far")) return cfg.max_draw_distance > DRAW_DISTANCE_GRID_MAX;
+    /* beyond the near pass's grid; also at 25 in widescreen, where the grid can't hold the
+     * wider area (16:9 wants 24 squares either side at 25, it holds 18) and these fill the sides */
+    if (!strcmp(fix, "draw_distance_far"))
+        return cfg.max_draw_distance > DRAW_DISTANCE_GRID_MAX
+            || (cfg.max_draw_distance == DRAW_DISTANCE_GRID_MAX && brr_widescreen);
+    if (!strcmp(fix, "big_lists")) return brr_renderer_active;
     return 0;
 }
 
@@ -285,6 +294,46 @@ static int replacement(const struct site_info *s, uint8_t *out)
         out[0] = 0xE8;  /* CALL brr_hook_hud_draw / _icon: the HUD drawn into our layers (hud.c) */
         put_rel32(out + 1, s->address + 5,
                   !strcmp(n, "hud_draw_call") ? (void *)brr_hook_hud_draw : (void *)brr_hook_hud_icon);
+    } else if ((!strcmp(n, "project_x") || !strcmp(n, "project_y")) && s->length == 8) {
+        out[0] = 0xE8;  /* CALL brr_project_x / _y: the product in EDX:EAX (64 bits), for the IDIV */
+        put_rel32(out + 1, s->address + 5, !strcmp(n, "project_x") ? (void *)brr_project_x : (void *)brr_project_y);
+    } else if ((!strcmp(n, "clip_x_lerp") || !strcmp(n, "clip_y_lerp")) && s->length == 6) {
+        /* IMUL EAX,ECX; SAR EAX,16 -> IMUL ECX; SHRD EAX,EDX,16 (64 bits; EDX is reloaded after) */
+        static const uint8_t lerp64[6] = {0xF7, 0xE9, 0x0F, 0xAC, 0xD0, 0x10};
+        memcpy(out, lerp64, 6);
+    } else if ((!strcmp(n, "backface_model") || !strcmp(n, "backface_polygon")) && s->length == 15) {
+        out[0] = 0xE8;  /* CALL brr_backface: the cross product in 64 bits, SF for the game's JS */
+        put_rel32(out + 1, s->address + 5, (void *)brr_backface);
+    } else if ((!strcmp(n, "clip_x_t") || !strcmp(n, "clip_y_t")) && s->length == 15) {
+        out[0] = 0xE8;  /* CALL brr_clip_t_x / _y: the edge's fraction with a 64-bit dividend */
+        put_rel32(out + 1, s->address + 5, !strcmp(n, "clip_x_t") ? (void *)brr_clip_t_x : (void *)brr_clip_t_y);
+    } else if (!strcmp(n, "cull_margin") && s->length == 7) {
+        out[0] = 0xE8;  /* CALL brr_cull_margin: radius x the projection scale, not x 128 */
+        put_rel32(out + 1, s->address + 5, (void *)brr_cull_margin);
+    } else if ((!strcmp(n, "unlit_restore_6") || !strcmp(n, "unlit_restore_9")) && s->length == 13) {
+        out[0] = 0xE8;  /* CALL brr_shading_restore: mode 2 near, 1 far (the game left 0 far) */
+        put_rel32(out + 1, s->address + 5, (void *)brr_shading_restore);
+    } else if (!strncmp(n, "record_", 7) && s->length == 4) {
+        /* the landscape records: our bigger buffer (distance.c) */
+        uint8_t *records = brr_records;
+        brr_record_limit = (uint32_t)(records + (BRR_RECORDS - 64) * 0xBD);
+        if (!strcmp(n, "record_limit"))
+            put_abs32(out, (void *)brr_record_limit);
+        else if (!strcmp(n, "record_init_end") || !strcmp(n, "record_init_loop"))
+            put_abs32(out, records + BRR_RECORDS * 0xBD);
+        else
+            put_abs32(out, records);
+    } else if (!strncmp(n, "node_", 5) && s->length == 4) {
+        /* the object nodes: our bigger pool (distance.c); node_first, node_hint, node_limit_* */
+        put_abs32(out, strncmp(n, "node_limit", 10) ? (void *)brr_nodes : (void *)(brr_nodes + BRR_NODES * 17));
+    } else if (!strcmp(n, "object_radius_vision") && s->length == 4) {
+        brr_object_vision = cfg.max_draw_distance;  /* objects as far as the ground */
+        put_abs32(out, (void *)&brr_object_vision);
+    } else if (!strcmp(n, "shading_threshold") && s->length == 31) {
+        out[0] = 0xE8;  /* CALL brr_hook_shading_threshold (EBP), then the XOR EDI,EDI it replaced */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_shading_threshold);
+        out[5] = 0x31;
+        out[6] = 0xFF;
     } else if (!strcmp(n, "proj_scale_store") && s->length == 5) {
         out[0] = 0xE8;  /* CALL brr_hook_proj_scale: our widescreen view's scale from its height */
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_proj_scale);
@@ -325,8 +374,11 @@ static int replacement(const struct site_info *s, uint8_t *out)
         out[0] = 0xE9;  /* JMP brr_hook_dd_setup, which runs the 4 instructions replaced here */
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_dd_setup);
     } else if (!strcmp(n, "render_view_entry") && s->length == 6) {
-        /* textures as far as the ground is drawn (the game's own limit is 14) */
-        brr_draw_texture = (uint32_t)cfg.max_draw_distance;
+        /* textures as far as the ground is drawn (the game's own limit is 14), a distance of
+         * their own, or the player's slider (0: the hook leaves it) */
+        brr_draw_texture = cfg.texture_distance < 0 ? (uint32_t)cfg.max_draw_distance
+                         : cfg.texture_distance > cfg.max_draw_distance ? (uint32_t)cfg.max_draw_distance
+                         : (uint32_t)cfg.texture_distance;
         out[0] = 0xE9;  /* JMP brr_hook_render_view, which runs the 6 PUSHes replaced here */
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_render_view);
     } else if (!strcmp(n, "landscape_walk_call") && s->length == 5) {

@@ -47,6 +47,7 @@
 #define PRESENT_SOURCE (*(uint8_t *volatile *)0x52D738)
 #define MOUSE_X        (*(volatile int16_t *)0x44BBEC)  /* in the final picture's pixels */
 #define MOUSE_Y        (*(volatile int16_t *)0x44BBEE)
+#define DETAIL_LEVEL   (*(volatile int32_t *)0x44B044)  /* the vision distance */
 #define SPLIT_SCREEN   (*(volatile int32_t *)0x44BE74)  /* -1: two views, one above the other */
 
 #define MENU_W 320
@@ -640,7 +641,6 @@ uint32_t __cdecl brr_view_size(uint32_t width, uint32_t height)
  * drawn into a 64x64 grid around the camera, so its far corners must stay within 31 cells
  * (d^2 + width^2 <= 961, as at the game's maximum of 25 with 4:3: KNOWLEDGE, draw distance);
  * where they wouldn't, the width stops there and the farthest corners go undrawn. */
-#define DETAIL_LEVEL (*(volatile int32_t *)0x44B044)
 int __cdecl brr_landscape_width(int q)
 {
     static int logged_w, logged_d;
@@ -749,6 +749,79 @@ static int32_t game_frame_w, game_frame_h;
 
 /* Called on entry to the present (0x42CE78), before the game copies its frame. Returns 1
  * when it has presented the frame itself (full colour, full screen). */
+/* ---- the display list's fill, for the clock log (KNOWLEDGE: the display list) ----
+ * Read after each race frame is drawn (nothing resets them until the next view): the node pool
+ * (objects, vehicles, effects: 999 nodes of 17 bytes from 0x5268D1, full at 0x52AB28) and the
+ * landscape records (0xBD bytes from 0x4CA430; the walk stops at 0x523980, 1,936 records). */
+#define NODE_NEXT    (*(volatile uint32_t *)0x52D6F0)
+#define RECORD_NEXT  (*(volatile uint32_t *)0x52D6F4)
+static uint32_t list_frames, list_full_frames, nodes_max, records_max, records_sum, nodes_sum;
+
+/* the buffers in use: the game's, or ours (sites node_first and record_rewind, distance.c) */
+static void list_buffers(uint32_t *node_base, uint32_t *node_count, uint32_t *record_base, uint32_t *record_count)
+{
+    int ours = brr_record_limit != 0x523980u;
+    *node_base = ours ? (uint32_t)brr_nodes : 0x5268D1u;
+    *node_count = ours ? BRR_NODES : 999;
+    *record_base = ours ? (uint32_t)brr_records : 0x4CA430u;
+    *record_count = ours ? BRR_RECORDS - 64 : 1936;
+}
+
+static void display_list_sample(void)
+{
+    uint32_t nodes, records, node_base, node_count, record_base, record_count;
+    list_buffers(&node_base, &node_count, &record_base, &record_count);
+    if (*(volatile uint16_t *)0x4B13C0 != 0x80 || NODE_NEXT < node_base || RECORD_NEXT < record_base)
+        return;
+    nodes = (NODE_NEXT - node_base) / 17;
+    records = (RECORD_NEXT - record_base) / 0xBD;
+    list_frames++;
+    nodes_sum += nodes;
+    records_sum += records;
+    if (nodes > nodes_max) nodes_max = nodes;
+    if (records > records_max) records_max = records;
+    if (nodes + 1 >= node_count || records >= record_count)
+        list_full_frames++;
+}
+
+/* thunks.asm counts what the game's 32-bit maths would have got wrong (precise_3d) */
+uint32_t brr_count_project, brr_count_backface, brr_count_clip, brr_count_unlit;
+
+/* Site shading_threshold: the distance in squares inside which display_list_draw lights objects
+ * smoothly (vertex normals), flat (face normals) beyond: the game's clamp(vision - 9, 3, 8), or
+ * every object smooth, or every object flat ([display] object_shading). */
+int __cdecl brr_shading_threshold(void)
+{
+    int d = DETAIL_LEVEL - 9;
+    if (cfg.object_shading == 1)
+        return 4096;
+    if (cfg.object_shading == 2)
+        return -4096;
+    return d < 3 ? 3 : d > 8 ? 8 : d;
+}
+
+void brr_display_list_report(void)
+{
+    if (brr_count_project || brr_count_backface || brr_count_clip)
+        brr_log("precise 3D: the game's 32-bit maths would have got %lu projected corners, %lu faces' facing and "
+                "%lu screen-edge clips wrong", (unsigned long)brr_count_project, (unsigned long)brr_count_backface,
+                (unsigned long)brr_count_clip);
+    if (brr_count_unlit)
+        brr_log("object lighting: %lu times the game would have left far objects unlit after an effect",
+                (unsigned long)brr_count_unlit);
+    brr_count_project = brr_count_backface = brr_count_clip = brr_count_unlit = 0;
+    if (list_frames) {
+        uint32_t node_base, node_count, record_base, record_count;
+        list_buffers(&node_base, &node_count, &record_base, &record_count);
+        brr_log("display list: %lu race frames: object nodes %lu on average, %lu at most (of %lu), landscape "
+                "records %lu on average, %lu at most (of %lu); a buffer full in %lu frames",
+                (unsigned long)list_frames, (unsigned long)(nodes_sum / list_frames), (unsigned long)nodes_max,
+                (unsigned long)node_count, (unsigned long)(records_sum / list_frames), (unsigned long)records_max,
+                (unsigned long)record_count, (unsigned long)list_full_frames);
+    }
+    list_frames = list_full_frames = nodes_max = records_max = records_sum = nodes_sum = 0;
+}
+
 static int64_t present_mark;  /* for the clock log's presenting time */
 extern int64_t brr_prof_present;
 
@@ -757,6 +830,7 @@ int __cdecl brr_render_before_present(void)
     const uint8_t *out;
     present_mark = brr_qpc();
     game_source = NULL;
+    display_list_sample();
     brr_shade_census_report();
     brr_debug_every_frame();
     if (!brr_renderer_active || *GAME_WINDOWED || !mode_w || switching)

@@ -18,6 +18,11 @@
         extrn   _brr_timer_count:dword
         extrn   _brr_reciprocals:dword
         extrn   _brr_proj_scale:dword
+        extrn   _brr_count_project:dword
+        extrn   _brr_count_backface:dword
+        extrn   _brr_count_clip:dword
+        extrn   _brr_count_unlit:dword
+        extrn   _brr_shading_threshold:near
         extrn   _brr_landscape_width:near
         extrn   _brr_hud_begin:near
         extrn   _brr_hud_end:near
@@ -100,6 +105,8 @@
         public  _brr_hook_sprite_rows, _brr_hook_sprite_columns
         public  _brr_hook_hud_draw, _brr_hook_hud_icon, _brr_hook_sprite_scaled
         public  _brr_hook_proj_scale, _brr_hook_landscape_width
+        public  _brr_backface, _brr_clip_t_x, _brr_clip_t_y, _brr_cull_margin, _brr_shading_restore
+        public  _brr_project_x, _brr_project_y, _brr_hook_shading_threshold
 
         .code
 
@@ -461,6 +468,139 @@ _brr_hook_set_view:
         mov     esi, edx
         jmp     dword ptr [_brr_set_view_continue]
 
+; ---- The 3D engine's maths at any resolution ([display] precise_3d; KNOWLEDGE "Exact 3D maths") ----
+; The engine was written for 320x200 and 640x480, where its 32-bit products never overflowed.
+; Projection scales grow with the picture's height (1,536 at 1,440 rows), so they do now.
+
+; Sites project_x and project_y (model_op_vertices 0x4413B0, 0x4413C5: IMUL EAX,[scale]; CDQ,
+; before IDIV by the depth): the product in EDX:EAX. x and y are view space x 256, so the game's
+; 32-bit product overflowed for corners more than about 10.7 squares to the side at 1,440 rows
+; (32 at 640x480). The quotient stays within 3.4 million (|x| < 2^23, scale < 6,600, depth >=
+; 16,384): the IDIV can't overflow. Each product that wouldn't fit 32 bits is counted (OF).
+_brr_project_x:
+        imul    dword ptr ds:[542000h]
+        jno     px_ok
+        inc     dword ptr [_brr_count_project]
+px_ok:
+        ret
+
+_brr_project_y:
+        imul    dword ptr ds:[542004h]
+        jno     py_ok
+        inc     dword ptr [_brr_count_project]
+py_ok:
+        ret
+
+; Sites backface_model (poly_cull_outcodes 0x445C19) and backface_polygon (poly_cull_visible
+; 0x445E39): the screen cross product (x1 - x0)(y2 - y0) - (x2 - x0)(y1 - y0), whose sign drops
+; back faces, in 64 bits. On entry, as at the site: EAX = x2 - x0, EDX = y1 - y0, EDI = x1,
+; EBX = x0, ECX = y0, ESI = the third vertex (y at +0Ch). Leaves SF the result's sign for the
+; game's JS; EAX, EBX, EDX and EDI are reloaded after it.
+_brr_backface:
+        sub     edi, ebx
+        mov     ebx, dword ptr [esi + 0Ch]
+        sub     ebx, ecx
+        imul    edx
+        push    edx
+        push    eax
+        mov     eax, edi
+        imul    ebx
+        sub     eax, dword ptr [esp]
+        sbb     edx, dword ptr [esp + 4]
+        lea     esp, [esp + 8]
+        mov     edi, edx                        ; the game's 32-bit result is EAX: counted when
+        xor     edi, eax                        ; its sign differs from the true one's
+        jns     bf_same
+        inc     dword ptr [_brr_count_backface]
+bf_same:
+        test    edx, edx                        ; SF: the true sign, for the game's JS
+        mov     edi, edx
+        ret
+
+; Sites clip_x_t (clip_edge_x 0x4431F9) and clip_y_t (clip_edge_y 0x443289): the fraction of the
+; edge at the screen's edge, (v0 - edge) x 65536 / (v0 - v1), with the dividend in 64 bits (the
+; game shifts it left 16 in 32: wrong beyond 32,767 pixels off screen). On entry EAX = v0 - edge,
+; ECX = v1 - v0, EBX = the edge, ESI = the new vertex; leaves the fraction in ECX and the vertex
+; on the edge, or ECX = 0 for a level edge, as the game.
+_brr_clip_t_x:
+        neg     ecx
+        jz      ctx_done
+        lea     edx, [eax + 8000h]              ; counted when the game's << 16 would overflow
+        cmp     edx, 0FFFFh
+        jbe     ctx_fits
+        inc     dword ptr [_brr_count_clip]
+ctx_fits:
+        cdq
+        shld    edx, eax, 16
+        shl     eax, 16
+        idiv    ecx
+        mov     dword ptr [esi + 10h], ebx
+        mov     ecx, eax
+ctx_done:
+        ret
+
+_brr_clip_t_y:
+        neg     ecx
+        jz      cty_done
+        lea     edx, [eax + 8000h]
+        cmp     edx, 0FFFFh
+        jbe     cty_fits
+        inc     dword ptr [_brr_count_clip]
+cty_fits:
+        cdq
+        shld    edx, eax, 16
+        shl     eax, 16
+        idiv    ecx
+        mov     dword ptr [esi + 0Ch], ebx
+        mov     ecx, eax
+cty_done:
+        ret
+
+; Site cull_margin (object_cull_sphere 0x4487B8: SHL [0x54B498],7, the radius x 128): the radius
+; x the larger projection scale, so an object is culled at the screen's edges only once all of
+; it is off screen (x 128 was half the radius at 320 wide, a twelfth at 1,440 rows). EAX and EDX
+; are reloaded after it.
+_brr_cull_margin:
+        mov     eax, dword ptr ds:[542004h]
+        cmp     eax, dword ptr ds:[542000h]
+        jge     cm_mul
+        mov     eax, dword ptr ds:[542000h]
+cm_mul:
+        imul    eax, dword ptr ds:[54B498h]
+        mov     dword ptr ds:[54B498h], eax
+        ret
+
+; Sites unlit_restore_6 and unlit_restore_9 (display_list_draw 0x42BAFF, 0x42BB26): after an
+; unlit node (effects: dust, smoke) the game put back the near objects' smooth lighting (mode 2)
+; but, before the list reached them (DI = 0), left the engine unlit, so every far object drawn
+; after it came out unlit until a mode-1 node. Here: mode 2 if DI = 2, else 1 (flat, as the far
+; objects are drawn). engine_set_shading (0x446860) takes its mode on the stack and changes EAX.
+_brr_shading_restore:
+        mov     eax, 1
+        cmp     di, 2
+        je      sr_near
+        inc     dword ptr [_brr_count_unlit]    ; where the game left the far objects unlit
+        jmp     sr_set
+sr_near:
+        mov     eax, 2
+sr_set:
+        push    eax
+        mov     eax, 446860h
+        call    eax
+        ret
+
+; Site shading_threshold (display_list_draw 0x42B8BA, 31 bytes: EBP = clamp(vision - 9, 3, 8),
+; the distance in squares inside which objects get smooth vertex lighting, and XOR EDI,EDI)
+; -> CALL here, then XOR EDI,EDI: brr_shading_threshold ([display] object_shading) chooses it.
+_brr_hook_shading_threshold:
+        push    ecx
+        push    edx
+        call    _brr_shading_threshold
+        mov     ebp, eax
+        pop     edx
+        pop     ecx
+        ret
+
 ; Site proj_scale_store (set_view 0x425FA1: MOV [0x542000],EAX, the horizontal projection
 ; scale, width x 256 / 320) -> CALL here: a widescreen view's from its height instead
 ; (brr_proj_scale, render.c; 0 = the game's), so the view shows more at the sides rather than
@@ -676,7 +816,10 @@ _brr_hook_render_view:
         mov     eax, [_brr_draw_vision]
         mov     dword ptr ds:[44B044h], eax
         mov     eax, [_brr_draw_texture]
+        test    eax, eax                        ; 0: the player's own texture distance
+        jz      rv_texture_kept
         mov     dword ptr ds:[44B048h], eax
+rv_texture_kept:
         pop     eax
         call    render_view_original
         pop     dword ptr ds:[44B044h]

@@ -22,7 +22,7 @@
 #define GRID_PTR      (*(uint8_t *volatile *)0x44BA14)  /* 64x64 bytes: 0x80 + ring = drawn */
 #define DETAIL_LEVEL  (*(volatile int32_t *)0x44B044)  /* the vision distance */
 #define LIST_WRITE    (*(volatile uint32_t *)0x52D6F4)  /* next polygon record */
-#define LIST_LIMIT    0x523980u                         /* the walk's own limit */
+#define LIST_LIMIT    brr_record_limit                  /* the walk's own limit (site record_limit) */
 #define BOUND_X_MIN   (*(volatile int32_t *)0x46BBC0)   /* the walk's grid bounds */
 #define BOUND_X_MAX   (*(volatile int32_t *)0x46BBC4)
 #define BOUND_Y_MIN   (*(volatile int32_t *)0x46BBBC)
@@ -41,6 +41,15 @@
 #define REACH 94                    /* squares either side of the camera considered (60 x 1.5 + 4) */
 #define SIDE (2 * REACH + 1)
 #define WINDOW 61                   /* squares per window side: grid 1..61, corners up to 62 */
+
+/* The display list's two buffers, bigger ([display] big_lists, the Modern renderer; sites
+ * record_* and node_*): the game's 2,000 landscape records of 0xBD bytes (0x4CA430; its walk
+ * stops 64 short, at 1,936) and its 999 object nodes of 17 bytes (0x5268D1-0x52AB28). At 44
+ * squares in 16:9 the records were 93% full; at 60 they would run out. The list's sentinel
+ * (0x5268C0) and the 100 shadow polygons (0x52AB28) stay where they are. */
+uint8_t brr_records[BRR_RECORDS * 0xBD];
+uint8_t brr_nodes[BRR_NODES * 17];
+uint32_t brr_record_limit = 0x523980u;  /* the game's until the sites are patched */
 
 uint32_t brr_landscape_walk_fn = 0x41D5E4, brr_landscape_walk_loop = 0x41D618;
 uint32_t brr_landscape_tables_fn = 0x41D24C;
@@ -76,7 +85,9 @@ static void far_passes(int ring)
     if (row_x <= 0 || row_z <= 0)
         return;
     ratio = (double)HALF_WIDTH / FOCAL_X;
-    nearest = (ring - 6) * 512.0;   /* well clear of the camera: these squares aren't clipped */
+    /* from 8 squares out (clear of the camera: these squares aren't clipped), so that wider
+     * views get the sides the near pass's 4:3-shaped area leaves out (it was ring - 6, 19) */
+    nearest = 8 * 512.0;
     furthest = brr_far_distance * 512.0 + 256;
     for (dz = -REACH; dz <= REACH; dz++) {
         double rel_z = (double)(square_z + dz) * 512 + 256 - ENGINE_CAMERA[2];
