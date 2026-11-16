@@ -381,6 +381,20 @@ The music's volume, on top of the game's own CD volume option.
 Where the ripped tracks are: Music (a folder next to Big Red Racing.exe) by
 default, or any folder you choose with Browse.
 
+### Sound effects
+
+**Distant vehicles quieter** (on by default)
+
+The game fades other vehicles' sounds with their distance from the camera:
+full volume within about a square and a half, nothing beyond 16 squares. On
+Windows that never worked: the game gave DirectSound its volumes in the wrong
+units, so every sound played almost at full volume, however far away. Ticked,
+the volumes are converted properly, as the DOS version plays them, so far
+trucks are quieter. This also brings the game's own effects volume (its sound
+options screen) to life, which barely changed anything before, and the game's
+three engine sounds go to the nearest trucks rather than the first three in
+its list. Unticked: as the 1996 Windows version.
+
 ## Controller
 
 **Configure**

@@ -180,6 +180,7 @@ static void load_config(void)
     if (cfg.music_volume < 0 || cfg.music_volume > 100)
         cfg.music_volume = 100;
     cfg.music_follow_game = ini_int(path, "music", "follow_game_volume", 1);
+    cfg.distance_volume = ini_int(path, "sound", "distance_volume", 1);
     GetPrivateProfileStringA("music", "folder", "Music", cfg.music_folder, sizeof cfg.music_folder, path);
     GetPrivateProfileStringA("display", "mode", "fullscreen", text, sizeof text, path);
     cfg.display_mode = !lstrcmpiA(text, "fullscreen") ? DISPLAY_FULLSCREEN
@@ -283,6 +284,7 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
                 cfg.render_max ? "max" : "original", cfg.render_max_rows, cfg.widescreen,
                 cfg.hud_lowres ? "lowres" : "game", cfg.hud_aspect43,
                 cfg.window_aspect43 ? "4:3" : "square", cfg.max_draw_distance);
+        brr_sound_setup();
         brr_patch_all();
         brr_interp_setup();
         brr_debug_setup();

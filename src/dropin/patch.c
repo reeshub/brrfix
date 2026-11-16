@@ -191,6 +191,7 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "sort_footprint")) return cfg.sort_footprint && brr_renderer_active;
     if (!strcmp(fix, "ground_perspective")) return cfg.ground_perspective && brr_renderer_active;
     if (!strcmp(fix, "close_gaps")) return cfg.close_gaps && brr_renderer_active;
+    if (!strcmp(fix, "distance_volume")) return cfg.distance_volume;  /* both renderers */
     /* its cover assumes close_gaps' exact edges: the game's could fall short by pixels */
     if (!strcmp(fix, "horizon_culling")) return cfg.horizon_culling && cfg.close_gaps && brr_renderer_active;
     if (!strcmp(fix, "object_shading")) return cfg.object_shading && brr_renderer_active;
@@ -303,6 +304,19 @@ static int replacement(const struct site_info *s, uint8_t *out)
         size[0] = (uint16_t)brr_view_max_w;
         size[1] = (uint16_t)brr_view_max_h;
         memcpy(out, size, 4);
+    } else if (!strcmp(n, "ds_volume_curve") && s->length == 10) {
+        /* MOV EDX,[EDX*4+brr_ds_volumes]; CWDE; NOP; NOP (was MOV EDX,[EDX+0x44C055]; CWDE; SAR EDX,24) */
+        out[0] = 0x8B;
+        out[1] = 0x14;
+        out[2] = 0x95;
+        put_abs32(out + 3, (void *)brr_ds_volumes);
+        out[7] = 0x98;
+        out[8] = out[9] = 0x90;
+    } else if (!strcmp(n, "sound_nearest_first") && s->length == 63) {
+        /* CALL brr_hook_sound_nearest (ESI: the nearest vehicle still to gather, or -1), then NOPs */
+        out[0] = 0xE8;
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_sound_nearest);
+        memset(out + 5, 0x90, 58);
     } else if (!strcmp(n, "display_list_call") && s->length == 5) {
         out[0] = 0xE8;  /* CALL brr_hook_display_list: horizon culling, then display_list_draw */
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_display_list);

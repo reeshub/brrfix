@@ -639,6 +639,22 @@
    "sha256": "1d44f2bb9890982c87bbb3df9392ce16edf027553b5a909acdff98daa633170c"
   },
   {
+   "name": "ds_volume_curve",
+   "fix": "distance_volume",
+   "address": "0x42EC1F",
+   "length": 10,
+   "patch": "ds_set_volume (0x42EBE4): MOV EDX,[EDX+0x44C055]; CWDE; SAR EDX,24 (the signed byte of ds_volume_table 0x44C058 for volume 0-127: -110 to 0, a loudness curve in units of about 0.4 dB, passed to IDirectSoundBuffer::SetVolume, which counts hundredths of a decibel: every sound within 1.1 dB of full) -> MOV EDX,[EDX*4+brr_ds_volumes]; CWDE; NOP; NOP: the same curve in hundredths of a decibel (2000 x log10(volume / 127), 0 silent; sound.c), so the game's own distance fade (vehicle_sounds), the effects volume option and quieter knocks are heard, as in DOS",
+   "sha256": "7b3b2320c5ca6de30e3f9f8599f80fdfdf571200fe39c1d0a8aab2c47a22104f"
+  },
+  {
+   "name": "sound_nearest_first",
+   "fix": "distance_volume",
+   "address": "0x416695",
+   "length": 63,
+   "patch": "sound_update_vehicles (0x416520): the loop choosing the next other vehicle whose sounds to gather (the lowest-numbered not yet done, active and nearer than 0x7FFF; only the first 3 vehicles gathered get an engine sound) -> CALL brr_hook_sound_nearest (thunks.asm; the nearest such vehicle in ESI, or -1) + 58 NOPs: near trucks' engines are heard before far ones. Each vehicle is still gathered once, so vehicle_sounds' rand() calls (shared with the physics) are as many: the physics is unchanged",
+   "sha256": "e6070517767d61843198102fafd3fbbea09b822206173aad2075b14b71e1ba7b"
+  },
+  {
    "name": "display_list_call",
    "fix": "horizon_culling",
    "address": "0x417808",
@@ -1135,7 +1151,7 @@
    "sha256": "ee617de270097cad1ebc33aadf85d88d65e1cc9b52db789610b265c73883836f"
   }
  ],
- "protected_about": "Game functions reachable from the race tick (direct calls, Phase 3 call graph) except approach_clamped and FUN_004274fc (the menus' mouse position, skipped in a race), which are patched on purpose. The DLL hashes them before and after patching.",
+ "protected_about": "Game functions reachable from the race tick (direct calls, Phase 3 call graph) except approach_clamped and FUN_004274fc (the menus' mouse position, skipped in a race), which are patched on purpose, and (2026-11-16, [sound] distance_volume) ds_set_volume and sound_update_vehicles: the volume DirectSound is given, and the order the vehicles' sounds are gathered in (each still once, so as many rand() calls); neither changes the game's state. The DLL hashes them before and after patching.",
  "protected": [
   {
    "name": "fixed_mul15",
@@ -1822,12 +1838,6 @@
    "sha256": "999c4051bdccd46893ae50ccc63aae8bef64f37e6a4f144a01399d23aa0621bc"
   },
   {
-   "name": "sound_update_vehicles",
-   "address": "0x416520",
-   "size": 489,
-   "sha256": "02ba9a9016d269762674794c52c7b80f0b9e2ca920c22e2ba9305fddec2aa8f3"
-  },
-  {
    "name": "vehicle_sound_event",
    "address": "0x41681C",
    "size": 53,
@@ -2366,12 +2376,6 @@
    "address": "0x42EBA8",
    "size": 60,
    "sha256": "03a5b16b737de8484e9f0466a87b4ff56cd0021479a57533d952e779bfead18b"
-  },
-  {
-   "name": "ds_set_volume",
-   "address": "0x42EBE4",
-   "size": 100,
-   "sha256": "396c75d1beaea6476b87957c9676badfd575b58c39090b537c55301b282e04f1"
   },
   {
    "name": "ds_set_frequency",

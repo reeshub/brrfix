@@ -115,6 +115,7 @@
         public  _brr_hook_sprite_rows, _brr_hook_sprite_columns
         public  _brr_hook_hud_draw, _brr_hook_hud_icon, _brr_hook_sprite_scaled
         public  _brr_hook_raw_name, _brr_hook_persp_setup, _brr_hook_scenery_pos, _brr_hook_display_list
+        public  _brr_hook_sound_nearest
         public  _brr_hook_proj_scale, _brr_hook_landscape_width
         public  _brr_backface, _brr_clip_t_x, _brr_clip_t_y, _brr_cull_margin, _brr_shading_restore
         public  _brr_project_x, _brr_project_y, _brr_hook_shading_threshold, _brr_hook_lod
@@ -732,6 +733,33 @@ ps_fallback:
         popfd
 ps_game:
         jmp     dword ptr [_brr_persp_setup_original]   ; 0x446FF0, which returns to our caller
+
+; Site sound_nearest_first (sound_update_vehicles 0x416695-0x4166D3, its loop choosing the next
+; vehicle whose sounds to gather: the lowest-numbered one not yet done, active (+0x26 >= 0) and
+; nearer than 0x7FFF) -> CALL here + NOPs: the nearest such vehicle instead (ties: the lower
+; number), in ESI, or -1. The caller's frame: distances at [ESP+0x1C] (dwords), done flags at
+; [ESP+0x48] (bytes); here 4 more for the return address. EAX, EBX and EDX are set afresh after
+; it; EDI (0, the priority) and EBP are kept.
+_brr_hook_sound_nearest:
+        mov     esi, -1
+        mov     ebx, 7FFFh
+        xor     eax, eax
+sn_loop:
+        cmp     byte ptr [esp + eax + 4 + 48h], 0
+        jne     short sn_next
+        imul    edx, eax, 395h
+        cmp     word ptr [edx + 452A90h + 26h], 0
+        jl      short sn_next
+        mov     edx, [esp + eax*4 + 4 + 1Ch]
+        cmp     edx, ebx
+        jge     short sn_next
+        mov     ebx, edx
+        mov     esi, eax
+sn_next:
+        inc     eax
+        cmp     eax, 7
+        jl      short sn_loop
+        ret
 
 ; Site display_list_call (render_view 0x417808: CALL display_list_draw) -> here: horizon culling
 ; (horizon.c) takes out what nearer ground will paint over, then display_list_draw (0x42B8B4),

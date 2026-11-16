@@ -68,6 +68,8 @@
 #define IDC_TRACKS       1405
 #define IDC_VOLUME_LABEL 1406
 #define IDC_FOLDER_LABEL 1407
+#define IDC_SFX_GROUP    1408
+#define IDC_DISTANCE_VOL 1409
 
 /* Controller */
 #define IDC_PAGE_PAD     1500

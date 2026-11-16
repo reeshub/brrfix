@@ -47,6 +47,7 @@ struct brr_config {
     int ground_perspective;  /* [display] ground_perspective: every textured ground square perspective-correct (persp.c) */
     int close_gaps;          /* [display] close_gaps: level pieces one unit apart drawn together; exact edge slopes */
     int horizon_culling;     /* [display] horizon_culling: skip what nearer ground will paint over (horizon.c) */
+    int distance_volume;     /* [sound] distance_volume: the effects' full volume range, nearest vehicles first (sound.c) */
     int object_shading;      /* [display] object_shading: 0 game (smooth near, flat beyond 8 squares), 1 smooth, 2 flat */
     int texture_distance;    /* [display] texture_distance with max_draw_distance: 0 the slider's, else squares */
     int object_detail;       /* [display] object_detail: 0 original, 1 matched to the resolution, 2 highest */
@@ -184,6 +185,9 @@ void brr_hook_persp_setup(void);           /* thunks.asm: site persp_setup_hook 
 void brr_hook_scenery_pos(void);           /* thunks.asm: site scenery_snap */
 void brr_hook_display_list(void);          /* thunks.asm: site display_list_call */
 void __cdecl brr_horizon_cull(void);       /* horizon.c */
+void brr_hook_sound_nearest(void);         /* thunks.asm: site sound_nearest_first */
+extern int32_t brr_ds_volumes[128];          /* sound.c: site ds_volume_curve */
+void brr_sound_setup(void);
 extern uint32_t brr_horizon_records, brr_horizon_records_culled, brr_horizon_objects, brr_horizon_objects_culled;
 extern int64_t brr_horizon_time, brr_horizon_frames, brr_horizon_draw_time;
 void __cdecl brr_horizon_drawn(void);

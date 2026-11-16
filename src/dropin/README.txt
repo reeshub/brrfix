@@ -151,6 +151,15 @@ run "python3 brr.py prepare" with your own copy of the game's disc image: it
 writes the tracks to work/disc/audio/. The game's own CD volume option works.
 With no tracks there, the game plays a real CD if there is one.
 
+Sound effects
+-------------
+The game fades other vehicles' sounds with their distance from the camera, but
+on Windows it gave DirectSound its volumes in the wrong units, so every sound
+played within 1.1 dB of full volume. Big Red Launcher converts them properly
+("Distant vehicles quieter", on by default; [sound] distance_volume), as the
+DOS version plays them: far trucks are quieter, the game's effects volume
+option works, and the three engines heard at once are the nearest trucks'.
+
 Display and scaling
 -------------------
 Two renderers ("Renderer" in the launcher, [display] renderer in BRRFIX.INI):
