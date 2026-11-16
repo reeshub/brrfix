@@ -138,10 +138,13 @@ static void load_config(void)
     cfg.hud_aspect43 = ini_int(path, "display", "hud_aspect43", 1);
     GetPrivateProfileStringA("display", "hud_size", "small", text, sizeof text, path);
     cfg.hud_large = !lstrcmpiA(text, "large");
+    GetPrivateProfileStringA("display", "hud_map", "large", text, sizeof text, path);
+    cfg.hud_map_large = lstrcmpiA(text, "small") != 0;
     cfg.widescreen = ini_int(path, "display", "widescreen", 1);
+    cfg.widescreen_menus = ini_int(path, "display", "widescreen_menus", 1);
     cfg.precise_3d = ini_int(path, "display", "precise_3d", 1);
     cfg.object_lighting = ini_int(path, "display", "object_lighting", 1);
-    GetPrivateProfileStringA("display", "object_shading", "smooth", text, sizeof text, path);
+    GetPrivateProfileStringA("display", "object_shading", "flat", text, sizeof text, path);
     cfg.object_shading = !lstrcmpiA(text, "smooth") ? 1 : !lstrcmpiA(text, "flat") ? 2 : 0;
     GetPrivateProfileStringA("display", "object_detail", "matched", text, sizeof text, path);
     cfg.object_detail = !lstrcmpiA(text, "original") ? 0 : !lstrcmpiA(text, "highest") ? 2 : 1;

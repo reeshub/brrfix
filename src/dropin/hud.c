@@ -35,7 +35,10 @@
 #define HUD_H 200
 #define HUD_PIXELS (HUD_W * HUD_H)
 #define MARGIN 8                   /* HUD pixels from the picture's edges (to the art's light pixels) */
-#define GAP 4                      /* HUD pixels between the place, the nitro and the laps */
+#define GAP_PLACE 7                /* HUD pixels under the place, before the nitro */
+#define GAP 4                      /* HUD pixels between the nitro and the laps */
+#define MAP_W 640                  /* the map's layer: the game's high-resolution map, drawn 1:1 in a */
+#define MAP_H 400                  /* 640-wide view, so it shows twice the size of the 64x64 one */
 
 enum { MAP, PLACE, NITRO, LAPS, MESSAGE, TICKER, ICON, OTHER, LAYERS };
 
@@ -43,7 +46,8 @@ struct box { int x0, y0, x1, y1; };  /* HUD pixels, x1 and y1 past the end; empt
 
 int brr_hud_active;                /* decided at patch time */
 int brr_hud_drawing;               /* inside hud_draw: thunks.asm's sprite hook reads it */
-uint32_t brr_orig_hud_draw = 0x423658, brr_orig_hud_icon = 0x4236F0;
+uint32_t brr_orig_hud_draw = 0x423658, brr_orig_hud_icon = 0x4236F0, brr_orig_hud_map = 0x4230E8;
+static int map_hires;              /* the map's layer is MAP_W x MAP_H this frame */
 uint32_t brr_sprite_scaled_continue = 0x426F96;
 
 static uint8_t *layers;
@@ -78,7 +82,8 @@ void brr_hud_setup(void)
     brr_hud_active = brr_renderer_active && cfg.hud_lowres;
     if (!brr_hud_active)
         return;
-    layers = (uint8_t *)VirtualAlloc(NULL, LAYERS * HUD_PIXELS, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    layers = (uint8_t *)VirtualAlloc(NULL, LAYERS * HUD_PIXELS + MAP_W * MAP_H, MEM_COMMIT | MEM_RESERVE,
+                                     PAGE_READWRITE);
     if (!layers) {
         brr_log("hud: out of memory; the game's own HUD");
         brr_hud_active = 0;
@@ -91,8 +96,13 @@ void brr_hud_setup(void)
 
 static uint8_t *layer_of(int element)
 {
+    if (element == MAP && map_hires)
+        return layers + (size_t)LAYERS * HUD_PIXELS;
     return layers + (size_t)element * HUD_PIXELS;
 }
+
+static int layer_w(int element) { return element == MAP && map_hires ? MAP_W : HUD_W; }
+static int layer_h(int element) { return element == MAP && map_hires ? MAP_H : HUD_H; }
 
 /* Before hud_draw (first = 1, a new frame's HUD) or hud_draw_playback_icon (first = 0) in
  * render_view: the 2D routines pointed at our OTHER layer, at 320x200, low resolution.
@@ -109,7 +119,7 @@ void __cdecl brr_hud_begin(int first)
     if (first) {
         for (i = 0; i < LAYERS; i++) {
             if (touched[i]) {
-                memset(layer_of(i), 0, HUD_PIXELS);
+                memset(layer_of(i), 0, (size_t)layer_w(i) * layer_h(i));
                 touched[i] = 0;
             }
             boxes[i].x0 = boxes[i].y0 = HUD_W + HUD_H;
@@ -147,6 +157,35 @@ void __cdecl brr_hud_end(void)
     valid = 1;
 }
 
+/* Site hud_map_call: hud_draw's call to hud_draw_map (0x4230E8): the map drawn into its own
+ * 640x400 layer, with the view at 640x400 and the high-resolution flag set, so the game picks
+ * the level's 128x128 map (TOPMAP.SPR sprite 0, marked for 640) and draws it 1:1, its vehicle
+ * dots (8x8, for 320) twice as big, at its own positions: the map twice the size of the 64x64
+ * one, with the high-resolution art's detail ([display] hud_map=large, the default). */
+void __cdecl brr_hud_map_begin(void)
+{
+    if (!brr_hud_drawing || !cfg.hud_map_large)
+        return;
+    if (!map_hires && touched[MAP])
+        memset(layer_of(MAP), 0, HUD_PIXELS);  /* the small layer, last used before the switch */
+    map_hires = 1;
+    VIEW_W = MAP_W;
+    VIEW_H = MAP_H;
+    VIEW_HIRES = 1;
+    VIEW_TARGET = layer_of(MAP);
+    touched[MAP] = 1;
+}
+
+void __cdecl brr_hud_map_end(void)
+{
+    if (!brr_hud_drawing || !cfg.hud_map_large)
+        return;
+    VIEW_W = HUD_W;
+    VIEW_H = HUD_H;
+    VIEW_HIRES = 0;
+    VIEW_TARGET = layer_of(OTHER);
+}
+
 /* A sprite's light pixels (not its dark outline or shadow, whose thickness differs from one
  * piece of art to another, so the spacing looks even), as sprite_draw_scaled draws it into a
  * 320-wide view: header (16-bit width and height, four bytes; byte 5 bit 7 = drawn for 640,
@@ -166,7 +205,7 @@ static struct box sprite_box(const uint8_t *sprite)
     static struct { const uint8_t *sprite; struct box box; } cache[64];
     static int count;
     struct box b;
-    int w = *(const int16_t *)sprite, h = *(const int16_t *)(sprite + 2), half = (sprite[5] & 0x80) != 0;
+    int w = *(const int16_t *)sprite, h = *(const int16_t *)(sprite + 2);
     int x, y, i;
     for (i = 0; i < count; i++)
         if (cache[i].sprite == sprite)
@@ -188,12 +227,6 @@ static struct box sprite_box(const uint8_t *sprite)
         if (b.x1 > b.x0)
             break;
     }
-    if (half) {
-        b.x0 /= 2;
-        b.y0 /= 2;
-        b.x1 = (b.x1 + 1) / 2;
-        b.y1 = (b.y1 + 1) / 2;
-    }
     if (count < 64) {
         cache[count].sprite = sprite;
         cache[count].box = b;
@@ -211,7 +244,14 @@ static void measure_place(const uint8_t *bank)
         struct box b;
         if (i == 8 || i == 9)
             continue;
-        b = sprite_box(bank + *(const int32_t *)(bank + i * 4 + 2));
+        {
+            const uint8_t *sprite = bank + *(const int32_t *)(bank + i * 4 + 2);
+            b = sprite_box(sprite);
+            if (sprite[5] & 0x80) {  /* drawn for 640: half its size in the 320-wide layer */
+                b.y0 /= 2;
+                b.y1 = (b.y1 + 1) / 2;
+            }
+        }
         if (b.y1 - b.y0 > tallest)
             tallest = b.y1 - b.y0;
     }
@@ -236,8 +276,14 @@ void __cdecl brr_hud_sprite(uint32_t ret, const uint8_t *bank, int32_t index, in
     if (edges && bank && index >= 0 && index < 256) {
         const uint8_t *sprite = bank + *(const int32_t *)(bank + index * 4 + 2);
         struct box b = sprite_box(sprite);
-        int left = x * HUD_W / 640, top = y * HUD_W / 640;  /* as sprite_draw_scaled places it */
+        int lw = layer_w(element), for640 = (sprite[5] & 0x80) != 0;
+        int left = x * lw / 640, top = y * lw / 640;  /* as sprite_draw_scaled places it */
         struct box *e = &boxes[element];
+        /* as sprite_draw_scaled sizes it: x the view's width / 640 if drawn for 640, / 320 if not */
+        b.x0 = b.x0 * lw / (for640 ? 640 : 320);
+        b.y0 = b.y0 * lw / (for640 ? 640 : 320);
+        b.x1 = (b.x1 * lw + (for640 ? 639 : 319)) / (for640 ? 640 : 320);
+        b.y1 = (b.y1 * lw + (for640 ? 639 : 319)) / (for640 ? 640 : 320);
         if (b.x1 > b.x0 && b.y1 > b.y0) {
             if (left + b.x0 < e->x0) e->x0 = left + b.x0;
             if (top + b.y0 < e->y0) e->y0 = top + b.y0;
@@ -284,7 +330,7 @@ static void layout(int w, int h, int kx, int ky, int *ox, int *oy)
     if (b->x1 > b->x0) {
         ox[PLACE] = w - (MARGIN + b->x1) * kx;
         oy[PLACE] = (MARGIN - b->y0) * ky;
-        right_top = MARGIN + (place_height > b->y1 - b->y0 ? place_height : b->y1 - b->y0) + GAP;
+        right_top = MARGIN + (place_height > b->y1 - b->y0 ? place_height : b->y1 - b->y0) + GAP_PLACE;
     }
     b = &boxes[NITRO];
     if (b->x1 > b->x0) {
@@ -339,15 +385,15 @@ int brr_hud_overlay(const uint8_t *origin, int w, int h, void *out, int out_w, i
     }
     for (i = 0; i < LAYERS; i++) {
         const uint8_t *layer = layer_of(i);
-        int x, y;
+        int x, y, lw = layer_w(i), lh = layer_h(i);
         if (!touched[i])
             continue;
-        for (y = 0; y < HUD_H; y++) {
-            const uint8_t *p = layer + (size_t)y * HUD_W;
+        for (y = 0; y < lh; y++) {
+            const uint8_t *p = layer + (size_t)y * lw;
             int gy = oy[i] + y * ky, rows, fy, r;
             if (gy >= h || gy + ky <= 0)
                 continue;
-            for (x = 0; x < HUD_W; x++) {
+            for (x = 0; x < lw; x++) {
                 int gx, cols, fx, c, top, left;
                 uint8_t v = p[x];
                 if (!v)

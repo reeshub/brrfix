@@ -60,7 +60,7 @@ static const struct choice distances[] = {{"In-game sliders", "0"}, {"Engine max
                                           {"Far (44)", "44"}, {"Max out (60)", "60"}, {0, 0}};
 static const struct choice texture_distances[] = {{"As draw distance", "draw"}, {"Engine max (25)", "25"},
                                                   {"In-game slider", "slider"}, {0, 0}};
-static const struct choice lightings[] = {{"Smooth", "smooth"}, {"Original", "game"}, {"Flat", "flat"}, {0, 0}};
+static const struct choice lightings[] = {{"Flat", "flat"}, {"Smooth", "smooth"}, {"Original", "game"}, {0, 0}};
 static const struct choice details[] = {{"Matched", "matched"}, {"Original", "original"}, {"Highest", "highest"}, {0, 0}};
 static const struct choice hud_sizes[] = {{"Small", "small"}, {"Large (1996)", "large"}, {0, 0}};
 static const struct choice colour_depths[] = {{"256 colours (original)", "0"}, {"Full colour", "1"}, {0, 0}};
@@ -280,6 +280,7 @@ static int hidden_by_choice(HWND dialog, int id)
     case IDC_DETAIL_LABEL:
     case IDC_HUDSIZE:
     case IDC_HUDSIZE_LABEL:
+    case IDC_WIDEMENUS:
         return !fresh;
     case IDC_SMOOTH_SKY:
     case IDC_SMOOTH_SHADING:
@@ -337,6 +338,7 @@ static void layout_video(HWND dialog)
     place(dialog, IDC_HUD43, 160, top + 12, 140, 10);
     place(dialog, IDC_HUDSIZE_LABEL, 18, top + 28, 40, 8);
     place(dialog, IDC_HUDSIZE, 62, top + 26, 94, 60);
+    place(dialog, IDC_WIDEMENUS, 160, top + 27, 140, 10);
 }
 
 /* The resolutions each renderer offers, keeping the choice where it can (Max -> High) */
@@ -373,6 +375,8 @@ static void update_enabled(HWND dialog)
         enable(dialog, IDC_MAXLIMIT_LABEL, max);
         enable(dialog, IDC_MAXLIMIT, max);
         enable(dialog, IDC_WIDESCREEN, max);
+        /* the menus' backgrounds across the screen: for native widescreen only */
+        enable(dialog, IDC_WIDEMENUS, max && full && checked(dialog, IDC_WIDESCREEN));
     }
     /* the Modern renderer's window (cnc-ddraw's) */
     enable(dialog, IDC_SCALE_LABEL, window);
@@ -413,7 +417,9 @@ static const struct { int id; const char *text; } tips[] = {
     {IDC_MAXLIMIT, "How many rows Max draws races with at most, or the screen's own height. The game draws "
                    "in software, so more rows cost frame rate: 1080 is smooth on any modern PC."},
     {IDC_WIDESCREEN, "With Max, in full screen on a wide screen: races at the screen's own shape, seeing more at the "
-                     "sides; the menus 4:3 in the middle, with black bars."},
+                     "sides; the menus 4:3 in the middle (their backgrounds across the screen, as below)."},
+    {IDC_WIDEMENUS, "With native widescreen: each menu's background picture across the whole screen, sharp, "
+                    "its top (or top and bottom) cropped; off: the menus 4:3 with black bars."},
     {IDC_HUD43, "The race dashboard's pixels 1.2 times taller than wide, as the 320x200 art looked on a 1996 4:3 "
                 "monitor; off: square."},
     {IDC_SCALE, "How big the Modern renderer's window is, in whole multiples of 640x480; the picture is "
@@ -607,7 +613,7 @@ static void load(HWND dialog, int defaults)
     GET(f, "display", "max_draw_distance", period ? "0" : "60");  /* Max out: the Modern default (director, 2026-11-16) */
     fill(dialog, IDC_DRAWDIST, distances, !lstrcmpiA(v, "1") ? "25" : v);  /* 1: the first experiment's on */
     fill(dialog, IDC_TEXTURES, texture_distances, GET(f, "display", "texture_distance", "draw"));
-    fill(dialog, IDC_LIGHTING, lightings, GET(f, "display", "object_shading", "smooth"));
+    fill(dialog, IDC_LIGHTING, lightings, GET(f, "display", "object_shading", "flat"));  /* the director, 2026-11-16 */
     fill(dialog, IDC_DETAIL, details, GET(f, "display", "object_detail", "matched"));
     fill(dialog, IDC_HUDSIZE, hud_sizes, GET(f, "display", "hud_size", "small"));
     fill(dialog, IDC_COLOUR, colour_depths, defaults ? "1" : (ini_flag("display", "full_colour", 1) ? "1" : "0"));
@@ -616,6 +622,7 @@ static void load(HWND dialog, int defaults)
     check(dialog, IDC_COLOUR_ANIM, defaults ? 1 : ini_flag("display", "colour_animation", 1));
     check(dialog, IDC_WIDESCREEN, defaults ? 1 : ini_flag("display", "widescreen", 1));
     check(dialog, IDC_HUD43, defaults ? 1 : ini_flag("display", "hud_aspect43", 1));
+    check(dialog, IDC_WIDEMENUS, defaults ? 1 : ini_flag("display", "widescreen_menus", 1));
     if (!defaults)
         check(dialog, IDC_SKIP, ini_flag("launcher", "skip", 0));
 #undef GET
@@ -677,6 +684,7 @@ static void save(HWND dialog)
     ini_set(brrfix_ini, "display", "colour_animation", checked(dialog, IDC_COLOUR_ANIM) ? "1" : "0");
     ini_set(brrfix_ini, "display", "widescreen", checked(dialog, IDC_WIDESCREEN) ? "1" : "0");
     ini_set(brrfix_ini, "display", "hud_aspect43", checked(dialog, IDC_HUD43) ? "1" : "0");
+    ini_set(brrfix_ini, "display", "widescreen_menus", checked(dialog, IDC_WIDEMENUS) ? "1" : "0");
     ini_set(brrfix_ini, "launcher", "skip", checked(dialog, IDC_SKIP) ? "1" : "0");
     if (windows_9x)
         ini_set(brrfix_ini, "clock", "vsync", checked(dialog, IDC_VSYNC) ? "1" : "0");
@@ -870,6 +878,7 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
             return TRUE;
         case IDC_MUSIC:
         case IDC_PAD:
+        case IDC_WIDESCREEN:
         case IDC_VIBRATION:
         case IDC_NITRO_RUMBLE:
             update_enabled(dialog);

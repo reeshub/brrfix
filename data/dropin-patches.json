@@ -591,6 +591,14 @@
    "sha256": "7687067fb6a6e0834d1b544e3c9d30a1b5ff7011073df7469224b2f81371f0bc"
   },
   {
+   "name": "hud_map_call",
+   "fix": "hud",
+   "address": "0x4236E5",
+   "length": 5,
+   "patch": "hud_draw: CALL hud_draw_map (0x4230E8; EAX the vehicle, EDX the sprite bank; the only call, for races and recordings) -> CALL brr_hook_hud_map (thunks.asm): with [display] hud_map=large (the default), the view at 640x400 with the high-resolution flag set and the 2D routines pointed at the map's own 640x400 layer for the call, so the game draws the level's 128x128 map (marked for 640) 1:1 and its vehicle dots twice as big: the map twice the size of the low-resolution one, with the high-resolution art's detail",
+   "sha256": "ae05d02541e02d28eb3a1bb5b38cc15626f8100ce0f1d533f4c801fbbbc9f8c5"
+  },
+  {
    "name": "sprite_scaled_entry",
    "fix": "hud",
    "address": "0x426F90",
@@ -613,6 +621,14 @@
    "length": 12,
    "patch": "landscape_setup: MOV EDX,EAX; MOV EBX,10; SAR EDX,31; IDIV EBX (7 x vision / 10, the visible ground's half-width - 1 at its far edge, for 4:3) -> CALL brr_hook_landscape_width (thunks.asm) and NOPs: the same division, then brr_landscape_width (render.c) widens it by the view's shape against 4:3, as far as the 64x64 grid holds (far corners within 31 cells). Native widescreen only",
    "sha256": "231d153bea89e06544fe0f67a08ecfd45b0348ca8c50f5b33f6bffdc0339158a"
+  },
+  {
+   "name": "raw_name_call",
+   "fix": "widescreen",
+   "address": "0x412B2F",
+   "length": 5,
+   "patch": "raw_picture_load (0x412B2C; scn_load, car and track select, start-up): CALL file_open (0x411B78; the .RAW's name in EAX) -> CALL brr_hook_raw_name (thunks.asm): brr_raw_loaded (render.c) notes the name and the level, so the widescreen menu backgrounds know the globe's (THIRD3.RAW) and each level's picture (VIEW.RAW); then file_open",
+   "sha256": "1d44f2bb9890982c87bbb3df9392ce16edf027553b5a909acdff98daa633170c"
   },
   {
    "name": "project_x",

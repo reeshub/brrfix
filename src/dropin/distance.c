@@ -55,7 +55,8 @@ uint32_t brr_landscape_walk_fn = 0x41D5E4, brr_landscape_walk_loop = 0x41D618;
 uint32_t brr_landscape_tables_fn = 0x41D24C;
 int brr_far_distance;               /* squares; 0 = no far passes */
 
-static uint8_t near_drawn[SIDE][SIDE], wanted[SIDE][SIDE];  /* [dz][dx], + REACH */
+static uint8_t near_drawn[SIDE][SIDE], wanted[SIDE][SIDE];  /* [dz][dx], + REACH; wanted: its ring, or 0 */
+uint32_t brr_edge_squares;          /* squares added within 8 squares (the near area's sides), for the log */
 
 static void far_passes(int ring)
 {
@@ -85,9 +86,11 @@ static void far_passes(int ring)
     if (row_x <= 0 || row_z <= 0)
         return;
     ratio = (double)HALF_WIDTH / FOCAL_X;
-    /* from 8 squares out (clear of the camera: these squares aren't clipped), so that wider
-     * views get the sides the near pass's 4:3-shaped area leaves out (it was ring - 6, 19) */
-    nearest = 8 * 512.0;
+    /* from 2 squares out, so that wider views get the sides the near pass's 4:3-shaped area
+     * leaves out, even turning (it was 8, and before that ring - 6, 19); each square drawn by
+     * its own distance's routine (the near ones with near-plane clipping), with 2 squares to
+     * spare at the field of view's sides */
+    nearest = 2 * 512.0;
     furthest = brr_far_distance * 512.0 + 256;
     for (dz = -REACH; dz <= REACH; dz++) {
         double rel_z = (double)(square_z + dz) * 512 + 256 - ENGINE_CAMERA[2];
@@ -96,11 +99,16 @@ static void far_passes(int ring)
             double rel_x = (double)(square_x + dx) * 512 + 256 - ENGINE_CAMERA[0];
             double depth = (ENGINE_MATRIX[6] * rel_x + ENGINE_MATRIX[7] * rel_y + ENGINE_MATRIX[8] * rel_z) / row_z;
             double side = (ENGINE_MATRIX[0] * rel_x + ENGINE_MATRIX[1] * rel_y + ENGINE_MATRIX[2] * rel_z) / row_x;
-            int want = depth >= nearest && depth <= furthest && fabs(side) <= depth * ratio + 768
+            int want = depth >= nearest && depth <= furthest && fabs(side) <= depth * ratio + 1024
                        && !near_drawn[dz + REACH][dx + REACH];
-            wanted[dz + REACH][dx + REACH] = (uint8_t)want;
+            int square_ring = (int)(sqrt((double)dx * dx + (double)dz * dz) + 0.5);
+            if (square_ring > ring)
+                square_ring = ring;
+            wanted[dz + REACH][dx + REACH] = want ? (uint8_t)(0x80 | square_ring) : 0;
             if (want) {
                 count++;
+                if (depth < 8 * 512.0)
+                    brr_edge_squares++;
                 if (dx + REACH < min_x) min_x = dx + REACH;
                 if (dx + REACH > max_x) max_x = dx + REACH;
                 if (dz + REACH < min_z) min_z = dz + REACH;
@@ -148,7 +156,7 @@ static void far_passes(int ring)
                         continue;
                     gx = dx - sx + 31;
                     gy = sz - dz + 32;
-                    grid[gx + gy * 64] = (uint8_t)(0x80 | ring);
+                    grid[gx + gy * 64] = wanted[dz + REACH][dx + REACH];
                     if (gx < gx_min) gx_min = gx;
                     if (gx > gx_max) gx_max = gx;
                     if (gy < gy_min) gy_min = gy;

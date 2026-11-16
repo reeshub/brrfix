@@ -48,6 +48,7 @@
 #define IDC_DETAIL_LABEL 1236
 #define IDC_HUDSIZE      1237
 #define IDC_HUDSIZE_LABEL 1238
+#define IDC_WIDEMENUS    1239
 
 /* Audio */
 #define IDC_PAGE_AUDIO   1300

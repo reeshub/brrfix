@@ -235,6 +235,7 @@ void __cdecl brr_before_draw(void)
     }
     brr_fine_angles_active = cfg.fine_angles;
     brr_camera_before_draw();
+    brr_mouse_settle();
     brr_debug_before_draw();
     frames_drawn++;
     if (cfg.check_restore)

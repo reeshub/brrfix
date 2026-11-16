@@ -171,7 +171,7 @@ int brr_renderer_decide(int cnc_ddraw)
                     "the height; menus 4:3 by whole numbers in the middle of a picture of the screen's shape, "
                     "which cnc-ddraw enlarges to fill its height", brr_view_max_w, brr_view_max_h,
                     out_w, out_h, windowed ? "window" : "screen");
-        else if (cfg.widescreen)
+        else if (cfg.widescreen && out_w * 3 <= out_h * 4)
             brr_log("render: native widescreen: off, as the %s is %dx%d (no wider than 4:3)",
                     windowed ? "window" : "screen", out_w, out_h);
     }
@@ -184,9 +184,13 @@ struct layout { int sx, sy, x, y; };
 /* All the game's pictures were made for a 4:3 screen: 640x480 has square pixels, 320x200
  * pixels 1.2 times taller than wide. With aspect=4:3: as many rows as fit, then the whole
  * number across nearest that shape; with square: the same whole number both ways. */
+static int menu_square;  /* widescreen: the globe screen's menu picture with square pixels */
+
 static void fit(int w, int h, int out_w, int out_h, struct layout *l)
 {
     int sx, sy, aspect43 = cfg.window_aspect43 || brr_widescreen;  /* widescreen: menus at 4:3 */
+    if (menu_square && w == MENU_W && h == MENU_H)
+        aspect43 = 0;  /* the globe round: its 3D and its text were drawn for square pixels */
     sy = out_h / h;
     if (sy < 1)
         sy = 1;
@@ -296,6 +300,144 @@ static void compose(const uint8_t *in, int w, int h, int in_pitch, uint8_t *out,
     }
 }
 
+/* ---- widescreen menu backgrounds ([display] widescreen_menus, the director 2026-11-16) ----
+ * Each screen's background is the .RAW picture its set-up loads (raw_picture_load 0x412B2C,
+ * site raw_name_call notes the name) and saves (menu_background_save: the pointer at
+ * 0x44BDAC, 320x200), then each frame the game restores it and draws the menu on top. In
+ * widescreen the menu stays 4:3 in the middle of a wider picture; here the background is
+ * drawn across the whole width instead, nearest pixel (sharp), with the menu's own pixel
+ * shape: pinned to the bottom (its top cropped), the globe screen's centred (THIRD3.RAW,
+ * cropped top and bottom), each level's picture (VIEW.RAW) placed to keep its title. Inside
+ * the menu's 4:3 area, the pixels that differ from the background are the menu's (text,
+ * sprites, 3D), drawn where they were; the rest is the widened background. */
+#define MENU_BACKGROUND (*(const uint8_t *volatile *)0x44BDAC)
+#define LEVEL_NAME      ((const char *)0x44AF5A)
+#define MENU_SCREEN     (*(volatile uint16_t *)0x4B13C0)  /* screen_current */
+static char raw_name[16], raw_level[16];       /* the last picture loaded, and the level then */
+static uint8_t bg_copy[MENU_W * MENU_H];       /* the background of the menu picture composed */
+static char bg_name[16], bg_level[16];
+static int bg_valid;
+
+static void copy_word(char *to, const char *from, int size)
+{
+    int i;
+    for (i = 0; i < size - 1 && from[i] && from[i] != '.' && from[i] != ' '; i++)
+        to[i] = (char)(from[i] >= 'a' && from[i] <= 'z' ? from[i] - 32 : from[i]);
+    to[i] = 0;
+}
+
+/* Site raw_name_call: raw_picture_load's CALL file_open, the name in EAX (thunks.asm) */
+void __cdecl brr_raw_loaded(const char *name)
+{
+    static int logged;
+    if (!name)
+        return;
+    lstrcpynA(raw_name, name, sizeof raw_name);
+    CharUpperA(raw_name);
+    copy_word(raw_level, LEVEL_NAME, sizeof raw_level);
+    if (logged++ < 24)
+        brr_log("menu: background %s (level %s)", raw_name, raw_level);
+}
+
+/* For a fresh menu picture: the game's saved background, and which picture it is */
+static void menu_background_take(void)
+{
+    const uint8_t *bg = MENU_BACKGROUND;
+    bg_valid = 0;
+    if (!bg)
+        return;
+    memcpy(bg_copy, bg, sizeof bg_copy);
+    lstrcpyA(bg_name, raw_name);
+    lstrcpyA(bg_level, raw_level);
+    bg_valid = 1;
+}
+
+static int globe_screen(void)
+{
+    return bg_valid && !lstrcmpA(bg_name, "THIRD3.RAW");
+}
+
+/* Each level's picture (VIEW.RAW): the rows its title spans (of 200), to keep in view */
+static const struct { const char *level; uint8_t y0, y1; } title_rows[] = {
+    {"CHOPPER1", 35, 150}, {"CHOPPER2", 30, 70}, {"CHOPPER3", 40, 80}, {"CITY1", 35, 110},
+    {"CITY2", 3, 76}, {"CITY4", 76, 161}, {"DIRT1", 10, 76}, {"DIRT2", 32, 112}, {"DIRT3", 47, 122},
+    {"MOON1", 14, 170}, {"MOON2", 7, 87}, {"MOON3", 23, 93}, {"RIG1", 25, 95}, {"RIG3", 75, 150},
+    {"RIG4", 10, 90}, {"RUF1", 5, 85}, {"RUF2", 51, 126}, {"RUF3", 36, 116}, {"SNOW1", 6, 196},
+    {"SNOW2", 6, 86}, {"SNOW3", 77, 162}, {"WATER1", 62, 137}, {"WATER2", 62, 142}, {"WATER3", 68, 148},
+};
+
+/* The first source row shown, for visible rows: bottom-pinned, centred, or around a title */
+static double background_top(double visible)
+{
+    size_t i;
+    if (visible >= MENU_H)
+        return (MENU_H - visible) / 2;
+    if (globe_screen())
+        return (MENU_H - visible) / 2;
+    if (!lstrcmpA(bg_name, "VIEW.RAW")) {
+        for (i = 0; i < sizeof title_rows / sizeof title_rows[0]; i++)
+            if (!lstrcmpA(bg_level, title_rows[i].level)) {
+                double top = (title_rows[i].y0 + title_rows[i].y1) / 2.0 - visible / 2;
+                if (top < 0) top = 0;
+                if (top > MENU_H - visible) top = MENU_H - visible;
+                return top;
+            }
+        return (MENU_H - visible) / 2;
+    }
+    return MENU_H - visible;
+}
+
+/* After a menu picture is composed into out (out_w x out_h, rows out_pitch apart; 32-bit with
+ * colours, else 8-bit): the background widened under the menu. pic: the menu picture composed. */
+static void widen_background(const uint8_t *pic, int pitch, void *out, int out_w, int out_h, int out_pitch,
+                             const struct layout *l, const uint32_t *colours)
+{
+    static int16_t source_x[RENDER_LIMIT_W], menu_x[RENDER_LIMIT_W];
+    static int logged;
+    double kx, ky, top;
+    int i, n = 0, same = 0, x, y;
+    if (!bg_valid || out_w > RENDER_LIMIT_W || out_w <= MENU_W * l->sx || MENU_SCREEN == 0x12)
+        return;  /* 0x12: the end video, which reads its chunks into the background's buffer */
+    for (i = 0; i < MENU_W * MENU_H; i += 97, n++)  /* this picture is drawn on this background? */
+        same += pic[(i / MENU_W) * pitch + i % MENU_W] == bg_copy[i];
+    if (same * 5 < n)
+        return;
+    kx = (double)out_w / MENU_W;
+    ky = kx * l->sy / l->sx;
+    top = background_top(out_h / ky);
+    if (!logged++)
+        brr_log("menu: widescreen backgrounds: %s widened %.2f x %.2f to %dx%d, rows from %.1f shown", bg_name, kx, ky,
+                out_w, out_h, top);
+    for (x = 0; x < out_w; x++) {
+        int sxp = (int)((x + 0.5) / kx);
+        source_x[x] = (int16_t)(sxp > MENU_W - 1 ? MENU_W - 1 : sxp);
+        menu_x[x] = (int16_t)(x >= l->x && x < l->x + MENU_W * l->sx ? (x - l->x) / l->sx : -1);
+    }
+    for (y = 0; y < out_h; y++) {
+        int sy = (int)(top + (y + 0.5) / ky + 1000) - 1000;
+        int my = y >= l->y && y < l->y + MENU_H * l->sy ? (y - l->y) / l->sy : -1;
+        const uint8_t *menu_row = my >= 0 ? pic + (size_t)my * pitch : NULL;
+        const uint8_t *bg_row = my >= 0 ? bg_copy + my * MENU_W : NULL;
+        const uint8_t *src = sy >= 0 && sy < MENU_H ? bg_copy + sy * MENU_W : NULL;
+        for (x = 0; x < out_w; x++) {
+            int mx = menu_x[x];
+            uint8_t v;
+            if (menu_row && mx >= 0 && menu_row[mx] != bg_row[mx])
+                continue;  /* the menu's own pixel */
+            v = src ? src[source_x[x]] : 0;
+            if (colours)
+                ((uint32_t *)out)[(size_t)y * out_pitch + x] = src ? colours[v] : 0;
+            else
+                ((uint8_t *)out)[(size_t)y * out_pitch + x] = v;
+        }
+    }
+}
+
+static int wide_menus(int w, int h)
+{
+    return brr_widescreen && cfg.widescreen_menus && w == MENU_W && h == MENU_H;
+}
+
 static uint8_t *picture;
 static size_t picture_size;
 
@@ -330,8 +472,13 @@ const uint8_t *brr_render_compose(int out_w, int out_h, int out_pitch)
             brr_log("render: no memory for a %dx%d picture", out_w, out_h);
         return NULL;
     }
+    if (brr_widescreen && w == MENU_W && h == MENU_H)
+        menu_background_take();
+    menu_square = brr_widescreen && globe_screen();
     fit(w, h, out_w, out_h, &l);
     compose(pixels, w, h, pitch, out, out_w, out_h, out_pitch, &l);
+    if (wide_menus(w, h))
+        widen_background(pixels, pitch, out, out_w, out_h, out_pitch, &l, NULL);
     brr_hud_overlay(pixels, w, h, out, out_w, out_h, out_pitch, l.x, l.y, l.sx, l.sy, NULL, 0);
     final_w = out_w;
     final_h = out_h;
@@ -446,6 +593,8 @@ int brr_render_compose32(uint32_t *out, int out_w, int out_h, int out_pitch)
         if (!game_picture(&origin, &w, &h, &pitch))
             return 0;
         pixels = origin;
+        if (brr_widescreen && w == MENU_W && h == MENU_H)
+            menu_background_take();
         if (!shown_pixels)
             shown_pixels = (uint8_t *)HeapAlloc(GetProcessHeap(), 0, (size_t)brr_view_max_w * brr_view_max_h);
         shown_origin = NULL;
@@ -456,10 +605,13 @@ int brr_render_compose32(uint32_t *out, int out_w, int out_h, int out_pitch)
             shown_h = h;
         }
     }
+    menu_square = brr_widescreen && globe_screen();
     fit(w, h, out_w, out_h, &l);
     palette_colours();
     sky = brr_sky_begin(origin, w, h, pitch, l.sx, l.sy, l.x, l.y) > 0;
     compose32(pixels, origin, w, h, pitch, out, out_w, out_h, out_pitch, &l, sky);
+    if (wide_menus(w, h))
+        widen_background(pixels, pitch, out, out_w, out_h, out_pitch, &l, colours);
     /* the race HUD (hud.c) on top; a fade's steps keep the HUD the picture was shown with */
     if (!replaying)
         shown_hud = brr_hud_overlay(origin, w, h, out, out_w, out_h, out_pitch, l.x, l.y, l.sx, l.sy, colours, 0);
@@ -884,6 +1036,10 @@ void brr_display_list_report(void)
         brr_log("precise 3D: the game's 32-bit maths would have got %lu projected corners, %lu faces' facing and "
                 "%lu screen-edge clips wrong", (unsigned long)brr_count_project, (unsigned long)brr_count_backface,
                 (unsigned long)brr_count_clip);
+    if (brr_edge_squares)
+        brr_log("draw distance: %lu squares at the screen's sides nearer than 8 squares filled in (the near "
+                "area's 4:3 shape left them out)", (unsigned long)brr_edge_squares);
+    brr_edge_squares = 0;
     if (brr_count_unlit)
         brr_log("object lighting: %lu times the game would have left far objects unlit after an effect",
                 (unsigned long)brr_count_unlit);
@@ -898,6 +1054,34 @@ void brr_display_list_report(void)
                 (unsigned long)record_count, (unsigned long)list_full_frames);
     }
     list_frames = list_full_frames = nodes_max = records_max = records_sum = nodes_sum = 0;
+}
+
+/* ---- the mouse camera at a race's start ----
+ * race_draw (0x414DBC) swings the follow camera by the mouse's movement since the last race
+ * frame: the display position (0x44BBEC/EE) less the last one (0x44BF3A/3C). On a race's first
+ * frame the last one is the menus' mapped position, and when DirectDraw changes size (the menus'
+ * picture to the race's) cnc-ddraw rescales the pointer, so the first differences can be
+ * hundreds of pixels: a violent twitch (the director, 2026-11-16, a laptop's touchpad). For a
+ * second from a race's first frame and from each change of size, the last position is kept
+ * equal to the current one. Called before each race (and playback) draw (interp.c). */
+#define MOUSE_LAST_X (*(volatile int16_t *)0x44BF3A)
+#define MOUSE_LAST_Y (*(volatile int16_t *)0x44BF3C)
+void brr_mouse_settle(void)
+{
+    static int64_t last_call, settle_until;
+    static int last_switches = -1, logged;
+    int64_t now = brr_qpc(), freq = brr_qpc_freq();
+    if (now - last_call > freq / 4 || mode_switches != last_switches) {
+        settle_until = now + freq;
+        if (logged++ < 4)
+            brr_log("mouse: the race's first second (or a picture size change): the mouse camera's movement held at 0");
+    }
+    last_call = now;
+    last_switches = mode_switches;
+    if (now < settle_until) {
+        MOUSE_LAST_X = MOUSE_X;
+        MOUSE_LAST_Y = MOUSE_Y;
+    }
 }
 
 static int64_t present_mark;  /* for the clock log's presenting time */

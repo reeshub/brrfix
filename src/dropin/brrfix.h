@@ -38,7 +38,9 @@ struct brr_config {
                               * enlarged by whole numbers (hud.c; the new renderer only); game = the game's own */
     int hud_aspect43;        /* [display] hud_aspect43: the HUD's blocks the 4:3 monitor's shape (1) or square */
     int hud_large;           /* [display] hud_size=large: the 1996 low resolution's size; small (half) the default */
+    int hud_map_large;       /* [display] hud_map=large: the map twice the size, from the high-resolution art */
     int widescreen;          /* [display] widescreen: Max races at the screen's shape (render.c) */
+    int widescreen_menus;    /* [display] widescreen_menus: menu backgrounds across the whole width (render.c) */
     int precise_3d;          /* [display] precise_3d: the 3D maths in 64 bits and culling by the real scale */
     int object_lighting;     /* [display] object_lighting: far objects lit after effects (the game left them unlit) */
     int object_shading;      /* [display] object_shading: 0 game (smooth near, flat beyond 8 squares), 1 smooth, 2 flat */
@@ -114,7 +116,8 @@ float brr_clock_frame_fraction(void);
 int64_t brr_qpc(void);
 int64_t brr_qpc_freq(void);
 void brr_clock_report(int final);
-void brr_display_list_report(void);  /* render.c: the display list's fill, every report */
+void brr_display_list_report(void);
+void brr_mouse_settle(void);            /* render.c: no mouse-camera jump at a race's start */  /* render.c: the display list's fill, every report */
 
 /* patch.c */
 void brr_patch_all(void);
@@ -168,6 +171,8 @@ extern int brr_hud_active;
 void brr_hud_setup(void);
 void brr_hook_hud_draw(void);
 void brr_hook_hud_icon(void);
+void brr_hook_hud_map(void);
+void brr_hook_raw_name(void);              /* thunks.asm: site raw_name_call */
 void brr_hook_sprite_scaled(void);
 int brr_hud_overlay(const uint8_t *origin, int w, int h, void *out, int out_w, int out_h, int out_pitch,
                     int px, int py, int sx, int sy, const uint32_t *colours, int again);
@@ -192,6 +197,7 @@ extern uint32_t brr_draw_vision, brr_draw_texture;
 #define BRR_NODES 8192
 extern uint8_t brr_records[], brr_nodes[];
 extern uint32_t brr_record_limit;
+extern uint32_t brr_edge_squares;            /* distance.c: squares added near the screen's sides */
 extern int32_t brr_object_vision;           /* the squares objects are gathered from (site object_radius_vision) */
 void brr_hook_render_view(void);
 

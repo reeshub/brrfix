@@ -114,7 +114,8 @@ screens, enlarged exactly). The game sees as much from top to bottom as in
 4:3 and more at the sides; nothing is stretched, and the dashboard stays in
 the corners. The menus stay 4:3, enlarged by whole numbers in the middle of a
 picture of your screen's shape, which cnc-ddraw enlarges to fill the screen's
-height, with black bars at the sides. Unless the screen's height is a
+height, with their backgrounds across the whole screen (Widescreen menu
+backgrounds, below) or black bars at the sides. Unless the screen's height is a
 multiple of 200 (800 on the Steam Deck), the picture changes size between the
 menus and a race, which cnc-ddraw may show as a brief flicker.
 
@@ -233,12 +234,12 @@ Beyond it the ground is plain shaded colour, which is quicker to draw.
 
 How trees, buildings and vehicles are lit by the level's sun:
 
-- **Smooth** (the default): from their corners, everywhere, so an object
-  looks the same near and far.
+- **Flat** (the default): by face, everywhere, so an object looks the same
+  near and far.
+- **Smooth:** from their corners, everywhere.
 - **Original:** smooth close up and flat (by face) beyond 8 squares, as in
   1996. Objects change as they cross that distance, and the smooth look is
   darker on boxy shapes, so they seem to go dark as they come near.
-- **Flat:** by face, everywhere.
 
 **Object detail**
 
@@ -280,10 +281,26 @@ it's square either way.
 - **Large (1996):** as big as the game's low resolution showed it (4 on the
   Steam Deck, 5 at 1080).
 
+The track map is twice the size of the rest, with the full detail of the
+game's 640x480 map.
+
 Either way the dashboard is laid out afresh: the map at the top left and the
 place at the top right sit the same distance from their edges, the nitro and
 the lap counter line up under the place with even gaps, and the messages
 (DAMAGE, FINAL LAP, WRONG WAY) are centred.
+
+**Widescreen menu backgrounds** (Modern renderer, with Max, Native widescreen
+and full screen; on by default)
+
+With native widescreen the menus stay 4:3 in the middle of the screen.
+Ticked, each menu's background picture is enlarged to the screen's whole
+width instead of leaving black bars, sharply (each of its pixels repeated),
+with the menu's text, buttons and 3D drawn over it where they always were.
+As the picture is wider than it was, some of it is cropped: the top for
+most menus; the top and bottom on the globe where you choose a race (whose
+globe and lettering are drawn round, with square pixels); and on each
+level's picture whichever part keeps the level's title in view. Unticked:
+black bars at the sides.
 
 
 ## Audio

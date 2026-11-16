@@ -25,7 +25,7 @@ import brrpatch_build
 import dos_build
 from common import DATA, ROOT, WORK
 from dropin_build import WATCOM
-from dropin_package import LICENCES, ZIP_DATE, crlf, game_checksums
+from dropin_package import LICENCES, crlf, game_checksums, zip_date
 from prepkit import rel
 
 HELP = "zip the DOS patch for players: BRRPATCH.EXE, README.TXT and the Python patcher"
@@ -87,9 +87,10 @@ def main(args):
         return 1
     RELEASE.mkdir(parents=True, exist_ok=True)
     out = RELEASE / f"brr-dos-patch-{version}.zip"
+    date = zip_date()
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as archive:
         for name, data in files.items():
-            info = zipfile.ZipInfo(name, ZIP_DATE)
+            info = zipfile.ZipInfo(name, date)
             info.compress_type = zipfile.ZIP_DEFLATED
             archive.writestr(info, data)
     print(f"  {rel(out)} ({out.stat().st_size:,} bytes):")

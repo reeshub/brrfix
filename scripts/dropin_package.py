@@ -18,6 +18,7 @@ import hashlib
 import io
 import json
 import re
+import time
 import urllib.request
 import zipfile
 
@@ -41,8 +42,10 @@ CNC_DDRAW = {"version": "v7.1.0.0",
 # from the release zip: cnc-ddraw itself, and the shaders our ddraw.ini presets name
 CNC_FILES = ["ddraw.dll", "Shaders/nearest-neighbor.glsl", "Shaders/interpolation/lanczos2-sharp.glsl",
              "Shaders/interpolation/catmull-rom-bilinear.glsl"]
-# A fixed date for every entry, so the zip is the same each time it's built.
-ZIP_DATE = (2026, 1, 1, 0, 0, 0)
+def zip_date():
+    """Every entry dated the time it was packaged (local time; zip stores no time zone), so
+    builds can be told apart by their files' dates (the director, 2026-11-16)."""
+    return time.localtime()[:6]
 
 
 def game_checksums():
@@ -145,9 +148,10 @@ def main(args):
         return 1
     RELEASE.mkdir(parents=True, exist_ok=True)
     out = RELEASE / f"big-red-launcher-{version}.zip"
+    date = zip_date()
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as archive:
         for name, data in files.items():
-            info = zipfile.ZipInfo(name, ZIP_DATE)
+            info = zipfile.ZipInfo(name, date)
             info.compress_type = zipfile.ZIP_DEFLATED
             archive.writestr(info, data)
     print(f"  {rel(out)} ({out.stat().st_size:,} bytes):")
