@@ -188,6 +188,7 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "precise_3d")) return cfg.precise_3d && brr_renderer_active;
     if (!strcmp(fix, "object_lighting")) return cfg.object_lighting && brr_renderer_active;
     if (!strcmp(fix, "object_shading")) return cfg.object_shading && brr_renderer_active;
+    if (!strcmp(fix, "object_detail")) return (cfg.object_detail != 0 || cfg.debug_lod_log) && brr_renderer_active;
     if (!strcmp(fix, "widescreen")) return brr_widescreen && brr_renderer_active && cfg.render_max;
     if (!strcmp(fix, "menu_pad")) return cfg.menu_navigation;
     if (!strcmp(fix, "screenshot")) return (cfg.render_max && brr_renderer_active) || brr_sky_active;
@@ -329,6 +330,11 @@ static int replacement(const struct site_info *s, uint8_t *out)
     } else if (!strcmp(n, "object_radius_vision") && s->length == 4) {
         brr_object_vision = cfg.max_draw_distance;  /* objects as far as the ground */
         put_abs32(out, (void *)&brr_object_vision);
+    } else if (!strcmp(n, "lod_select") && s->length == 7) {
+        out[0] = 0xE8;  /* CALL brr_hook_lod: brr_lod_depth for the loop, then the game's CMP */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_lod);
+    } else if (!strcmp(n, "lod_compare") && s->length == 4) {
+        put_abs32(out, (void *)&brr_lod_depth);  /* CMP ECX,[0x54B488] -> CMP ECX,[brr_lod_depth] */
     } else if (!strcmp(n, "shading_threshold") && s->length == 31) {
         out[0] = 0xE8;  /* CALL brr_hook_shading_threshold (EBP), then the XOR EDI,EDI it replaced */
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_shading_threshold);

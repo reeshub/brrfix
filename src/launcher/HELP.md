@@ -83,27 +83,24 @@ Tab) broke its window, so it's removed.
   the first screen. Races are drawn at 640x480; the menus are always 320x200
   pictures.
 - **Low (320x200):** as the game starts.
-- **Max (experimental)** (Modern renderer only, and its default): races and the attract-mode
+- **Max** (Modern renderer only, and its default): races and the attract-mode
   demo drawn with as many pixels as your screen (or window) is tall, up to
-  the Max limit below, in the game's 4:3 shape, and never less than
-  640x480: 1056x792 on 1280x800 (Steam Deck), 1440x1080 on 1920x1080 and
-  bigger screens. cnc-ddraw then enlarges it as Scaling says. The dashboard
-  (position, laps, map) is laid over it in whole-number blocks (see Modern,
-  above). Menus
-  and split-screen races stay as they are. If something looks wrong in a
-  race, go back to High and tell us.
+  the Max limit below, at your screen's shape (native widescreen, below) or
+  4:3, and never less than 640x480: 1280x800 on the Steam Deck, 1920x1080
+  on a 1080p screen. cnc-ddraw then enlarges it if need be, as Scaling says.
+  The dashboard (position, laps, map) is laid over it in whole-number blocks
+  (see Modern, above). Menus and split-screen races stay as they are.
 
 **Max limit** (Modern renderer, with Max)
 
 How many rows Max draws races with at most:
 
-- **1080 (1440x1080)** (the default): smooth on any modern PC. A 4K screen
-  shows it doubled exactly.
-- **1440 (1920x1440):** sharper on 1440p and 4K screens; needs a fast PC.
-- **Screen height:** your screen's (or window's) own height, the sharpest.
-  The game draws in software, on the processor, so every extra row costs
-  frame rate: on a 4K screen (2880x2160) even a fast PC manages only about 25
-  frames a second.
+- **Screen height** (the default): your screen's (or window's) own height,
+  the sharpest. The game draws in software, on the processor, so every extra
+  row costs frame rate: on a 4K screen even a fast PC manages only about 25
+  frames a second, so pick 1080 there.
+- **1080:** smooth on any modern PC. A 4K screen shows it doubled exactly.
+- **1440:** sharper on 1440p and 4K screens; needs a fast PC.
 
 With native widescreen (below) the limit is the race's height, and its width
 follows the screen's shape: 1920x1080 at 1080.
@@ -115,16 +112,18 @@ or wider), races are drawn at your screen's own shape: 1280x800 on the Steam
 Deck, 1920x1080 on a 1080p screen (and, with the 1080 limit, on 1440p and 4K
 screens, enlarged exactly). The game sees as much from top to bottom as in
 4:3 and more at the sides; nothing is stretched, and the dashboard stays in
-the corners. The menus stay 4:3, enlarged by whole numbers in the middle of
-the screen with black bars at the sides, and the picture no longer changes
-size between the menus and a race.
+the corners. The menus stay 4:3, enlarged by whole numbers in the middle of a
+picture of your screen's shape, which cnc-ddraw enlarges to fill the screen's
+height, with black bars at the sides. Unless the screen's height is a
+multiple of 200 (800 on the Steam Deck), the picture changes size between the
+menus and a race, which cnc-ddraw may show as a brief flicker.
 
 The game only works out the ground it needs for a 4:3 view, in a grid of
-limited size; it's widened to match, up to that grid's edge. That's enough
-for 16:10 and 16:9 with the in-game sliders. With the Original engine max
-draw distance, or on ultrawide screens, the farthest ground at the far left
-and right may be missing. In a window (which is 4:3), on a 4:3 screen and in
-split-screen races the picture stays 4:3.
+limited size; it's widened to match, up to that grid's edge, and the draw
+distances chosen here (Race world) fill in the rest. With the in-game sliders
+on ultrawide screens, the farthest ground at the far left and right may be
+missing. In a window (which is 4:3), on a 4:3 screen and in split-screen
+races the picture stays 4:3.
 
 With the Original renderer, keypad + and - still switch between high and low
 resolution in the game, as in 1996. The Modern renderer keeps the one chosen
@@ -211,14 +210,14 @@ input lag.
 
 How far the ground, trees, buildings and the other vehicles are drawn:
 
-- **In-game sliders** (the default): the vision and texture distance sliders
-  in the game's options menu, as in 1996.
+- **In-game sliders:** the vision and texture distance sliders in the game's
+  options menu, as in 1996.
 - **Engine max (25):** as far as the game's engine draws on its own: 25
   landscape squares instead of the slider's 22. In widescreen the sides it
   can't hold are filled in by extra passes.
 - **Far (44):** the ground, scenery and vehicles go on to 44 squares, the
   ground beyond 25 drawn in extra passes.
-- **Max out (60):** as far as the engine's numbers allow.
+- **Max out (60)** (the default): as far as the engine's numbers allow.
 
 The further, the more there is to draw: it costs frame rate, as the game
 draws in software. With any but the first, the in-game sliders are ignored,
@@ -236,10 +235,24 @@ How trees, buildings and vehicles are lit by the level's sun:
 
 - **Smooth** (the default): from their corners, everywhere, so an object
   looks the same near and far.
-- **As the game:** smooth close up and flat (by face) beyond 8 squares, as in
+- **Original:** smooth close up and flat (by face) beyond 8 squares, as in
   1996. Objects change as they cross that distance, and the smooth look is
   darker on boxy shapes, so they seem to go dark as they come near.
 - **Flat:** by face, everywhere.
+
+**Object detail**
+
+The game keeps up to six versions of each model, simpler with distance (a
+fence is a thin board far away and has thickness close up), and doesn't draw
+it at all beyond the last, usually 39 squares.
+
+- **Matched** (the default): each version is picked by the object's size on
+  screen, as the game picked it for its 640x480 picture. At today's sizes
+  the changes happen further away, where they can't be seen, and objects
+  reach the far draw distances.
+- **Original:** by distance, as in 1996: at today's sizes fences and barriers
+  visibly change shape close up, and objects stop at 39 squares.
+- **Highest:** always the most detailed version (more to draw).
 
 ### Miscellaneous
 
@@ -254,9 +267,23 @@ version's speed, while the race runs (they stop when you pause, as in DOS).
 
 The race dashboard (map, place, nitro, laps, damage and messages) is the
 game's 320x200 art, enlarged by whole numbers. Ticked, each of its pixels is
-a little taller than wide (3x4 screen pixels on the Steam Deck, 4x5 at 1080
-rows), as the 320x200 art looked on a 1996 4:3 monitor. Unticked, square
-(4x4, 5x5): a little wider, as the art is in the files.
+a little taller than wide when the enlargement allows it (3x4 screen pixels
+with the Large size on the Steam Deck, 4x5 at 1080 rows), as the 320x200 art
+looked on a 1996 4:3 monitor. Unticked, square: a little wider, as the art is
+in the files. At the Small size's 2x2 there's no whole-number 4:3 shape, so
+it's square either way.
+
+**HUD size** (Modern renderer)
+
+- **Small** (the default): about half the 1996 size: 2 screen pixels for
+  each of the art's on 800 and 900 rows, 3 at 1080, 4 at 1440.
+- **Large (1996):** as big as the game's low resolution showed it (4 on the
+  Steam Deck, 5 at 1080).
+
+Either way the dashboard is laid out afresh: the map at the top left and the
+place at the top right sit the same distance from their edges, the nitro and
+the lap counter line up under the place with even gaps, and the messages
+(DAMAGE, FINAL LAP, WRONG WAY) are centred.
 
 
 ## Audio

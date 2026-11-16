@@ -78,7 +78,9 @@ int brr_view_max_w = 640, brr_view_max_h = 480;  /* the engine's buffers' size (
  * the menus enlarged into it at 4:3 by whole numbers, with black bars at the sides. */
 int brr_widescreen;
 int32_t brr_proj_scale;  /* set_view's horizontal scale for the view being set (0: the game's) */
+static int wide_out_w, wide_out_h;  /* widescreen: the screen's (or window's) shape */
 static void race_view_size(int out_w, int out_h, int *w, int *h);
+static void widescreen_mode(int w, int h, int *mode_w_out, int *mode_h_out);
 
 /* 2^32 / n, as the engine's own table at 0x54A380 (engine_init_core 0x447950: entry 1 is
  * 0xFFFFFFFF, entry 0 is never written), for n up to RECIPROCALS - 1 instead of 1,023 */
@@ -161,10 +163,13 @@ int brr_renderer_decide(int cnc_ddraw)
         int windowed = cfg.display_mode == DISPLAY_WINDOWED && window_w > 0 && window_h > 0;
         int out_w = windowed ? window_w : screen_w, out_h = windowed ? window_h : screen_h;
         brr_widescreen = cfg.widescreen && out_w * 3 > out_h * 4 && keeps_shape();
+        wide_out_w = out_w;
+        wide_out_h = out_h;
         race_view_size(out_w, out_h, &brr_view_max_w, &brr_view_max_h);
         if (brr_widescreen)
             brr_log("render: native widescreen: races at %dx%d (the %dx%d %s's shape), the field of view from "
-                    "the height; menus 4:3 in the middle of that picture", brr_view_max_w, brr_view_max_h,
+                    "the height; menus 4:3 by whole numbers in the middle of a picture of the screen's shape, "
+                    "which cnc-ddraw enlarges to fill its height", brr_view_max_w, brr_view_max_h,
                     out_w, out_h, windowed ? "window" : "screen");
         else if (cfg.widescreen)
             brr_log("render: native widescreen: off, as the %s is %dx%d (no wider than 4:3)",
@@ -712,15 +717,37 @@ uint32_t __cdecl brr_render_mode(uint32_t windowed)
     }
     mode_w = want_w > 0 ? want_w : MENU_W;
     mode_h = want_h > 0 ? want_h : MENU_H;
-    if (brr_widescreen) {  /* one size for every picture: the race's */
-        mode_w = brr_view_max_w;
-        mode_h = brr_view_max_h;
-    }
+    if (brr_widescreen)  /* the race's size, or the menus' of the screen's shape */
+        widescreen_mode(want_w > 0 ? want_w : MENU_W, want_h > 0 ? want_h : MENU_H, &mode_w, &mode_h);
     if (logged++ < 12)
         brr_log("render: DirectDraw at %dx%d, the picture's own size%s (screen 0x%02X; the game's display %ldx%ld)",
                 mode_w, mode_h, brr_modern_window ? ", in cnc-ddraw's window" : "",
                 (unsigned)*(volatile uint16_t *)0x4B13C0, (long)DISPLAY_W, (long)DISPLAY_H);
     return (uint32_t)mode_h << 16 | (uint32_t)mode_w;
+}
+
+/* Widescreen: the DirectDraw mode for a picture of w x h. Races: the race picture. Menus
+ * (320x200): as tall as their largest whole-number enlargement that fits the race picture's
+ * height, at the screen's shape, so cnc-ddraw enlarges the whole picture to fill the screen's
+ * height (by its sharp scaling, as the 4:3 presets do: 1.125 times at 900 rows), the menu 4:3
+ * in its middle with black bars at the sides. The same size as a race at 800 rows. */
+static void widescreen_mode(int w, int h, int *mode_w_out, int *mode_h_out)
+{
+    int k, mh, mw;
+    if (w != MENU_W || h != MENU_H || wide_out_h <= 0) {
+        *mode_w_out = brr_view_max_w;
+        *mode_h_out = brr_view_max_h;
+        return;
+    }
+    k = brr_view_max_h / MENU_H;
+    if (k < 1)
+        k = 1;
+    mh = MENU_H * k;
+    mw = ((mh * wide_out_w + wide_out_h / 2) / wide_out_h) & ~1;
+    if (mw > brr_view_max_w)
+        mw = brr_view_max_w;
+    *mode_w_out = mw;
+    *mode_h_out = mh;
 }
 
 /* Before a present: DirectDraw re-created at the picture's size when it has changed */
@@ -731,10 +758,11 @@ static void follow_picture_size(void)
     if (switching || !game_picture(&pixels, &w, &h, &pitch))
         return;
     if (brr_widescreen) {
-        w = brr_view_max_w;
-        h = brr_view_max_h;
-    }
-    if (w == mode_w && h == mode_h)
+        int ww, wh;
+        widescreen_mode(w, h, &ww, &wh);
+        if (ww == mode_w && wh == mode_h)
+            return;
+    } else if (w == mode_w && h == mode_h)
         return;
     switching = 1;
     want_w = w;
@@ -786,6 +814,48 @@ static void display_list_sample(void)
 
 /* thunks.asm counts what the game's 32-bit maths would have got wrong (precise_3d) */
 uint32_t brr_count_project, brr_count_backface, brr_count_clip, brr_count_unlit;
+
+/* ---- level of detail by the picture's size (sites lod_select, lod_compare) ----
+ * object_draw (0x4410C0) picks each model's level of detail from its depth: the first entry of
+ * the model's table whose depth is at least the object's, and nothing at all beyond the last.
+ * The depths suit the game's 640-wide picture; at today's sizes an object at the same depth is
+ * drawn several times bigger, so the switch to a coarser model (a fence's thickness, a barrier's
+ * detail) shows, and objects vanish nearer than they look. [display] object_detail: matched (the
+ * default) picks by the depth the object would have at 640 wide (its depth x 512 / the scale),
+ * highest always the most detailed, original as the game. */
+int32_t brr_lod_depth;
+
+static void lod_log(const int32_t *table)
+{
+    static const int32_t *seen[96];
+    static int count;
+    char text[200];
+    int i, n = 0;
+    for (i = 0; i < count; i++)
+        if (seen[i] == table)
+            return;
+    if (count == 96)
+        return;
+    seen[count++] = table;
+    for (i = 0; i < 6 && table[2 * i] != -1; i++)
+        n += wsprintfA(text + n, " %ld", (long)(table[2 * i] >> 16) * 10 / 512);
+    text[n] = 0;
+    brr_log("lod: model table %08lX, %d levels, up to depths (tenths of a square):%s%s", (unsigned long)table,
+            i, text, table[2 * i] == -1 ? ", then not drawn" : ", ...");
+}
+
+void __cdecl brr_lod_select(const int32_t *table)
+{
+    int32_t z = *(volatile int32_t *)0x54B488, scale = *(volatile int32_t *)0x542000;
+    if (cfg.debug_lod_log)
+        lod_log(table);
+    if (cfg.object_detail == 2)
+        brr_lod_depth = z < 0 ? z : 0;
+    else if (cfg.object_detail == 1 && scale > 512)
+        brr_lod_depth = (int32_t)((int64_t)z * 512 / scale);
+    else
+        brr_lod_depth = z;
+}
 
 /* Site shading_threshold: the distance in squares inside which display_list_draw lights objects
  * smoothly (vertex normals), flat (face normals) beyond: the game's clamp(vision - 9, 3, 8), or

@@ -84,7 +84,7 @@ static void load_config(void)
     cfg.renderer_new = lstrcmpiA(text, "original") != 0;
     GetPrivateProfileStringA("display", "render_resolution", "max", text, sizeof text, path);
     cfg.render_max = !lstrcmpiA(text, "max");
-    GetPrivateProfileStringA("display", "render_max_height", "1080", text, sizeof text, path);
+    GetPrivateProfileStringA("display", "render_max_height", "screen", text, sizeof text, path);
     cfg.render_max_rows = !lstrcmpiA(text, "screen") ? 0 : atoi(text);
     if (cfg.render_max_rows != 0 && cfg.render_max_rows < 480)
         cfg.render_max_rows = 1080;
@@ -120,7 +120,7 @@ static void load_config(void)
         cfg.window_scale = 0;
     GetPrivateProfileStringA("display", "aspect", "4:3", text, sizeof text, path);
     cfg.window_aspect43 = !lstrcmpiA(text, "4:3");
-    cfg.max_draw_distance = ini_int(path, "display", "max_draw_distance", 0);
+    cfg.max_draw_distance = ini_int(path, "display", "max_draw_distance", DRAW_DISTANCE_FAR_MAX);
     GetPrivateProfileStringA("display", "texture_distance", "draw", text, sizeof text, path);
     cfg.texture_distance = !lstrcmpiA(text, "draw") ? -1 : !lstrcmpiA(text, "slider") ? 0 : atoi(text);
     if (cfg.max_draw_distance < 0)
@@ -136,11 +136,15 @@ static void load_config(void)
     GetPrivateProfileStringA("display", "hud", "lowres", text, sizeof text, path);
     cfg.hud_lowres = lstrcmpiA(text, "game") != 0;
     cfg.hud_aspect43 = ini_int(path, "display", "hud_aspect43", 1);
+    GetPrivateProfileStringA("display", "hud_size", "small", text, sizeof text, path);
+    cfg.hud_large = !lstrcmpiA(text, "large");
     cfg.widescreen = ini_int(path, "display", "widescreen", 1);
     cfg.precise_3d = ini_int(path, "display", "precise_3d", 1);
     cfg.object_lighting = ini_int(path, "display", "object_lighting", 1);
     GetPrivateProfileStringA("display", "object_shading", "smooth", text, sizeof text, path);
     cfg.object_shading = !lstrcmpiA(text, "smooth") ? 1 : !lstrcmpiA(text, "flat") ? 2 : 0;
+    GetPrivateProfileStringA("display", "object_detail", "matched", text, sizeof text, path);
+    cfg.object_detail = !lstrcmpiA(text, "original") ? 0 : !lstrcmpiA(text, "highest") ? 2 : 1;
     cfg.colour_animation = ini_int(path, "display", "colour_animation", 1);
     cfg.menu_navigation = ini_int(path, "controller", "menu_navigation", 1);
     cfg.show_version = ini_int(path, "display", "show_version", 1);
@@ -204,6 +208,7 @@ static void load_config(void)
     cfg.debug_span_census = ini_int(path, "debug", "span_census", 0);
     GetPrivateProfileStringA("debug", "level", "", cfg.debug_level, sizeof cfg.debug_level, path);
     cfg.debug_shade_split = ini_int(path, "debug", "shade_split", 0);
+    cfg.debug_lod_log = ini_int(path, "debug", "lod_log", 0);
     cfg.debug_shot_tick = ini_int(path, "debug", "shot_tick", 0);
     cfg.debug_shade_no_corners = ini_int(path, "debug", "shade_no_corners", 0);
     if (cfg.clock_original)

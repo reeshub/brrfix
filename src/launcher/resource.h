@@ -44,6 +44,10 @@
 #define IDC_TEXTURES_LABEL 1232
 #define IDC_LIGHTING     1233
 #define IDC_LIGHTING_LABEL 1234
+#define IDC_DETAIL       1235
+#define IDC_DETAIL_LABEL 1236
+#define IDC_HUDSIZE      1237
+#define IDC_HUDSIZE_LABEL 1238
 
 /* Audio */
 #define IDC_PAGE_AUDIO   1300

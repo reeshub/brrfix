@@ -23,6 +23,7 @@
         extrn   _brr_count_clip:dword
         extrn   _brr_count_unlit:dword
         extrn   _brr_shading_threshold:near
+        extrn   _brr_lod_select:near
         extrn   _brr_landscape_width:near
         extrn   _brr_hud_begin:near
         extrn   _brr_hud_end:near
@@ -106,7 +107,7 @@
         public  _brr_hook_hud_draw, _brr_hook_hud_icon, _brr_hook_sprite_scaled
         public  _brr_hook_proj_scale, _brr_hook_landscape_width
         public  _brr_backface, _brr_clip_t_x, _brr_clip_t_y, _brr_cull_margin, _brr_shading_restore
-        public  _brr_project_x, _brr_project_y, _brr_hook_shading_threshold
+        public  _brr_project_x, _brr_project_y, _brr_hook_shading_threshold, _brr_hook_lod
 
         .code
 
@@ -589,6 +590,19 @@ sr_set:
         call    eax
         ret
 
+; Site lod_select (object_draw 0x4411BE: CMP dword ptr [0x54B488],0 before the level-of-detail
+; loop; ESI = the model's table of (depth, offset) pairs, ended by -1; the depth at 0x54B488 is
+; 16.16) -> CALL here: brr_lod_select (render.c) sets brr_lod_depth, which the loop's compare
+; reads (site lod_compare); then the game's CMP, for its JS after.
+_brr_hook_lod:
+        pushad
+        push    esi
+        call    _brr_lod_select
+        add     esp, 4
+        popad
+        cmp     dword ptr ds:[54B488h], 0
+        ret
+
 ; Site shading_threshold (display_list_draw 0x42B8BA, 31 bytes: EBP = clamp(vision - 9, 3, 8),
 ; the distance in squares inside which objects get smooth vertex lighting, and XOR EDI,EDI)
 ; -> CALL here, then XOR EDI,EDI: brr_shading_threshold ([display] object_shading) chooses it.
@@ -662,16 +676,22 @@ _brr_hook_hud_icon:
 
 ; Site sprite_scaled_entry: sprite_draw_scaled's first instructions (0x426F90: PUSH ESI;
 ; PUSH EDI; PUSH EBP; SUB ESP,50h) -> JMP here. While the HUD draws, brr_hud_sprite(its
-; caller, y in CX) picks the layer; then those instructions and on from 0x426F96.
+; caller, the bank in EAX, the index in DX, x in BX, y in CX) picks the element's layer and
+; measures it; then those instructions and on from 0x426F96.
 _brr_hook_sprite_scaled:
         cmp     dword ptr [_brr_hud_drawing], 0
         je      hss_continue
         pushad
-        movsx   eax, cx
-        push    eax
-        push    dword ptr [esp + 36]            ; the return address (above PUSHAD and y)
+        movsx   esi, cx
+        push    esi                             ; y (640-wide units)
+        movsx   esi, bx
+        push    esi                             ; x
+        movsx   esi, dx
+        push    esi                             ; the sprite's index
+        push    eax                             ; its bank
+        push    dword ptr [esp + 48]            ; the return address (above PUSHAD and 4 pushes)
         call    _brr_hud_sprite
-        add     esp, 8
+        add     esp, 20
         popad
 hss_continue:
         push    esi

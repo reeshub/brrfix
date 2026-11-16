@@ -171,14 +171,16 @@ screen on a wide screen, races are drawn at the screen's own shape ("Native
 widescreen", [display] widescreen; the menus stay 4:3 in the middle).
 Windowed, it's a plain window drawn by cnc-ddraw: Alt+Enter switches to full
 screen and back. Its options: scaling, window size, colour depth,
-"Resolution: Max (experimental)" (the default: races drawn 4:3 as tall as the
-screen, up to "Max limit": 1080 rows by default, 1440, or the screen's own
-height; the game draws in software, so more rows cost frame rate), and the
+"Resolution: Max" (the default: races drawn as tall as the screen, at its
+shape with native widescreen, up to "Max limit": the screen's own height by
+default, 1080 or 1440; the game draws in software, so more rows cost frame
+rate), and the
 "Race world": "Draw distance" (the in-game sliders, the engine's own maximum
-of 25 squares, Far at 44 or Max out at 60, with the scenery and vehicles as far
-as the ground), "Textures" (how far the ground is textured) and "Object
-lighting" (smooth everywhere by default; the game switched to flat beyond 8
-squares). The 3D engine's maths is done in 64 bits at today's resolutions,
+of 25 squares, Far at 44 or Max out at 60, the default, with the scenery and
+vehicles as far as the ground), "Textures" (how far the ground is textured),
+"Object lighting" (smooth everywhere by default; the game switched to flat
+beyond 8 squares) and "Object detail" (each model's simpler versions picked
+by its size on screen, so fences don't change shape close up). The 3D engine's maths is done in 64 bits at today's resolutions,
 where its 32 bits overflowed ([display] precise_3d).
 
 Original (renderer=original; the only one on Windows 95, 98 and ME): the 1996

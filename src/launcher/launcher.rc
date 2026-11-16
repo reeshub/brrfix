@@ -26,7 +26,7 @@ BEGIN
     PUSHBUTTON      "Period defaults", IDC_PERIOD, 20, 134, 64, 14, WS_TABSTOP
     LTEXT           "For a 1990s PC with Windows 95, 98 or ME: full screen at the game's low resolution (320x200), drawn as the 1996 game drew it.", IDC_PAGE_GENERAL, 90, 133, 216, 24
     PUSHBUTTON      "Modern defaults", IDC_MODERN, 20, 162, 64, 14, WS_TABSTOP
-    LTEXT           "For today's Windows, Linux and Steam Deck: full screen, races drawn with up to 1080 rows (Max), sharp and in full colour by the Modern renderer, with modern pads.", IDC_PAGE_GENERAL, 90, 161, 216, 24
+    LTEXT           "For today's Windows, Linux and Steam Deck: full screen, races at your screen's resolution and drawn as far as the engine allows, sharp and in full colour by the Modern renderer, with modern pads.", IDC_PAGE_GENERAL, 90, 161, 216, 24
     LTEXT           "Each sets every setting; press Save or Play to keep them. Defaults, below, chooses the one for this PC.", IDC_PAGE_GENERAL, 20, 190, 286, 16
 
     /* Video (launcher.c, layout_video, shows each renderer's controls and moves the rows below
@@ -61,13 +61,17 @@ BEGIN
     GROUPBOX        "Miscellaneous", IDC_MISC_GROUP, 12, 150, 300, 44
     AUTOCHECKBOX    "Colour &animation (as in DOS)", IDC_COLOUR_ANIM, 18, 162, 140, 10, WS_TABSTOP
     AUTOCHECKBOX    "4:3 H&UD correction", IDC_HUD43, 160, 162, 140, 10, WS_TABSTOP
-    GROUPBOX        "Race world", IDC_WORLD_GROUP, 168, 102, 144, 60
+    LTEXT           "HUD si&ze:", IDC_HUDSIZE_LABEL, 18, 178, 40, 8
+    COMBOBOX        IDC_HUDSIZE, 62, 176, 94, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    GROUPBOX        "Race world", IDC_WORLD_GROUP, 168, 102, 144, 74
     LTEXT           "&Draw distance:", IDC_DRAWDIST_LABEL, 174, 116, 56, 8
     COMBOBOX        IDC_DRAWDIST, 232, 114, 74, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
     LTEXT           "Textur&es:", IDC_TEXTURES_LABEL, 174, 130, 56, 8
     COMBOBOX        IDC_TEXTURES, 232, 128, 74, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
     LTEXT           "O&bject lighting:", IDC_LIGHTING_LABEL, 174, 144, 56, 8
     COMBOBOX        IDC_LIGHTING, 232, 142, 74, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Ob&ject detail:", IDC_DETAIL_LABEL, 174, 158, 56, 8
+    COMBOBOX        IDC_DETAIL, 232, 156, 74, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
 
     /* Audio */
     GROUPBOX        "Music", IDC_PAGE_AUDIO, 12, 24, 300, 78

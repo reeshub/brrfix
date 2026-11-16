@@ -37,11 +37,13 @@ struct brr_config {
     int hud_lowres;          /* [display] hud=lowres: the race HUD from the 320x200 art on its own layers,
                               * enlarged by whole numbers (hud.c; the new renderer only); game = the game's own */
     int hud_aspect43;        /* [display] hud_aspect43: the HUD's blocks the 4:3 monitor's shape (1) or square */
+    int hud_large;           /* [display] hud_size=large: the 1996 low resolution's size; small (half) the default */
     int widescreen;          /* [display] widescreen: Max races at the screen's shape (render.c) */
     int precise_3d;          /* [display] precise_3d: the 3D maths in 64 bits and culling by the real scale */
     int object_lighting;     /* [display] object_lighting: far objects lit after effects (the game left them unlit) */
     int object_shading;      /* [display] object_shading: 0 game (smooth near, flat beyond 8 squares), 1 smooth, 2 flat */
     int texture_distance;    /* [display] texture_distance with max_draw_distance: 0 the slider's, else squares */
+    int object_detail;       /* [display] object_detail: 0 original, 1 matched to the resolution, 2 highest */
     int colour_animation;    /* [display] colour_animation: the levels' palette cycling, as in DOS (palanim.c) */
     int menu_navigation;     /* [controller] menu_navigation: B, and the stick's left and right, in menus (keys.c) */
     int language;            /* [display] language: 1-7 (ENG, USA, FRE, GER, ITA, SPA, JAP) */
@@ -84,6 +86,7 @@ struct brr_config {
     int debug_span_census;          /* log which span routines (polygon fills) are called */
     char debug_level[16];           /* tests: race this level (e.g. CITY1) whatever the menus chose */
     int debug_shade_split;          /* tests: smooth shading on the picture's left half only */
+    int debug_lod_log;              /* tests: each model's level-of-detail distances, once (render.c) */
     int debug_shot_tick;            /* tests: save the full-colour picture at this race tick */
     int debug_shade_no_corners;     /* tests: smooth shading without the corners' fractions */
 };
@@ -227,6 +230,8 @@ void brr_hook_proj_scale(void);             /* thunks.asm: sites proj_scale_stor
 void brr_hook_landscape_width(void);
 void brr_backface(void);                   /* thunks.asm: [display] precise_3d, object_lighting */
 void brr_project_x(void);
+void brr_hook_lod(void);                   /* thunks.asm: site lod_select; render.c */
+extern int32_t brr_lod_depth;
 void brr_hook_shading_threshold(void);
 int __cdecl brr_shading_threshold(void);
 extern uint32_t brr_count_unlit;

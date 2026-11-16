@@ -53,14 +53,16 @@ static const struct choice modes[] = {
 /* the Original renderer shows the first two; Max is the Modern renderer's (resolution=high
  * with render_resolution=max in BRRFIX.INI) */
 static const struct choice resolutions[] = {
-    {"High (640x480)", "high"}, {"Low (320x200)", "low"}, {"Max (experimental)", "max"}, {0, 0}};
+    {"High (640x480)", "high"}, {"Low (320x200)", "low"}, {"Max", "max"}, {0, 0}};
 #define ORIGINAL_RESOLUTIONS 2
 static const struct choice renderers[] = {{"Modern", "new"}, {"Original", "original"}, {0, 0}};
 static const struct choice distances[] = {{"In-game sliders", "0"}, {"Engine max (25)", "25"},
                                           {"Far (44)", "44"}, {"Max out (60)", "60"}, {0, 0}};
 static const struct choice texture_distances[] = {{"As draw distance", "draw"}, {"Engine max (25)", "25"},
                                                   {"In-game slider", "slider"}, {0, 0}};
-static const struct choice lightings[] = {{"Smooth", "smooth"}, {"As the game", "game"}, {"Flat", "flat"}, {0, 0}};
+static const struct choice lightings[] = {{"Smooth", "smooth"}, {"Original", "game"}, {"Flat", "flat"}, {0, 0}};
+static const struct choice details[] = {{"Matched", "matched"}, {"Original", "original"}, {"Highest", "highest"}, {0, 0}};
+static const struct choice hud_sizes[] = {{"Small", "small"}, {"Large (1996)", "large"}, {0, 0}};
 static const struct choice colour_depths[] = {{"256 colours (original)", "0"}, {"Full colour", "1"}, {0, 0}};
 static const struct choice languages[] = {
     {"English", "ENG"}, {"USA", "USA"}, {"French", "FRE"},
@@ -274,6 +276,10 @@ static int hidden_by_choice(HWND dialog, int id)
     case IDC_TEXTURES_LABEL:
     case IDC_LIGHTING:
     case IDC_LIGHTING_LABEL:
+    case IDC_DETAIL:
+    case IDC_DETAIL_LABEL:
+    case IDC_HUDSIZE:
+    case IDC_HUDSIZE_LABEL:
         return !fresh;
     case IDC_SMOOTH_SKY:
     case IDC_SMOOTH_SHADING:
@@ -322,13 +328,15 @@ static void layout_video(HWND dialog)
     bottom = !fresh ? 96 : full_colour(dialog) ? y + 41 : y + 15;
     place(dialog, IDC_DISPLAY_GROUP, 12, 24, 150, bottom - 24);
     /* Race world (Modern) under Smoothness, on the right; Miscellaneous below both */
-    top = !fresh ? 98 : 162;
+    top = !fresh ? 98 : 176;
     if (bottom > top)
         top = bottom;
     top += 4;
-    place(dialog, IDC_MISC_GROUP, 12, top, 300, 30);
+    place(dialog, IDC_MISC_GROUP, 12, top, 300, fresh ? 44 : 30);
     place(dialog, IDC_COLOUR_ANIM, 18, top + 12, fresh ? 140 : 280, 10);
     place(dialog, IDC_HUD43, 160, top + 12, 140, 10);
+    place(dialog, IDC_HUDSIZE_LABEL, 18, top + 28, 40, 8);
+    place(dialog, IDC_HUDSIZE, 62, top + 26, 94, 60);
 }
 
 /* The resolutions each renderer offers, keeping the choice where it can (Max -> High) */
@@ -400,7 +408,7 @@ static const struct { int id; const char *text; } tips[] = {
                    "like. Original: the 1996 game's own drawing, as it was."},
     {IDC_MODE, "Full screen, or a window: Original, the game's own with its 1996 menu bar; Modern, Alt+Enter for "
                "full screen."},
-    {IDC_RESOLUTION, "High: 640x480. Low: 320x200, as the game starts. Max (Modern, experimental): races with as "
+    {IDC_RESOLUTION, "High: 640x480. Low: 320x200, as the game starts. Max (Modern): races with as "
                      "many pixels as Max limit allows. Original: keypad + and - switch in the game."},
     {IDC_MAXLIMIT, "How many rows Max draws races with at most, or the screen's own height. The game draws "
                    "in software, so more rows cost frame rate: 1080 is smooth on any modern PC."},
@@ -444,14 +452,18 @@ static const struct { int id; const char *text; } tips[] = {
                    "44 or 60 squares (the most the engine's numbers allow). Further costs frame rate."},
     {IDC_TEXTURES, "How far the ground is textured with a draw distance chosen here: as far as it's drawn, 25 "
                    "squares, or the options menu's slider. Beyond, it's plain shaded colour, which is quicker."},
-    {IDC_LIGHTING, "How trees, buildings and vehicles are lit. Smooth: from their corners, everywhere. As the game: "
+    {IDC_LIGHTING, "How trees, buildings and vehicles are lit. Smooth: from their corners, everywhere. Original: "
                    "smooth near, flat beyond 8 squares (they change as they pass). Flat: by face, everywhere."},
+    {IDC_DETAIL, "Which of a model's versions is drawn. Matched: picked by its size on screen, so fences and barriers "
+                 "don't change shape close up. Original: by distance, for the 1996 picture. Highest: always the most detailed."},
+    {IDC_HUDSIZE, "The race dashboard's size: Small (the default, about half) or Large, as big as the 1996 "
+                  "low-resolution picture showed it."},
     {IDC_DEFAULTS, "Puts every setting back to the defaults for this PC: Period defaults on Windows 95, 98 and ME, "
                    "Modern defaults on anything newer (press Save or Play to keep them)."},
     {IDC_PERIOD, "Every setting for a 1990s PC: full screen at 320x200, the original renderer (press Save or Play "
                  "to keep them)."},
-    {IDC_MODERN, "Every setting for a modern PC: full screen, races with up to 1080 rows (Max), the Modern renderer in full colour, "
-                 "modern pads (press Save or Play to keep them)."},
+    {IDC_MODERN, "Every setting for a modern PC: full screen, races at the screen's resolution (Max), drawn as far as the "
+                 "engine allows, the Modern renderer in full colour, modern pads (press Save or Play to keep them)."},
     {IDC_SKIP, "Start the game straight away next time. Hold Shift while starting to see this window again."},
     {IDC_DOSPATCH, "Fixes the DOS version's RACING.EXE for DOS PCs and DOSBox, keeping the original as RACING.ORI."},
     {IDC_HELPFILE, "Opens the help file, which explains every setting (F1)."},
@@ -540,7 +552,7 @@ static void load(HWND dialog, int defaults)
     }
     fill(dialog, IDC_LANGUAGE, languages, GET(f, "display", "language", "ENG"));
     fill(dialog, IDC_SCALE, scales, GET(f, "display", "window_scale", "auto"));
-    fill(dialog, IDC_MAXLIMIT, max_limits, GET(f, "display", "render_max_height", "1080"));
+    fill(dialog, IDC_MAXLIMIT, max_limits, GET(f, "display", "render_max_height", "screen"));
     {   /* the full-screen preset: as saved in BRRFIX.INI, or else whichever ddraw.ini matches,
          * by its boxing, maintas, aspect_ratio and shader */
         char boxing[16], aspect[16], shader[MAX_PATH], maintas[16];
@@ -592,10 +604,12 @@ static void load(HWND dialog, int defaults)
     fill(dialog, IDC_RATE, rates, GET(f, "clock", "tick_rate", "70.0"));
     fill(dialog, IDC_CAP, caps, GET(f, "clock", "catch_up_cap", "8"));
     check(dialog, IDC_LOG, defaults ? 0 : ini_flag("log", "log", 0));
-    GET(f, "display", "max_draw_distance", "0");
+    GET(f, "display", "max_draw_distance", period ? "0" : "60");  /* Max out: the Modern default (director, 2026-11-16) */
     fill(dialog, IDC_DRAWDIST, distances, !lstrcmpiA(v, "1") ? "25" : v);  /* 1: the first experiment's on */
     fill(dialog, IDC_TEXTURES, texture_distances, GET(f, "display", "texture_distance", "draw"));
     fill(dialog, IDC_LIGHTING, lightings, GET(f, "display", "object_shading", "smooth"));
+    fill(dialog, IDC_DETAIL, details, GET(f, "display", "object_detail", "matched"));
+    fill(dialog, IDC_HUDSIZE, hud_sizes, GET(f, "display", "hud_size", "small"));
     fill(dialog, IDC_COLOUR, colour_depths, defaults ? "1" : (ini_flag("display", "full_colour", 1) ? "1" : "0"));
     check(dialog, IDC_SMOOTH_SKY, defaults ? 1 : ini_flag("display", "smooth_sky", 1));
     check(dialog, IDC_SMOOTH_SHADING, defaults ? 1 : ini_flag("display", "smooth_shading", 1));
@@ -655,6 +669,8 @@ static void save(HWND dialog)
     ini_set(brrfix_ini, "display", "max_draw_distance", chosen(dialog, IDC_DRAWDIST, distances));
     ini_set(brrfix_ini, "display", "texture_distance", chosen(dialog, IDC_TEXTURES, texture_distances));
     ini_set(brrfix_ini, "display", "object_shading", chosen(dialog, IDC_LIGHTING, lightings));
+    ini_set(brrfix_ini, "display", "object_detail", chosen(dialog, IDC_DETAIL, details));
+    ini_set(brrfix_ini, "display", "hud_size", chosen(dialog, IDC_HUDSIZE, hud_sizes));
     ini_set(brrfix_ini, "display", "full_colour", chosen(dialog, IDC_COLOUR, colour_depths));
     ini_set(brrfix_ini, "display", "smooth_sky", checked(dialog, IDC_SMOOTH_SKY) ? "1" : "0");
     ini_set(brrfix_ini, "display", "smooth_shading", checked(dialog, IDC_SMOOTH_SHADING) ? "1" : "0");
