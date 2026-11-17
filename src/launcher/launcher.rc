@@ -20,14 +20,14 @@ BEGIN
     /* General */
     LTEXT           "", IDC_TITLE, 14, 26, 296, 10
     LTEXT           "ctrl-alt-rees.com", IDC_PAGE_GENERAL, 14, 37, 296, 8
-    LTEXT           "Big Red Launcher starts the Windows version of Big Red Racing (Big Red Software, 1996) on Windows 95 to today's Windows, and on Linux and Steam Deck through Proton, and makes it run smoothly: a steady clock, smooth motion at any refresh rate, no camera stutter, and a sharp picture on today's screens. It also plays the CD music from ripped tracks and adds modern pads. The physics is left exactly as it was.", IDC_PAGE_GENERAL, 14, 52, 296, 42
-    LTEXT           "Choose your settings on these tabs, then press Play. Hover over a setting for a one-line reminder; Help (or F1) explains every setting.", IDC_PAGE_GENERAL, 14, 98, 296, 16
-    GROUPBOX        "Defaults for your PC", IDC_PAGE_GENERAL, 12, 120, 300, 90
-    PUSHBUTTON      "Period defaults", IDC_PERIOD, 20, 134, 64, 14, WS_TABSTOP
-    LTEXT           "For a 1990s PC with Windows 95, 98 or ME: full screen at the game's low resolution (320x200), drawn as the 1996 game drew it.", IDC_PAGE_GENERAL, 90, 133, 216, 24
-    PUSHBUTTON      "Modern defaults", IDC_MODERN, 20, 162, 64, 14, WS_TABSTOP
-    LTEXT           "For today's Windows, Linux and Steam Deck: full screen, races at your screen's resolution and drawn as far as the engine allows, sharp and in full colour by the Modern renderer, with modern pads.", IDC_PAGE_GENERAL, 90, 161, 216, 24
-    LTEXT           "Each sets every setting; press Save or Play to keep them.", IDC_PAGE_GENERAL, 20, 190, 286, 16
+    LTEXT           "A small utility to patch and launch the original Windows version of Big Red Racing (Big Red Software, 1996) on Windows 95 onwards, and on Linux through Wine / Proton.", IDC_PAGE_GENERAL, 14, 52, 296, 16
+    LTEXT           "Choose your settings on these tabs, then press Play. Hover over a setting for a one-line reminder; Help (or F1) explains every setting.", IDC_PAGE_GENERAL, 14, 72, 296, 16
+    GROUPBOX        "Defaults for your PC", IDC_PAGE_GENERAL, 12, 94, 300, 90
+    PUSHBUTTON      "Period defaults", IDC_PERIOD, 20, 108, 64, 14, WS_TABSTOP
+    LTEXT           "For a 1990s PC with Windows 95, 98 or ME: full screen at the game's low resolution (320x200), drawn as the 1996 game drew it.", IDC_PAGE_GENERAL, 90, 107, 216, 24
+    PUSHBUTTON      "Modern defaults", IDC_MODERN, 20, 136, 64, 14, WS_TABSTOP
+    LTEXT           "For today's Windows, Linux and Steam Deck: full screen, races at your screen's resolution and drawn as far as the engine allows, sharp and in full colour by the Modern renderer, with modern pads.", IDC_PAGE_GENERAL, 90, 135, 216, 24
+    LTEXT           "Each sets every setting; press Save or Play to keep them.", IDC_PAGE_GENERAL, 20, 164, 286, 16
 
     /* Display (launcher.c, layout_display, shows each renderer's rows and moves the rows below
      * them) */
