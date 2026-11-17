@@ -280,8 +280,7 @@ Troubleshooting
 
 About
 -----
-Made for the Big Red Racing preservation project, with the blessing of Paul
-and Peter Ranson of Big Red Software. Version @VERSION@.
+Made for the Big Red Racing preservation project. Version @VERSION@.
 
 Big Red Launcher is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the Free

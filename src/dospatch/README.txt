@@ -102,8 +102,7 @@ What's in this zip
 
 About
 -----
-Made for the Big Red Racing preservation project, with the blessing of Paul
-and Peter Ranson of Big Red Software. Patch version @VERSION@.
+Made for the Big Red Racing preservation project. Patch version @VERSION@.
 
 The DOS patch and BRRPATCH are free software: you can redistribute them
 and/or modify them under the terms of the GNU General Public License as
