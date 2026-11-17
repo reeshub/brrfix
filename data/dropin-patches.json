@@ -1,0 +1,3237 @@
+{
+ "about": "Drop-in PATCH.DLL (Phase 3a, a replacement TIMER.DLL before 2026-11-15): where it patches the player's own v2.25 WINRACE.EXE in memory, and the code it must leave untouched. Checksums only, no game bytes. sha256 values are recorded by 'python3 brr.py dropin-build' from work/game/WINRACE.EXE and checked on every build; the DLL checks them again at run time before patching anything.",
+ "target": {
+  "file": "WINRACE.EXE",
+  "version": "V2.25",
+  "manifest": "game"
+ },
+ "sites": [
+  {
+   "name": "vga_wait_retrace",
+   "fix": "vga",
+   "address": "0x440510",
+   "length": 5,
+   "patch": "JMP to brr_hook_retrace: waits for the next 1/70 s instead of reading VGA port 0x3DA (privileged on Windows NT and Wine)",
+   "sha256": "f3a11b00c35dfe8d604cd5079f65ec1a007fd873cc083e44768afc5d25706bc3"
+  },
+  {
+   "name": "clock_read",
+   "fix": "clock",
+   "address": "0x428C7D",
+   "length": 8,
+   "patch": "run_screen_frame: MOV EAX,[import _TIMER_Count]; MOV AX,[EAX] -> CALL brr_hook_clock_read + 3 NOP (count from QueryPerformanceCounter at the moment of reading; frame pacing)",
+   "sha256": "aa68bbeaca0a5f9838985f529d0557e82aa2251eaaf809ff7368c1915226bd16"
+  },
+  {
+   "name": "cap_compare",
+   "fix": "cap",
+   "address": "0x428C9E",
+   "length": 1,
+   "patch": "run_screen_frame: CMP AL,0x23 -> CMP AL,cap",
+   "sha256": "334359b90efed75da5f0ada1d5e6b256f4a6bd0aee7eb39c0f90182a021ffc8b"
+  },
+  {
+   "name": "cap_store",
+   "fix": "cap",
+   "address": "0x428CA7",
+   "length": 1,
+   "patch": "run_screen_frame: MOV byte [frame_ticks],0x23 -> cap",
+   "sha256": "334359b90efed75da5f0ada1d5e6b256f4a6bd0aee7eb39c0f90182a021ffc8b"
+  },
+  {
+   "name": "race_tick_callback",
+   "fix": "interpolation",
+   "address": "0x401DDB",
+   "length": 4,
+   "patch": "WndProc: MOV EDX,race_tick -> brr_hook_race_tick (calls race_tick, then snapshots vehicles)",
+   "sha256": "80a5aa58591ec481ab2e7ae08f0fd9883ab1b58807ee5fa2814458480ed034e2"
+  },
+  {
+   "name": "race_tick_compare",
+   "fix": "interpolation",
+   "address": "0x428D90",
+   "length": 4,
+   "patch": "run_screen_frame PrtSc check: CMP ESI,race_tick -> brr_hook_race_tick, so the race screenshot routine is still chosen",
+   "sha256": "80a5aa58591ec481ab2e7ae08f0fd9883ab1b58807ee5fa2814458480ed034e2"
+  },
+  {
+   "name": "race_draw_callback",
+   "fix": "interpolation",
+   "address": "0x401DD6",
+   "length": 4,
+   "patch": "WndProc: MOV EBX,race_draw -> brr_hook_race_draw (writes interpolated vehicles, calls race_draw, restores)",
+   "sha256": "bf73c66e37abdbd3b2ed2160646e6afe5cbec35bd37c78b6cf609b50d743a049"
+  },
+  {
+   "name": "approach_clamped",
+   "fix": "camera",
+   "address": "0x4047F2",
+   "length": 5,
+   "patch": "MOV AL,[frame_ticks] -> MOV AL,1; NOP x3 (step per tick, not per tick x ticks-per-frame)",
+   "sha256": "dca09b2daeca7a58a1142d13fbc839f002acd86d5c2a0beec329ae7a628791e9"
+  },
+  {
+   "name": "camera_mode4_previous",
+   "fix": "camera",
+   "address": "0x403C24",
+   "length": 14,
+   "patch": "MOV AX,[ESI+0x10]; MOV word [ESI+0x24],0; MOV [ESI+0x46],AX -> MOV word [ESI+0x24],0; CALL brr_hook_cam4; NOP x3 (stores 'previous' only when a tick ran)",
+   "sha256": "409459756a39b938e4569fbf6818f0a371759b287684b91576afc7b8afc5552a"
+  },
+  {
+   "name": "camera_update_call",
+   "fix": "camera_view",
+   "address": "0x4176D6",
+   "length": 5,
+   "patch": "render_view: CALL camera_update -> CALL brr_hook_camera_update (calls camera_update, then for drawing only recomputes the follow camera's roll over 7 ticks and applies camera smoothing; the game's values are restored after the draw)",
+   "sha256": "d38fd5230997904d6230a4190294fda8effa7a5158a3771c2fd1e43cb7dbf81c"
+  },
+  {
+   "name": "rotation_builder",
+   "fix": "fine_angles",
+   "address": "0x446670",
+   "length": 5,
+   "patch": "FUN_00446670 (the 3D engine's rotation-matrix builder; drawing only, not reachable from the race tick): first 5 bytes (PUSH EDI; PUSH ESI; SHR EAX,5) -> JMP brr_hook_rotation. During the race draw with fine_angles, brr_rotation_fine builds the matrix from full 16-bit angles (bit-identical at multiples of 64); otherwise a trampoline repeats those three instructions and jumps to 0x446675, so the original runs",
+   "sha256": "9b6467fd8655ee2997f54ddc9241116021cc6cc8a42b4c632486535c3c405268"
+  },
+  {
+   "name": "present_window_call",
+   "fix": "vsync",
+   "address": "0x42CEB3",
+   "length": 5,
+   "patch": "The DirectDraw present (0x42CE78) calls the windowed blit 0x42CD2C here (CALL rel32). With [clock] vsync=1 (and cnc-ddraw not pacing), the call goes to brr_hook_present_window, which waits for the vertical blank (IDirectDraw::WaitForVerticalBlank) and then continues into 0x42CD2C",
+   "sha256": "db6336c28881b2624a5fe3c3ca5bbcfda7b1a0c69e4928320fa6c8ba9293a396"
+  },
+  {
+   "name": "display_choice",
+   "fix": "display",
+   "address": "0x4010E9",
+   "length": 5,
+   "patch": "WinMain's colour-depth test (CMP EDI,8; JZ 0x40112A) -> CALL brr_hook_display_choice, which continues WinMain at 0x40112A (windowed), 0x401114 (full screen, as if the 256-colour question was answered OK) or 0x4010EE (the original question), by [display] mode",
+   "sha256": "a960dafa6f9d29e10b3d0ca0134540aec64c5048949f38337d9b46b2d05d1e33"
+  },
+  {
+   "name": "present_entry",
+   "fix": "present",
+   "address": "0x42CE78",
+   "length": 10,
+   "patch": "The DirectDraw present's first instructions (PUSH EBX; PUSH ECX; PUSH EDX; CMP byte [0x52D720],0) -> JMP brr_hook_present + 5 NOPs. In a window on a desktop that isn't 256 colours, brr_present_gdi draws the 8-bit frame buffer with StretchDIBits and returns 1; otherwise a trampoline repeats the four instructions and continues at 0x42CE82",
+   "sha256": "fe491f5b00eb5323a392262f21b79689704c1ba2e89e14f2fdb06554e072eb1c"
+  },
+  {
+   "name": "playback_tick_callback",
+   "fix": "interpolation",
+   "address": "0x401DBB",
+   "length": 4,
+   "patch": "WndProc, screen 0x83 (Load Recording): MOV EDX,0x413400 (its tick) -> brr_hook_playback_tick (before/after tick hooks, as the race's)",
+   "sha256": "905ad66562a1177221b0e4488e08fd6c4f6889e6f468c75f10c22fe89c72ed4b"
+  },
+  {
+   "name": "playback_draw_callback",
+   "fix": "interpolation",
+   "address": "0x401DB6",
+   "length": 4,
+   "patch": "WndProc, screen 0x83 (Load Recording): MOV EBX,0x4131DC (its draw) -> brr_hook_playback_draw (writes interpolated vehicles, draws, restores)",
+   "sha256": "fb0b7c7ea16cf4c74fab569a44887fb5217dd56ce0f967e92782283b5af1d188"
+  },
+  {
+   "name": "preview_tick_callback",
+   "fix": "interpolation",
+   "address": "0x401FF8",
+   "length": 4,
+   "patch": "WndProc, screen 0x10 (track select's View: track_preview, a helicopter flyover on the level's 6.REC): MOV EDX,0x423CCC (its tick) -> brr_hook_preview_tick (before/after tick hooks, as the race's)",
+   "sha256": "835967aea78089315381060f542e068fd0564a13f5c8e735abd546bf8c480721"
+  },
+  {
+   "name": "preview_draw_callback",
+   "fix": "interpolation",
+   "address": "0x401FF3",
+   "length": 4,
+   "patch": "WndProc, screen 0x10: MOV EBX,0x423D24 (its draw) -> brr_hook_preview_draw (writes interpolated vehicles and the follow camera, the mouse's first second held still, draws, restores)",
+   "sha256": "c7c14f20102dc3a906b077a62c172f7e83d90fe8cd8ec989dbfc5bf586b79c69"
+  },
+  {
+   "name": "joystick_call",
+   "fix": "controller",
+   "address": "0x428D1D",
+   "length": 5,
+   "patch": "run_screen_frame's CALL joystick_to_keys (0x41A950) -> CALL brr_hook_joystick: with [controller] enabled and an XInput pad connected, the pad's state is written into the game's joystick variables (0x44B9CA/CC/D6, calibration 0x44B9E4), then joystick_to_keys runs unchanged",
+   "sha256": "8cea81a406ce33b390a4b8b00d09f563eb41de5f5ce32dc3aeb3ce9c94b6465f"
+  },
+  {
+   "name": "menu_hotspots_call",
+   "fix": "keys",
+   "address": "0x428D31",
+   "length": 5,
+   "patch": "run_screen_frame's per-tick CALL menu_hotspots_tick (0x427E28) -> CALL brr_hook_menu_hotspots, which runs it unchanged between brr_before_menu_hotspots and brr_after_menu_hotspots (src/dropin/keys.c). With [fixes] menu_keys, a key that has fired a menu action is hidden from that call (and only that call) until it is released or pressed afresh, so one press fires one action; [debug] log_keys logs the keyboard",
+   "sha256": "ad257f70d412e5eb38930189b508c0e3acc2562e3a3a32f59332b511558a679e"
+  },
+  {
+   "name": "scn_commit_call",
+   "fix": "menu_pad",
+   "address": "0x4206C3",
+   "length": 5,
+   "patch": "scn_load (0x4200F0, a screen's .SCN script): CALL menu_hotspot_commit (0x427FAC) -> CALL brr_hook_scn_commit: the commit as before, then a key hotspot for Esc (0x01) or left or right (0x4B/0x6B, 0x4D/0x6D) is noted for a twin on joystick 1's button 2 (0x74) or stick (0x77, 0x78) (keys.c; not on the keys screen 0x0E or the joystick screen 0x17)",
+   "sha256": "dec4115a8fd0ba47e8b889d0ddc8e62e732139bbc44cfc06d22665a4ca90dac7"
+  },
+  {
+   "name": "scn_end_call",
+   "fix": "menu_pad",
+   "address": "0x4206E9",
+   "length": 5,
+   "patch": "scn_load's last call, CALL menu_background_save (0x412EAC) -> CALL brr_hook_scn_end: the noted twins added after the script's own hotspots (scripts refer to theirs by number), then menu_background_save",
+   "sha256": "6a84de3713796a461511080ab62ea92d569f03b91098ea5b3f396b59a3553049"
+  },
+  {
+   "name": "version_date",
+   "fix": "version",
+   "address": "0x406365",
+   "length": 4,
+   "patch": "FUN_00406330 (main menu version text, \"%s%s %s\"): PUSH 0x44DA0C (the date \"(09-05-96)\") -> our \"FIX<version>\", so the menu reads V2.24WR FIX0.2.0",
+   "sha256": "fdb7e788cf056ca0da0039c2d10d89f4adcfbf59e70859ad870ef0b541929f51"
+  },
+  {
+   "name": "version_number",
+   "fix": "version",
+   "address": "0x40636F",
+   "length": 4,
+   "patch": "FUN_00406330 (main menu version text): PUSH 0x44DA1C (\"V2.24\", never updated for the v2.25 patch; the game's own \"V2.25\" is only on the network dialog) -> our \"V2.25\", so the menu reads V2.25WR FIX<version> (director, 2026-11-10)",
+   "sha256": "461fa5c7aaae4b74c2ebcf9e911445d5e5dcddbce67c37ff348ff3fcada452e0"
+  },
+  {
+   "name": "credit_lookup_call",
+   "fix": "credits",
+   "address": "0x423511",
+   "length": 5,
+   "patch": "The main menu's credits ticker (0x4234D8, every 128 ticks): CALL 0x42818C (the language text lookup of \"CRED_<n>\", n from the counter 0x44BCE0) -> CALL brr_hook_credit_lookup: at step 2, after the publisher's and the developer's lines, our own line (\"Camera / Modern Windows fix by ctrl-alt-rees\", director 2026-11-14), and after it CRED_<n-1>, so every one of the game's 28 lines still shows, in order",
+   "sha256": "f0b14b6ff1ad572acf05678e74de4842330682f32b37ce280a462bc58dd14282"
+  },
+  {
+   "name": "credit_count",
+   "fix": "credits",
+   "address": "0x423536",
+   "length": 1,
+   "patch": "The credits ticker's MOV EBX,0x1C (the counter wraps at 28 lines) -> 0x1D: 29 steps, the game's 28 lines and ours",
+   "sha256": "bd4fc42a21f1f860a1030e6eba23d53ecab71bd19297ab6c074381d4ecee0018"
+  },
+  {
+   "name": "window_command_66",
+   "fix": "mode_switch",
+   "address": "0x40213D",
+   "length": 4,
+   "patch": "WndProc's WM_COMMAND dispatch, command 0x66 (from full screen to a window; Tab in full screen): JBE 0x40235D -> JBE 0x402619 (DefWindowProcA, as for an unknown command). The switch breaks the window (director, 2026-11-10)",
+   "sha256": "dce000bd6e88dda1780751b26e5c44aef51f5ddaf93a687ca5ba9fb5207eb585"
+  },
+  {
+   "name": "window_command_67",
+   "fix": "mode_switch",
+   "address": "0x402147",
+   "length": 4,
+   "patch": "WndProc's WM_COMMAND dispatch, command 0x67 (from a window to full screen; Tab in a window, or the Modes menu's Full screen): JBE 0x4023B6 -> JBE 0x402619 (DefWindowProcA)",
+   "sha256": "c8e6237a9731074e99e511b7822004c06b0fbec1301e11b628dabc0e626847ec"
+  },
+  {
+   "name": "window_command_resolution",
+   "fix": "renderer_resolution",
+   "address": "0x402164",
+   "length": 7,
+   "patch": "WndProc's WM_COMMAND dispatch, commands 0x64 and 0x65 (low and high resolution: keypad - and +, the Modes menu): JBE 0x4021B9; JMP 0x40228B -> JMP 0x402619 (DefWindowProcA) + 2 NOPs. Modern renderer only, which chooses the picture's size itself (the director's renderer split, 2026-11-15); the original renderer keeps both, as in 1996",
+   "sha256": "593a7393ac21c887e5d1237905c796aca958038612760a6e5670b9e2b3dc39b9"
+  },
+  {
+   "name": "class_menu",
+   "fix": "renderer_resolution",
+   "address": "0x401375",
+   "length": 1,
+   "patch": "window_register_class: MOV [ESP+0x24],EDI (WNDCLASS lpszMenuName = 'AppMenu_' + language) -> MOV [ESP+0x24],ESI (0): no menu bar on the window. Modern renderer only, whose game runs full screen, in cnc-ddraw's window when windowed (the director's renderer split, 2026-11-15)",
+   "sha256": "cbe5cfdf7c2118a9c3d78ef1d684f3afa089201352886449a06a6511cfef74a7"
+  },
+  {
+   "name": "set_menu_call",
+   "fix": "mode_switch",
+   "address": "0x4016E7",
+   "length": 7,
+   "patch": "WndProc's CALL [SetMenu] (after LoadMenuA of AppMenu_<language>) -> CALL brr_set_menu; NOP x2: removes the Modes menu's items 0x66 and 0x67, then calls SetMenu",
+   "sha256": "3e3e70dbe681bd2791eefe35a02d53df223b73c9480aa53ab36a0d6b223bbd8a"
+  },
+  {
+   "name": "language_start",
+   "fix": "language",
+   "address": "0x40115F",
+   "length": 4,
+   "patch": "WinMain, before the config is read and before any screen or menu: MOV EAX,[0x44D858] (\"ENG\", stored as the language at 0x44AFF4) -> MOV EAX,[our code], the launcher's [display] language",
+   "sha256": "2cba2f536f007858a432c08080d5fc0826efc1437e84fe5b2201d91b70462fed"
+  },
+  {
+   "name": "language_config",
+   "fix": "language",
+   "address": "0x40F237",
+   "length": 4,
+   "patch": "The config reader (0x40F09C), case 2 (lang): MOV EDX,0x44AFF4 -> our scratch buffer, so DEFAULT.CFG and the players' own .CFG files (loaded after name entry) don't override the launcher's language; the in-game Language menu still works for the session",
+   "sha256": "5dce564bbed2030544911a5fabde8f02799c151054250d68dfa5a5739690a730"
+  },
+  {
+   "name": "resolution_display",
+   "fix": "resolution",
+   "address": "0x44A618",
+   "length": 8,
+   "patch": "Data: the display size the game starts with, 320x200 -> 640x480, before WinMain. The window (0x401390), DirectDraw (0x42C590, called from 0x42405A) and every screen's set-up read it, so the game starts in its high-resolution mode, as after menu command 0x65 (keypad +)",
+   "sha256": "81b93d22e25f4e97416d3108e44ca737f16cad0813a62e2db2af84d60f243663"
+  },
+  {
+   "name": "resolution_frame",
+   "fix": "resolution",
+   "address": "0x44BFB8",
+   "length": 12,
+   "patch": "Data: the frame's width, height and size, 320, 200, 64000 -> 640, 480, 307200 (command 0x65 sets the same)",
+   "sha256": "8662c16b435cad5152a47376dc7e14c8c74e62138bb606013db7a786c98b89c0"
+  },
+  {
+   "name": "menu_double_call",
+   "fix": "renderer",
+   "address": "0x426358",
+   "length": 5,
+   "patch": "0x426358: CALL 0x4262B4 (the menus' doubling into the middle of a 640x480 frame) -> 5 NOP; the new renderer enlarges the 320x200 menu by whole numbers into the final picture instead (render.c)",
+   "sha256": "d2c47c763eb2609e74a97fee938d30f3cf1a0eeec7263de7d3dcdb88d1d0e9da"
+  },
+  {
+   "name": "menu_mouse",
+   "fix": "renderer",
+   "address": "0x42754E",
+   "length": 56,
+   "patch": "0x4274FC's mapping of the mouse into the menu (only at exactly 640x480: x / 2, (y - 40) / 2) -> CALL brr_hook_menu_mouse (the inverse of the new renderer's layout: (x - left) / across, (y - top) / down) + JMP to its stores + NOPs",
+   "sha256": "cfc32948bb8eae0d3493b246eaeed977daa1bba9cefbefd4743d1da47c6173bb"
+  },
+  {
+   "name": "view_max",
+   "fix": "render_max",
+   "address": "0x44BE64",
+   "length": 4,
+   "patch": "Experimental, [display] render_resolution=max with the new renderer. The view record's maximum width and height (words 640, 480), from which the 3D engine (0x440610) allocates its 8-bit picture, 16-bit depth buffer and row table on its first call -> 1008, 756 (RENDER_MAX_W, RENDER_MAX_H), before WinMain",
+   "sha256": "e2bc3113551e4f212c03e36fd7ab43f4e606a99dedcc2c428ae7fa92b33628b1"
+  },
+  {
+   "name": "recip_edge_scan",
+   "fix": "render_max",
+   "address": "0x442CFD",
+   "length": 4,
+   "patch": "Experimental, Max. edge_scan (0x442CE0): MOV EBX,[EBX*4+0x54A380], 2^32 / the edge's height -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "29ac93147b74bce02402ef1976c549704d19632b5ebd244491014f53e746452d"
+  },
+  {
+   "name": "recip_edge_scan_no_depth",
+   "fix": "render_max",
+   "address": "0x442E2D",
+   "length": 4,
+   "patch": "Experimental, Max. edge_scan_no_depth (0x442E10): the same, without depth -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "29ac93147b74bce02402ef1976c549704d19632b5ebd244491014f53e746452d"
+  },
+  {
+   "name": "recip_line_draw",
+   "fix": "render_max",
+   "address": "0x449362",
+   "length": 4,
+   "patch": "Experimental, Max. line_draw (0x4492E0): MOV EAX,[ECX*4+0x54A380], 2^32 / the line's longer side -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "29ac93147b74bce02402ef1976c549704d19632b5ebd244491014f53e746452d"
+  },
+  {
+   "name": "recip_span_depth_only",
+   "fix": "render_max",
+   "address": "0x4434C7",
+   "length": 4,
+   "patch": "Experimental, Max. span_depth_only: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_flat_z",
+   "fix": "render_max",
+   "address": "0x443657",
+   "length": 4,
+   "patch": "Experimental, Max. span_flat_z: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_gouraud",
+   "fix": "render_max",
+   "address": "0x443726",
+   "length": 4,
+   "patch": "Experimental, Max. span_gouraud: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_gouraud_lit",
+   "fix": "render_max",
+   "address": "0x4437DA",
+   "length": 4,
+   "patch": "Experimental, Max. span_gouraud_lit: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_gouraud_z",
+   "fix": "render_max",
+   "address": "0x4438E8",
+   "length": 4,
+   "patch": "Experimental, Max. span_gouraud_z: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_texture",
+   "fix": "render_max",
+   "address": "0x4439D7",
+   "length": 4,
+   "patch": "Experimental, Max. span_texture: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_texture_z",
+   "fix": "render_max",
+   "address": "0x443ACB",
+   "length": 4,
+   "patch": "Experimental, Max. span_texture_z: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_texture_lit",
+   "fix": "render_max",
+   "address": "0x443C1B",
+   "length": 4,
+   "patch": "Experimental, Max. span_texture_lit: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_texture_lit_z",
+   "fix": "render_max",
+   "address": "0x443D2B",
+   "length": 4,
+   "patch": "Experimental, Max. span_texture_lit_z: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_texture_gouraud",
+   "fix": "render_max",
+   "address": "0x443E8B",
+   "length": 4,
+   "patch": "Experimental, Max. span_texture_gouraud: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_texture_gouraud_z",
+   "fix": "render_max",
+   "address": "0x443FDB",
+   "length": 4,
+   "patch": "Experimental, Max. span_texture_gouraud_z: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_444157",
+   "fix": "render_max",
+   "address": "0x444157",
+   "length": 4,
+   "patch": "Experimental, Max. span code nothing calls (found by a byte search): MOV EBX,[ECX*4+0x54A384] -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_gouraud_lit_dither",
+   "fix": "render_max",
+   "address": "0x44423B",
+   "length": 4,
+   "patch": "Experimental, Max. span_gouraud_lit_dither: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_gouraud_stipple",
+   "fix": "render_max",
+   "address": "0x444383",
+   "length": 4,
+   "patch": "Experimental, Max. span_gouraud_stipple: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_gouraud_stipple_z",
+   "fix": "render_max",
+   "address": "0x444467",
+   "length": 4,
+   "patch": "Experimental, Max. span_gouraud_stipple_z: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_44456d",
+   "fix": "render_max",
+   "address": "0x44456D",
+   "length": 4,
+   "patch": "Experimental, Max. span code nothing calls (found by a byte search): MOV EBX,[ECX*4+0x54A384] -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_persp_z",
+   "fix": "render_max",
+   "address": "0x4446DB",
+   "length": 4,
+   "patch": "Experimental, Max. span_persp_z: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_persp",
+   "fix": "render_max",
+   "address": "0x44488B",
+   "length": 4,
+   "patch": "Experimental, Max. span_persp: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_persp_lit_z",
+   "fix": "render_max",
+   "address": "0x4449FB",
+   "length": 4,
+   "patch": "Experimental, Max. span_persp_lit_z: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_persp_lit",
+   "fix": "render_max",
+   "address": "0x444B8B",
+   "length": 4,
+   "patch": "Experimental, Max. span_persp_lit: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_persp_gouraud_z",
+   "fix": "render_max",
+   "address": "0x444CFB",
+   "length": 4,
+   "patch": "Experimental, Max. span_persp_gouraud_z: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_persp_gouraud",
+   "fix": "render_max",
+   "address": "0x444EBB",
+   "length": 4,
+   "patch": "Experimental, Max. span_persp_gouraud: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_44506b",
+   "fix": "render_max",
+   "address": "0x44506B",
+   "length": 4,
+   "patch": "Experimental, Max. span code nothing calls (found by a byte search): MOV EBX,[ECX*4+0x54A384] -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_4452af",
+   "fix": "render_max",
+   "address": "0x4452AF",
+   "length": 4,
+   "patch": "Experimental, Max. span code nothing calls (found by a byte search): MOV EBX,[ECX*4+0x54A384] -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_persp_gouraud_opaque",
+   "fix": "render_max",
+   "address": "0x44548A",
+   "length": 4,
+   "patch": "Experimental, Max. span_persp_gouraud_opaque: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_gouraud_remap",
+   "fix": "render_max",
+   "address": "0x445636",
+   "length": 4,
+   "patch": "Experimental, Max. span_gouraud_remap: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_table_2d",
+   "fix": "render_max",
+   "address": "0x4456FA",
+   "length": 4,
+   "patch": "Experimental, Max. span_table_2d: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_translucent_gouraud",
+   "fix": "render_max",
+   "address": "0x4458C6",
+   "length": 4,
+   "patch": "Experimental, Max. span_translucent_gouraud: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_texture_gouraud_opaque",
+   "fix": "render_max",
+   "address": "0x44598A",
+   "length": 4,
+   "patch": "Experimental, Max. span_texture_gouraud_opaque: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "recip_span_gouraud_lit_blend",
+   "fix": "render_max",
+   "address": "0x445ACA",
+   "length": 4,
+   "patch": "Experimental, Max. span_gouraud_lit_blend: MOV EBX,[ECX*4+0x54A384], 2^32 / (the span's length + 1) -> the same entry of brr_reciprocals (render.c, 8,192 entries instead of the engine's 1,024), so views can be wider and taller than 1,022 pixels. The address within the instruction",
+   "sha256": "7ae230112bac909228b465456483205286029f14b3f261f5785a9a00e9e4a83a"
+  },
+  {
+   "name": "sprite_scale_rows",
+   "fix": "render_max",
+   "address": "0x42717A",
+   "length": 11,
+   "patch": "Experimental, Max. sprite_draw_scaled (0x426F90, the HUD's sprites): MOV EDX,EBX; MOV EAX,EBX; SAR EDX,31; SUB EAX,EDX; SAR EAX,1 (the rows' error start, drawn height / 2) -> CALL brr_hook_sprite_rows (thunks.asm): max(drawn / 2, drawn - sprite height). Drawn more than twice as big (views wider than 1,280 pixels), the game's start reads one row past the sprite (the next sprite's size bytes showed as green specks under the map); up to twice the size the value is the game's own",
+   "sha256": "cc99c0b19cac28356abe22fe0a9ef5c77c44e88f528fd243485f33977e3d37e6"
+  },
+  {
+   "name": "sprite_scale_columns",
+   "fix": "render_max",
+   "address": "0x427199",
+   "length": 6,
+   "patch": "Experimental, Max. sprite_draw_scaled: MOV EAX,ESI; SUB EAX,EDX; SAR EAX,1 (the columns' error start, drawn width / 2; EDX is the width's sign from 0x427190) -> CALL brr_hook_sprite_columns: max(drawn / 2, drawn - sprite width), as sprite_scale_rows",
+   "sha256": "6e8242f12ddc21b27e5d2716044aa5d8f85d1bd7c2add73b651d637f0b787d6c"
+  },
+  {
+   "name": "hud_draw_call",
+   "fix": "hud",
+   "address": "0x417865",
+   "length": 5,
+   "patch": "render_view: CALL hud_draw (0x423658) -> CALL brr_hook_hud_draw (thunks.asm): the view's size set to 320x200, the high-resolution flag cleared and the 2D routines' buffer (0x542030) pointed at our layers around it, so the game draws its 320x200 HUD (GAMEVGA.SPR, the 64x64 map) there instead of into the 3D view; hud.c lays the layers over the composed race picture, enlarged by whole numbers and pinned to its corners. Modern renderer, single view; split screen and the screenshot's redraw keep the game's own",
+   "sha256": "0349439893da667d1b27d3d7fd8e144067c94928e3bb9de3e35a3cd796c6490b"
+  },
+  {
+   "name": "hud_icon_call",
+   "fix": "hud",
+   "address": "0x417877",
+   "length": 5,
+   "patch": "render_view: CALL hud_draw_playback_icon (0x4236F0, recordings' playback) -> CALL brr_hook_hud_icon: the same, into the same frame's layers",
+   "sha256": "7687067fb6a6e0834d1b544e3c9d30a1b5ff7011073df7469224b2f81371f0bc"
+  },
+  {
+   "name": "sprite_scaled_entry",
+   "fix": "hud",
+   "address": "0x426F90",
+   "length": 6,
+   "patch": "sprite_draw_scaled's first instructions (PUSH ESI; PUSH EDI; PUSH EBP; SUB ESP,0x50) -> JMP brr_hook_sprite_scaled: while the HUD draws into our layers, brr_hud_sprite picks the layer of the sprite's corner from its caller (the map left; place, nitro and laps right; damage and messages centred; top or bottom by y); then those instructions and on from 0x426F96. Every caller of sprite_draw_scaled is HUD drawing or the demo's goodbye screen (bye_*), which the flag leaves alone",
+   "sha256": "affbabf60b652adedbc86764fbdd0e11ed2be3ab58650b536a1aa79df764cfcb"
+  },
+  {
+   "name": "proj_scale_store",
+   "fix": "widescreen",
+   "address": "0x425FA1",
+   "length": 5,
+   "patch": "set_view: MOV [0x542000],EAX (the horizontal projection scale, width x 256 / 320; the vertical one follows from it) -> CALL brr_hook_proj_scale (thunks.asm): for a widescreen race view, height x 16 / 15 instead (the scale of the 4:3 view as tall), so the view shows as much from top to bottom as 4:3 and more at the sides. Native widescreen only ([display] widescreen with Max, full screen on a screen wider than 4:3)",
+   "sha256": "9f893e6501a0a6a5e3f539124add5a0a80bb950a09bda83ed402b76500b48cfd"
+  },
+  {
+   "name": "landscape_width",
+   "fix": "widescreen",
+   "address": "0x41CD16",
+   "length": 12,
+   "patch": "landscape_setup: MOV EDX,EAX; MOV EBX,10; SAR EDX,31; IDIV EBX (7 x vision / 10, the visible ground's half-width - 1 at its far edge, for 4:3) -> CALL brr_hook_landscape_width (thunks.asm) and NOPs: the same division, then brr_landscape_width (render.c) widens it by the view's shape against 4:3, as far as the 64x64 grid holds (far corners within 31 cells). Native widescreen only",
+   "sha256": "231d153bea89e06544fe0f67a08ecfd45b0348ca8c50f5b33f6bffdc0339158a"
+  },
+  {
+   "name": "raw_name_call",
+   "fix": "widescreen",
+   "address": "0x412B2F",
+   "length": 5,
+   "patch": "raw_picture_load (0x412B2C; scn_load, car and track select, start-up): CALL file_open (0x411B78; the .RAW's name in EAX) -> CALL brr_hook_raw_name (thunks.asm): brr_raw_loaded (render.c) notes the name and the level, so the widescreen menu backgrounds know the globe's (THIRD3.RAW) and each level's picture (VIEW.RAW); then file_open",
+   "sha256": "1d44f2bb9890982c87bbb3df9392ce16edf027553b5a909acdff98daa633170c"
+  },
+  {
+   "name": "ds_volume_curve",
+   "fix": "distance_volume",
+   "address": "0x42EC1F",
+   "length": 10,
+   "patch": "ds_set_volume (0x42EBE4): MOV EDX,[EDX+0x44C055]; CWDE; SAR EDX,24 (the signed byte of ds_volume_table 0x44C058 for volume 0-127: -110 to 0, a loudness curve in units of about 0.4 dB, passed to IDirectSoundBuffer::SetVolume, which counts hundredths of a decibel: every sound within 1.1 dB of full) -> MOV EDX,[EDX*4+brr_ds_volumes]; CWDE; NOP; NOP: the same curve in hundredths of a decibel (2000 x log10(volume / 127), 0 silent; sound.c), so the game's own distance fade (vehicle_sounds), the effects volume option and quieter knocks are heard, as in DOS",
+   "sha256": "7b3b2320c5ca6de30e3f9f8599f80fdfdf571200fe39c1d0a8aab2c47a22104f"
+  },
+  {
+   "name": "sound_nearest_first",
+   "fix": "distance_volume_order",
+   "address": "0x416695",
+   "length": 63,
+   "patch": "sound_update_vehicles (0x416520): the loop choosing the next other vehicle whose sounds to gather (the lowest-numbered not yet done, active and nearer than 0x7FFF; only the first 3 vehicles gathered get an engine sound) -> CALL brr_hook_sound_nearest (thunks.asm; the nearest such vehicle in ESI, or -1) + 58 NOPs: near trucks' engines are heard before far ones. Each vehicle is still gathered once, so vehicle_sounds' rand() calls (shared with the physics) are as many: the physics is unchanged",
+   "sha256": "e6070517767d61843198102fafd3fbbea09b822206173aad2075b14b71e1ba7b"
+  },
+  {
+   "name": "ds_pan_curve",
+   "fix": "stereo_pan",
+   "address": "0x42ECC3",
+   "length": 46,
+   "patch": "ds_set_pan (0x42EC8C): IMUL EDX,EDX,10000; ... IDIV 127; clamp to +-10,000 (the game's pan, the sine of the vehicle's bearing from the camera, -128 to 127, scaled straight to IDirectSoundBuffer::SetPan's -10,000 to 10,000, which is the far speaker's attenuation in hundredths of a decibel: 30 degrees off centre was 50 dB down, nearly hard-panned) -> CALL brr_hook_ds_pan (thunks.asm) + 41 NOPs: brr_ds_pans (sound.c), a balance: the far speaker's level in proportion (half: -6 dB, full: silent), as the DOS version's Miles pans",
+   "sha256": "1e2c8d0c12012b8231f8ff326e009630b1ddb97ff625fe47cf37f3206491ec38"
+  },
+  {
+   "name": "snd@413634:KEEP-4",
+   "fix": "sound_channels",
+   "address": "0x413634",
+   "length": 4,
+   "patch": "16 or 32 sound channels ([sound] channels=16 or 32, N below): sound_channels_init: MOV [EAX+0x45295C],EDX: keep[-1]: loop base, EAX = 4..0x20 step 4 -> our array KEEP-4",
+   "sha256": "1f98f69f7d893f66aa40ee08071b74016090cc7943547a0074b65ca9db54d005"
+  },
+  {
+   "name": "snd@41363a:BUSY-4",
+   "fix": "sound_channels",
+   "address": "0x41363A",
+   "length": 4,
+   "patch": "sound_channels_init: MOV [EAX+0x45299C],EBX: busy[-1]: loop base (same value as data[7], but it is busy-4) -> our array BUSY-4",
+   "sha256": "77ef0349d79a40f002dc69bfde2f0b7cccfc29c471fe8bf558450679b7791fd6"
+  },
+  {
+   "name": "snd@41363e:AL=4*N",
+   "fix": "sound_channels",
+   "address": "0x41363E",
+   "length": 3,
+   "patch": "sound_channels_init: CMP EAX,0x20 (the loop's end, 8 x 4 bytes; JNZ) -> CMP AL,4N; NOP: 4N doesn't fit CMP EAX's signed byte at 32 channels, and EAX only counts 4..4N, so AL says the same",
+   "sha256": "37571829170628ea3991a6ab7abcefe3f14f9261d69b2c665599aabe9db3375e"
+  },
+  {
+   "name": "snd@41365e:=N",
+   "fix": "sound_channels",
+   "address": "0x41365E",
+   "length": 1,
+   "patch": "sound_channels_shutdown: CMP EDX,0x8: ds_stop for channels 0..7 -> 0..N-1 -> N",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "snd@413688:BUSY+0",
+   "fix": "sound_channels",
+   "address": "0x413688",
+   "length": 4,
+   "patch": "sound_channel_stop: CMP [EAX+busy],0: busy[ch] -> our array BUSY+0",
+   "sha256": "0404516c2138625461b7b64afe5d90c04edb162e6e2fbf6b0f72b123243cb3ae"
+  },
+  {
+   "name": "snd@413691:KEEP+0",
+   "fix": "sound_channels",
+   "address": "0x413691",
+   "length": 4,
+   "patch": "sound_channel_stop: MOV ECX,[EAX+keep]: keep[ch] -> our array KEEP+0",
+   "sha256": "fa32b6aa22014f148c1f18ebb121f0d6e07c935ff66988ef3dd775401ec6b27a"
+  },
+  {
+   "name": "snd@413699:DATA+0",
+   "fix": "sound_channels",
+   "address": "0x413699",
+   "length": 4,
+   "patch": "sound_channel_stop: MOV EBX,[EAX+data]: data[ch] -> our array DATA+0",
+   "sha256": "beb4944262a22ea1dd3a0558df278590e13d13bf5292574681c07e50063998a9"
+  },
+  {
+   "name": "snd@41369f:BUSY+0",
+   "fix": "sound_channels",
+   "address": "0x41369F",
+   "length": 4,
+   "patch": "sound_channel_stop: MOV [EAX+busy],ESI: busy[ch] = 0 -> our array BUSY+0",
+   "sha256": "0404516c2138625461b7b64afe5d90c04edb162e6e2fbf6b0f72b123243cb3ae"
+  },
+  {
+   "name": "snd@41372c:DATA+0",
+   "fix": "sound_channels",
+   "address": "0x41372C",
+   "length": 4,
+   "patch": "sound_channel_play: MOV [EDI*4+data],EAX: data[ch] -> our array DATA+0",
+   "sha256": "beb4944262a22ea1dd3a0558df278590e13d13bf5292574681c07e50063998a9"
+  },
+  {
+   "name": "snd@413733:BUSY+0",
+   "fix": "sound_channels",
+   "address": "0x413733",
+   "length": 4,
+   "patch": "sound_channel_play: MOV [EDI*4+busy],EDX: busy[ch] = 1 -> our array BUSY+0",
+   "sha256": "0404516c2138625461b7b64afe5d90c04edb162e6e2fbf6b0f72b123243cb3ae"
+  },
+  {
+   "name": "snd@41379f:KEEP+0",
+   "fix": "sound_channels",
+   "address": "0x41379F",
+   "length": 4,
+   "patch": "sound_channel_play: MOV [EAX+keep],ECX: keep[ch] = 0 -> our array KEEP+0",
+   "sha256": "fa32b6aa22014f148c1f18ebb121f0d6e07c935ff66988ef3dd775401ec6b27a"
+  },
+  {
+   "name": "snd@4137a7:KEEP+0",
+   "fix": "sound_channels",
+   "address": "0x4137A7",
+   "length": 4,
+   "patch": "sound_channel_play: MOV dword [EAX+keep],-1: keep[ch] = -1 -> our array KEEP+0",
+   "sha256": "fa32b6aa22014f148c1f18ebb121f0d6e07c935ff66988ef3dd775401ec6b27a"
+  },
+  {
+   "name": "snd@413882:=N",
+   "fix": "sound_channels",
+   "address": "0x413882",
+   "length": 1,
+   "patch": "sound_stop_all: CMP EDX,0x8: sound_channel_stop for channels 0..7 -> 0..N-1 -> N",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "snd@415970:CH+18",
+   "fix": "sound_channels",
+   "address": "0x415970",
+   "length": 4,
+   "patch": "sound_channel_mark_oneshot: MOV [EAX+0x4544DA],EBX: channels[ch].nearness = 0 -> our array CH+18",
+   "sha256": "ce1a824a66f3127a07121282d357b213c4287014d808a30939fb14553345d7fc"
+  },
+  {
+   "name": "snd@415978:CH+26",
+   "fix": "sound_channels",
+   "address": "0x415978",
+   "length": 4,
+   "patch": "sound_channel_mark_oneshot: MOV [EAX+0x4544E2],DL: channels[ch].priority = 0xFA -> our array CH+26",
+   "sha256": "448ced75743a810f4298b46f3e6c52dea82d5ced983edc124e80fcceffa12304"
+  },
+  {
+   "name": "snd@415980:CH+1",
+   "fix": "sound_channels",
+   "address": "0x415980",
+   "length": 4,
+   "patch": "sound_channel_mark_oneshot: MOV [EAX+0x4544C9],BL: channels[ch].kind = 6 -> our array CH+1",
+   "sha256": "199b608ba8e94bef6a0be680f41c2edfb4d53ab94ecb2bfd83f840365ea40a36"
+  },
+  {
+   "name": "snd@415986:CH+0",
+   "fix": "sound_channels",
+   "address": "0x415986",
+   "length": 4,
+   "patch": "sound_channel_mark_oneshot: MOV [EAX+0x4544C8],DH: channels[ch].owner = 8 (one-shot) -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@41598c:CH+10",
+   "fix": "sound_channels",
+   "address": "0x41598C",
+   "length": 4,
+   "patch": "sound_channel_mark_oneshot: MOV dword [EAX+0x4544D2],0x100: channels[ch].volume = 0x100 -> our array CH+10",
+   "sha256": "a466f418291b018ab81d26abb0b6777368fedead4a09ecb8f2cbf4b9d8315e7c"
+  },
+  {
+   "name": "snd@4159fa:=N",
+   "fix": "sound_channels",
+   "address": "0x4159FA",
+   "length": 1,
+   "patch": "sound_channel_find_free: CMP EDX,0x8: scan channels 0..7 for an idle one -> 0..N-1 -> N",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "snd@415a05:=N",
+   "fix": "sound_channels",
+   "address": "0x415A05",
+   "length": 4,
+   "patch": "sound_channel_find_free: MOV ECX,0x8: divisor: sound_channel_next = (next+1) % 8 -> % N -> N",
+   "sha256": "dc765660b06ee03dd16fd7ca5b957e8c805161ac2c4af28c5a100ab2ab432ca1"
+  },
+  {
+   "name": "snd@415d4f:=27*N",
+   "fix": "sound_channels",
+   "address": "0x415D4F",
+   "length": 4,
+   "patch": "sound_channels_reset: MOV EBX,0xD8: memset size of sound_channels = 8 x 0x1B -> N x 0x1B -> 27*N",
+   "sha256": "305b0569ad0b657003b5c9961c05d9feba78bf951b71df1a412ab18f6cbd5d1e"
+  },
+  {
+   "name": "snd@415d54:CH+0",
+   "fix": "sound_channels",
+   "address": "0x415D54",
+   "length": 4,
+   "patch": "sound_channels_reset: MOV EAX,sound_channels: memset base -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@415d60:=27*N",
+   "fix": "sound_channels",
+   "address": "0x415D60",
+   "length": 4,
+   "patch": "sound_channels_reset: MOV EBX,0xD8: memset size of sound_requests = 8 x 0x1B -> N x 0x1B -> 27*N",
+   "sha256": "305b0569ad0b657003b5c9961c05d9feba78bf951b71df1a412ab18f6cbd5d1e"
+  },
+  {
+   "name": "snd@415d65:REQ+0",
+   "fix": "sound_channels",
+   "address": "0x415D65",
+   "length": 4,
+   "patch": "sound_channels_reset: MOV EAX,sound_requests: memset base -> our array REQ+0",
+   "sha256": "191c1846b801ce3cb595dfdd14193e4b2152d2cb35b726f2b4ffa33c8b5e9c13"
+  },
+  {
+   "name": "snd@415d79:CH-27",
+   "fix": "sound_channels",
+   "address": "0x415D79",
+   "length": 4,
+   "patch": "sound_channels_reset: MOV [EAX+0x4544AD],DL: channels[-1].owner: loop base, EAX = 0x1B..0xD8 (NOT requests+0xBD, although the value is equal) -> our array CH-27",
+   "sha256": "7bd107f96636e161d4a384364362f23c6b2e74b823bdca895d34d257885f51dc"
+  },
+  {
+   "name": "snd@415d7e:=27*N",
+   "fix": "sound_channels",
+   "address": "0x415D7E",
+   "length": 4,
+   "patch": "sound_channels_reset: CMP EAX,0xD8: loop end: owner = 0xFF for 8 channels -> N -> 27*N",
+   "sha256": "305b0569ad0b657003b5c9961c05d9feba78bf951b71df1a412ab18f6cbd5d1e"
+  },
+  {
+   "name": "snd@415da7:=N",
+   "fix": "sound_channels",
+   "address": "0x415DA7",
+   "length": 1,
+   "patch": "sound_request_add: CMP [sound_request_count],0x8: request cap 8 -> N (sound_request_count itself stays where it is) -> N",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "snd@415e07:REQ+0",
+   "fix": "sound_channels",
+   "address": "0x415E07",
+   "length": 4,
+   "patch": "sound_request_add: LEA EDI,[EDX+sound_requests]: destination requests[count] -> our array REQ+0",
+   "sha256": "191c1846b801ce3cb595dfdd14193e4b2152d2cb35b726f2b4ffa33c8b5e9c13"
+  },
+  {
+   "name": "snd@415e5e:=N-1",
+   "fix": "sound_channels",
+   "address": "0x415E5E",
+   "length": 4,
+   "patch": "sound_channel_find: MOV EDX,0x7: first (last) channel index 7 -> N-1 -> N-1",
+   "sha256": "e8613f5a5bc9f9feeda32a8e7c80b69dd4878e47b6a91723fb15eb84236b6a2b"
+  },
+  {
+   "name": "snd@415e63:CH+27*N-27",
+   "fix": "sound_channels",
+   "address": "0x415E63",
+   "length": 4,
+   "patch": "sound_channel_find: MOV EAX,0x454585: channels[7].owner, loop start (walks down 0x1B) -> channels[N-1] -> our array CH+27*N-27",
+   "sha256": "ddb727881b055fe1ee4463b6b9019f05a282d5e45d2c226443aa0e208f4ba0ca"
+  },
+  {
+   "name": "snd@415fbf:CH+0",
+   "fix": "sound_channels",
+   "address": "0x415FBF",
+   "length": 4,
+   "patch": "vehicle_sounds: MOV ECX,sound_channels: base for channels[found].owner = 0xFF after sound_channel_stop -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@416002:CH+0",
+   "fix": "sound_channels",
+   "address": "0x416002",
+   "length": 4,
+   "patch": "vehicle_sounds: MOV ECX,sound_channels: base for channels[found].owner = 0xFF after sound_channel_stop -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@416065:CH+0",
+   "fix": "sound_channels",
+   "address": "0x416065",
+   "length": 4,
+   "patch": "vehicle_sounds: MOV ECX,sound_channels: base for channels[found].owner = 0xFF after sound_channel_stop -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@4160a8:CH+0",
+   "fix": "sound_channels",
+   "address": "0x4160A8",
+   "length": 4,
+   "patch": "vehicle_sounds: MOV ECX,sound_channels: base for channels[found].owner = 0xFF after sound_channel_stop -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@41610f:CH+0",
+   "fix": "sound_channels",
+   "address": "0x41610F",
+   "length": 4,
+   "patch": "vehicle_sounds: MOV ECX,sound_channels: base for channels[found].owner = 0xFF after sound_channel_stop -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@416164:CH+0",
+   "fix": "sound_channels",
+   "address": "0x416164",
+   "length": 4,
+   "patch": "vehicle_sounds: MOV EBX,sound_channels: base for channels[found].owner = 0xFF after sound_channel_stop -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@4160e7:=7",
+   "fix": "sound_channels",
+   "address": "0x4160E7",
+   "length": 1,
+   "patch": "vehicle_sounds: CMP [sound_engine_count],0x3: engine-sound cap: at most 3 engine requests per update (JGE skips + stops the rest). Optional: raise (imm8, max 127; 7 = every vehicle) -> 7",
+   "sha256": "084fed08b978af4d7d196a7446a86b58009e636b611db16211b65a9aadff29c5"
+  },
+  {
+   "name": "snd@416214:=N+8",
+   "fix": "sound_channels",
+   "address": "0x416214",
+   "length": 1,
+   "patch": "sound_update_channels: SUB ESP,0x10: frame: flags[8]@0, ptr@8, best@0xC -> flags[N]@0, ptr@N, best@N+4 -> N+8",
+   "sha256": "c555eab45d08845ae9f10d452a99bfcb06f74a50b988fe7e48dd323789b88ee3"
+  },
+  {
+   "name": "snd@416216:=N",
+   "fix": "sound_channels",
+   "address": "0x416216",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EBX,0x8: memset(flags, 0, 8): one \"taken\" byte per REQUEST -> N -> N",
+   "sha256": "dc765660b06ee03dd16fd7ca5b957e8c805161ac2c4af28c5a100ab2ab432ca1"
+  },
+  {
+   "name": "snd@416224:=N-1",
+   "fix": "sound_channels",
+   "address": "0x416224",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EDX,0x7: idle sweep: first channel 7 -> N-1 -> N-1",
+   "sha256": "e8613f5a5bc9f9feeda32a8e7c80b69dd4878e47b6a91723fb15eb84236b6a2b"
+  },
+  {
+   "name": "snd@416229:=27*N-27",
+   "fix": "sound_channels",
+   "address": "0x416229",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EBX,0xBD: idle sweep: offset of channel 7 (7 x 0x1B) -> (N-1) x 0x1B -> 27*N-27",
+   "sha256": "665f136f317949c6550ee7fc9f757b9c9c02642e6c36cbe0be917c026f6eff55"
+  },
+  {
+   "name": "snd@41623a:CH+0",
+   "fix": "sound_channels",
+   "address": "0x41623A",
+   "length": 4,
+   "patch": "sound_update_channels: MOV byte [EBX+sound_channels],0xFF: channels[i].owner = 0xFF when idle -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@41625a:=N",
+   "fix": "sound_channels",
+   "address": "0x41625A",
+   "length": 1,
+   "patch": "sound_update_channels: MOV [ESP+0x8],sound_requests (disp8): local ptr moves 8 -> N -> N",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "snd@41625b:REQ+0",
+   "fix": "sound_channels",
+   "address": "0x41625B",
+   "length": 4,
+   "patch": "sound_update_channels: MOV [ESP+0x8],sound_requests (imm32): local ptr = &requests[0] -> our array REQ+0",
+   "sha256": "191c1846b801ce3cb595dfdd14193e4b2152d2cb35b726f2b4ffa33c8b5e9c13"
+  },
+  {
+   "name": "snd@416264:=N",
+   "fix": "sound_channels",
+   "address": "0x416264",
+   "length": 1,
+   "patch": "sound_update_channels: MOV EBX,[ESP+0x8]: local ptr -> N",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "snd@416266:=N-1",
+   "fix": "sound_channels",
+   "address": "0x416266",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EDX,0x7: inline find (owner,kind): first channel 7 -> N-1 -> N-1",
+   "sha256": "e8613f5a5bc9f9feeda32a8e7c80b69dd4878e47b6a91723fb15eb84236b6a2b"
+  },
+  {
+   "name": "snd@41626b:CH+27*N-27",
+   "fix": "sound_channels",
+   "address": "0x41626B",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EAX,0x454585: inline find: &channels[7] -> &channels[N-1] -> our array CH+27*N-27",
+   "sha256": "ddb727881b055fe1ee4463b6b9019f05a282d5e45d2c226443aa0e208f4ba0ca"
+  },
+  {
+   "name": "snd@41629a:REQ+2",
+   "fix": "sound_channels",
+   "address": "0x41629A",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EDX,[ESI+0x4543F2]: requests[i].sample -> our array REQ+2",
+   "sha256": "4fbf0245d1b93d96d0211e72063e8ecc12d08e15219113840128228b879887ae"
+  },
+  {
+   "name": "snd@4162b1:REQ+22",
+   "fix": "sound_channels",
+   "address": "0x4162B1",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EBX,[ESI+0x454406]: requests[i].rate -> our array REQ+22",
+   "sha256": "030f861847a29521db5f8b6feb297880d490a95737d18ba9bf05a38e7397fddf"
+  },
+  {
+   "name": "snd@4162b7:CH+22",
+   "fix": "sound_channels",
+   "address": "0x4162B7",
+   "length": 4,
+   "patch": "sound_update_channels: CMP EBX,[EDI+0x4544DE]: channels[c].rate -> our array CH+22",
+   "sha256": "d322750941c68e83eef71ae94ad53c027272e486127e843515af325a6341524a"
+  },
+  {
+   "name": "snd@4162c4:REQ+22",
+   "fix": "sound_channels",
+   "address": "0x4162C4",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EAX,[ESI+0x454406]: requests[i].rate -> our array REQ+22",
+   "sha256": "030f861847a29521db5f8b6feb297880d490a95737d18ba9bf05a38e7397fddf"
+  },
+  {
+   "name": "snd@4162ca:CH+22",
+   "fix": "sound_channels",
+   "address": "0x4162CA",
+   "length": 4,
+   "patch": "sound_update_channels: MOV [EDI+0x4544DE],EAX: channels[c].rate -> our array CH+22",
+   "sha256": "d322750941c68e83eef71ae94ad53c027272e486127e843515af325a6341524a"
+  },
+  {
+   "name": "snd@4162d3:REQ+10",
+   "fix": "sound_channels",
+   "address": "0x4162D3",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EAX,[ESI+0x4543FA]: requests[i].volume -> our array REQ+10",
+   "sha256": "3960c989f30e3e7c9705fc9b86f610e99ab6abbfdc76337eaf8bb5d9cbb46436"
+  },
+  {
+   "name": "snd@4162d9:CH+10",
+   "fix": "sound_channels",
+   "address": "0x4162D9",
+   "length": 4,
+   "patch": "sound_update_channels: CMP EAX,[EBX+0x4544D2]: channels[c].volume -> our array CH+10",
+   "sha256": "a466f418291b018ab81d26abb0b6777368fedead4a09ecb8f2cbf4b9d8315e7c"
+  },
+  {
+   "name": "snd@4162ea:REQ+10",
+   "fix": "sound_channels",
+   "address": "0x4162EA",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EAX,[ESI+0x4543FA]: requests[i].volume -> our array REQ+10",
+   "sha256": "3960c989f30e3e7c9705fc9b86f610e99ab6abbfdc76337eaf8bb5d9cbb46436"
+  },
+  {
+   "name": "snd@4162f0:CH+10",
+   "fix": "sound_channels",
+   "address": "0x4162F0",
+   "length": 4,
+   "patch": "sound_update_channels: MOV [EBX+0x4544D2],EAX: channels[c].volume -> our array CH+10",
+   "sha256": "a466f418291b018ab81d26abb0b6777368fedead4a09ecb8f2cbf4b9d8315e7c"
+  },
+  {
+   "name": "snd@4162f9:REQ+14",
+   "fix": "sound_channels",
+   "address": "0x4162F9",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EAX,[ESI+0x4543FE]: requests[i].pan -> our array REQ+14",
+   "sha256": "07bdf6ef22986ff46ef1c6b2e5af3f9487acc16652ca52c820f3d3f6492ccd8a"
+  },
+  {
+   "name": "snd@4162ff:CH+14",
+   "fix": "sound_channels",
+   "address": "0x4162FF",
+   "length": 4,
+   "patch": "sound_update_channels: CMP EAX,[EBX+0x4544D6]: channels[c].pan -> our array CH+14",
+   "sha256": "bce80637dcee8c3bcd0b24214b6d2cb02849f4b6cae15adbce4bf1f0dfd4c2bf"
+  },
+  {
+   "name": "snd@416310:REQ+14",
+   "fix": "sound_channels",
+   "address": "0x416310",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EAX,[ESI+0x4543FE]: requests[i].pan -> our array REQ+14",
+   "sha256": "07bdf6ef22986ff46ef1c6b2e5af3f9487acc16652ca52c820f3d3f6492ccd8a"
+  },
+  {
+   "name": "snd@416316:CH+14",
+   "fix": "sound_channels",
+   "address": "0x416316",
+   "length": 4,
+   "patch": "sound_update_channels: MOV [EBX+0x4544D6],EAX: channels[c].pan -> our array CH+14",
+   "sha256": "bce80637dcee8c3bcd0b24214b6d2cb02849f4b6cae15adbce4bf1f0dfd4c2bf"
+  },
+  {
+   "name": "snd@41631f:REQ+26",
+   "fix": "sound_channels",
+   "address": "0x41631F",
+   "length": 4,
+   "patch": "sound_update_channels: MOV AL,[ESI+0x45440A]: requests[i].priority -> our array REQ+26",
+   "sha256": "de4a5a050a39444c8b40fe3028959b44a3290a1a0f00a44aef2734454e7cb27f"
+  },
+  {
+   "name": "snd@416325:CH+26",
+   "fix": "sound_channels",
+   "address": "0x416325",
+   "length": 4,
+   "patch": "sound_update_channels: MOV [ECX+0x4544E2],AL: channels[c].priority -> our array CH+26",
+   "sha256": "448ced75743a810f4298b46f3e6c52dea82d5ced983edc124e80fcceffa12304"
+  },
+  {
+   "name": "snd@41632c:=N",
+   "fix": "sound_channels",
+   "address": "0x41632C",
+   "length": 1,
+   "patch": "sound_update_channels: MOV EBX,[ESP+0x8]: local ptr -> N",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "snd@41633d:=N",
+   "fix": "sound_channels",
+   "address": "0x41633D",
+   "length": 1,
+   "patch": "sound_update_channels: MOV [ESP+0x8],EBX: local ptr -> N",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "snd@416358:=N+4",
+   "fix": "sound_channels",
+   "address": "0x416358",
+   "length": 1,
+   "patch": "sound_update_channels: MOV [ESP+0xC],EBP: local best -> N+4",
+   "sha256": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977"
+  },
+  {
+   "name": "snd@416369:REQ+26",
+   "fix": "sound_channels",
+   "address": "0x416369",
+   "length": 4,
+   "patch": "sound_update_channels: MOV BL,[EDX+0x45440A]: requests[i].priority (pick highest untaken) -> our array REQ+26",
+   "sha256": "de4a5a050a39444c8b40fe3028959b44a3290a1a0f00a44aef2734454e7cb27f"
+  },
+  {
+   "name": "snd@416376:=N+4",
+   "fix": "sound_channels",
+   "address": "0x416376",
+   "length": 1,
+   "patch": "sound_update_channels: MOV [ESP+0xC],EAX: local best -> N+4",
+   "sha256": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977"
+  },
+  {
+   "name": "snd@416388:=N+4",
+   "fix": "sound_channels",
+   "address": "0x416388",
+   "length": 1,
+   "patch": "sound_update_channels: CMP [ESP+0xC],0x0: local best -> N+4",
+   "sha256": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977"
+  },
+  {
+   "name": "snd@41639d:=N+4",
+   "fix": "sound_channels",
+   "address": "0x41639D",
+   "length": 1,
+   "patch": "sound_update_channels: MOV EAX,[ESP+0xC]: local best -> N+4",
+   "sha256": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977"
+  },
+  {
+   "name": "snd@4163a1:=27*N-27",
+   "fix": "sound_channels",
+   "address": "0x4163A1",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EDX,0xBD: victim search: offset of channel 7 -> (N-1) x 0x1B -> 27*N-27",
+   "sha256": "665f136f317949c6550ee7fc9f757b9c9c02642e6c36cbe0be917c026f6eff55"
+  },
+  {
+   "name": "snd@4163aa:CH+27*N-27",
+   "fix": "sound_channels",
+   "address": "0x4163AA",
+   "length": 4,
+   "patch": "sound_update_channels: MOV BL,[0x454585]: channels[7].owner -> channels[N-1].owner -> our array CH+27*N-27",
+   "sha256": "ddb727881b055fe1ee4463b6b9019f05a282d5e45d2c226443aa0e208f4ba0ca"
+  },
+  {
+   "name": "snd@4163af:=N-1",
+   "fix": "sound_channels",
+   "address": "0x4163AF",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EAX,0x7: victim search: first channel 7 -> N-1 -> N-1",
+   "sha256": "e8613f5a5bc9f9feeda32a8e7c80b69dd4878e47b6a91723fb15eb84236b6a2b"
+  },
+  {
+   "name": "snd@4163c1:CH+26",
+   "fix": "sound_channels",
+   "address": "0x4163C1",
+   "length": 4,
+   "patch": "sound_update_channels: MOV BL,[EDX+0x4544E2]: channels[c].priority -> our array CH+26",
+   "sha256": "448ced75743a810f4298b46f3e6c52dea82d5ced983edc124e80fcceffa12304"
+  },
+  {
+   "name": "snd@4163d7:CH+0",
+   "fix": "sound_channels",
+   "address": "0x4163D7",
+   "length": 4,
+   "patch": "sound_update_channels: CMP byte [EDX+0x4544C8],0xFF: channels[c].owner == free? -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@4163eb:=N+4",
+   "fix": "sound_channels",
+   "address": "0x4163EB",
+   "length": 1,
+   "patch": "sound_update_channels: IMUL EAX,[ESP+0xC],0x1B: local best -> N+4",
+   "sha256": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977"
+  },
+  {
+   "name": "snd@4163f7:CH+0",
+   "fix": "sound_channels",
+   "address": "0x4163F7",
+   "length": 4,
+   "patch": "sound_update_channels: LEA EDI,[ESI+0x4544C8]: copy dest &channels[c] -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@4163fd:REQ+0",
+   "fix": "sound_channels",
+   "address": "0x4163FD",
+   "length": 4,
+   "patch": "sound_update_channels: LEA ESI,[EAX+0x4543F0]: copy source &requests[best] -> our array REQ+0",
+   "sha256": "191c1846b801ce3cb595dfdd14193e4b2152d2cb35b726f2b4ffa33c8b5e9c13"
+  },
+  {
+   "name": "snd@41640a:REQ+14",
+   "fix": "sound_channels",
+   "address": "0x41640A",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EDI,[EAX+0x4543FE]: requests[best].pan -> our array REQ+14",
+   "sha256": "07bdf6ef22986ff46ef1c6b2e5af3f9487acc16652ca52c820f3d3f6492ccd8a"
+  },
+  {
+   "name": "snd@416410:REQ+10",
+   "fix": "sound_channels",
+   "address": "0x416410",
+   "length": 4,
+   "patch": "sound_update_channels: MOV ECX,[EAX+0x4543FA]: requests[best].volume -> our array REQ+10",
+   "sha256": "3960c989f30e3e7c9705fc9b86f610e99ab6abbfdc76337eaf8bb5d9cbb46436"
+  },
+  {
+   "name": "snd@416417:REQ+2",
+   "fix": "sound_channels",
+   "address": "0x416417",
+   "length": 4,
+   "patch": "sound_update_channels: MOV EDX,[EAX+0x4543F2]: requests[best].sample -> our array REQ+2",
+   "sha256": "4fbf0245d1b93d96d0211e72063e8ecc12d08e15219113840128228b879887ae"
+  },
+  {
+   "name": "snd@416425:=N+4",
+   "fix": "sound_channels",
+   "address": "0x416425",
+   "length": 1,
+   "patch": "sound_update_channels: CMP [ESP+0xC],0x0: local best -> N+4",
+   "sha256": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977"
+  },
+  {
+   "name": "snd@41642f:=N+8",
+   "fix": "sound_channels",
+   "address": "0x41642F",
+   "length": 1,
+   "patch": "sound_update_channels: ADD ESP,0x10: frame -> N+8",
+   "sha256": "c555eab45d08845ae9f10d452a99bfcb06f74a50b988fe7e48dd323789b88ee3"
+  },
+  {
+   "name": "snd@416725:CH+0",
+   "fix": "sound_channels",
+   "address": "0x416725",
+   "length": 4,
+   "patch": "sound_stop_vehicles: MOV EDI,sound_channels: base for channels[found].owner = 0xFF (x4 below) -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@42e8d4:=N",
+   "fix": "sound_channels",
+   "address": "0x42E8D4",
+   "length": 1,
+   "patch": "ds_shutdown: CMP EAX,0x8: release buffers 0..7 -> 0..N-1 -> N",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "snd@42e8e5:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42E8E5",
+   "length": 4,
+   "patch": "ds_shutdown: MOV EDI,[EAX+ds_buffers]: ds_buffers[ch] (Stop) -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42e8fb:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42E8FB",
+   "length": 4,
+   "patch": "ds_shutdown: MOV EBP,[ESI+ds_buffers]: ds_buffers[ch] (Release) -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42e90e:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42E90E",
+   "length": 4,
+   "patch": "ds_shutdown: MOV [ESI+ds_buffers],EAX: ds_buffers[ch] = 0 -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42e9d0:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42E9D0",
+   "length": 4,
+   "patch": "ds_load_sample: MOV EDX,[EAX+ds_buffers]: ds_buffers[ch] (Stop) -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42ea3f:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EA3F",
+   "length": 4,
+   "patch": "ds_load_sample: MOV ECX,[EBX+ds_buffers]: ds_buffers[ch] (Release) -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42ea55:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EA55",
+   "length": 4,
+   "patch": "ds_load_sample: MOV [EBX+ds_buffers],EBP: ds_buffers[ch] = 0 -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42ea5d:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EA5D",
+   "length": 4,
+   "patch": "ds_load_sample: MOV EBP,ds_buffers: &ds_buffers[0] (+ch*4 = CreateSoundBuffer out-param) -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42eab9:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EAB9",
+   "length": 4,
+   "patch": "ds_load_sample: MOV EAX,[EBX+ds_buffers]: ds_buffers[ch] (Lock) -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42ead0:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EAD0",
+   "length": 4,
+   "patch": "ds_load_sample: MOV EAX,[EBX+ds_buffers]: ds_buffers[ch] (Restore) -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42eb18:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EB18",
+   "length": 4,
+   "patch": "ds_load_sample: MOV EAX,[EAX*4+ds_buffers]: ds_buffers[ch] (Unlock) -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42eb4d:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EB4D",
+   "length": 4,
+   "patch": "ds_play: CMP [ESI*4+ds_buffers],0: ds_buffers[ch] -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42eb71:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EB71",
+   "length": 4,
+   "patch": "ds_play: MOV EAX,[ESI+ds_buffers]: ds_buffers[ch] (Play) -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42eb86:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EB86",
+   "length": 4,
+   "patch": "ds_play: MOV EAX,[ESI+ds_buffers]: ds_buffers[ch] (Restore) -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42ebbe:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EBBE",
+   "length": 4,
+   "patch": "ds_stop: MOV EDX,[EAX+ds_buffers]: ds_buffers[ch] -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42ebfa:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EBFA",
+   "length": 4,
+   "patch": "ds_set_volume: CMP [EBX*4+ds_buffers],0: ds_buffers[ch] -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42ec2c:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EC2C",
+   "length": 4,
+   "patch": "ds_set_volume: MOV EAX,[EAX*4+ds_buffers]: ds_buffers[ch] (SetVolume); first byte after ds_volume_curve -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42ec64:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42EC64",
+   "length": 4,
+   "patch": "ds_set_frequency: MOV EBX,[EDX+ds_buffers]: ds_buffers[ch] -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42eca5:=N",
+   "fix": "sound_channels",
+   "address": "0x42ECA5",
+   "length": 1,
+   "patch": "ds_set_pan: CMP EAX,0x8: bounds check ch < 8 -> < N (else returns 0: pan silently ignored) -> N",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "snd@42ecb2:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42ECB2",
+   "length": 4,
+   "patch": "ds_set_pan: CMP [EAX*4+ds_buffers],0: ds_buffers[ch] -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42ecf8:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42ECF8",
+   "length": 4,
+   "patch": "ds_set_pan: MOV EAX,[EAX*4+ds_buffers]: ds_buffers[ch] (SetPan); 4 bytes after ds_pan_curve ends -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@42ed2e:=N",
+   "fix": "sound_channels",
+   "address": "0x42ED2E",
+   "length": 1,
+   "patch": "ds_is_playing: CMP EAX,0x8: bounds check ch < 8 -> < N (else \"not playing\": channels 8 and up would look idle forever) -> N",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "snd@42ed3f:DSB+0",
+   "fix": "sound_channels",
+   "address": "0x42ED3F",
+   "length": 4,
+   "patch": "ds_is_playing: MOV EDX,[EAX+ds_buffers]: ds_buffers[ch] (GetStatus) -> our array DSB+0",
+   "sha256": "be24bc366273228816b9fb9d56c773c3c107b2c7814e983526b4138c9cd49753"
+  },
+  {
+   "name": "snd@410afb:REQ+0",
+   "fix": "sound_channels",
+   "address": "0x410AFB",
+   "length": 4,
+   "patch": "diag_sound_panel: MOV CL,[EDI+sound_requests]: requests[i].owner -> our array REQ+0",
+   "sha256": "191c1846b801ce3cb595dfdd14193e4b2152d2cb35b726f2b4ffa33c8b5e9c13"
+  },
+  {
+   "name": "snd@410b17:REQ-26",
+   "fix": "sound_channels",
+   "address": "0x410B17",
+   "length": 4,
+   "patch": "diag_sound_panel: MOV CL,[EDI+0x4543D6]: requests[i].kind after EDI += 0x1B (requests - 0x1B + 1) -> our array REQ-26",
+   "sha256": "dd2cd24e6363e64232714475585d41a9cbe30f1622d4349a470a65f6739cd72d"
+  },
+  {
+   "name": "snd@410b47:CH+0",
+   "fix": "sound_channels",
+   "address": "0x410B47",
+   "length": 4,
+   "patch": "diag_sound_panel: MOV CL,[EDI+sound_channels]: channels[i].owner -> our array CH+0",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "snd@410b5d:CH+1",
+   "fix": "sound_channels",
+   "address": "0x410B5D",
+   "length": 4,
+   "patch": "diag_sound_panel: MOV CL,[EDI+0x4544C9]: channels[i].kind -> our array CH+1",
+   "sha256": "199b608ba8e94bef6a0be680f41c2edfb4d53ab94ecb2bfd83f840365ea40a36"
+  },
+  {
+   "name": "snd@410b6e:=432",
+   "fix": "sound_channels",
+   "address": "0x410B6E",
+   "length": 4,
+   "patch": "diag_sound_panel: CMP EDI,0xD8: rows for 8 channels -> 16 at most (16 rows x 6 px from y 100 fit in 200; 32 wouldn't) -> 432",
+   "sha256": "305b0569ad0b657003b5c9961c05d9feba78bf951b71df1a412ab18f6cbd5d1e"
+  },
+  {
+   "name": "snd@415e22:=N-1",
+   "fix": "sound_channels",
+   "address": "0x415E22",
+   "length": 4,
+   "patch": "dead@0x415E1C (find owner+kind+sample): MOV EDX,0x7: first channel 7 -> N-1 -> N-1 (code nothing calls)",
+   "sha256": "e8613f5a5bc9f9feeda32a8e7c80b69dd4878e47b6a91723fb15eb84236b6a2b"
+  },
+  {
+   "name": "snd@415e27:CH+27*N-27",
+   "fix": "sound_channels",
+   "address": "0x415E27",
+   "length": 4,
+   "patch": "dead@0x415E1C (find owner+kind+sample): MOV EAX,0x454585: &channels[7] -> [N-1] -> our array CH+27*N-27 (code nothing calls)",
+   "sha256": "ddb727881b055fe1ee4463b6b9019f05a282d5e45d2c226443aa0e208f4ba0ca"
+  },
+  {
+   "name": "snd@415e90:=N-1",
+   "fix": "sound_channels",
+   "address": "0x415E90",
+   "length": 4,
+   "patch": "dead@0x415E8C (find + stop + free): MOV EDX,0x7: first channel 7 -> N-1 -> N-1 (code nothing calls)",
+   "sha256": "e8613f5a5bc9f9feeda32a8e7c80b69dd4878e47b6a91723fb15eb84236b6a2b"
+  },
+  {
+   "name": "snd@415e97:CH+27*N-27",
+   "fix": "sound_channels",
+   "address": "0x415E97",
+   "length": 4,
+   "patch": "dead@0x415E8C (find + stop + free): MOV EAX,0x454585: &channels[7] -> [N-1] -> our array CH+27*N-27 (code nothing calls)",
+   "sha256": "ddb727881b055fe1ee4463b6b9019f05a282d5e45d2c226443aa0e208f4ba0ca"
+  },
+  {
+   "name": "snd@415ec7:CH+0",
+   "fix": "sound_channels",
+   "address": "0x415EC7",
+   "length": 4,
+   "patch": "dead@0x415E8C (find + stop + free): MOV EBX,0x4544C8: base for channels[found].owner = 0xFF -> our array CH+0 (code nothing calls)",
+   "sha256": "1d5a4dd9b7cc20bd1958ac0e41473eff5d948630a24d57fe2b515ade33249157"
+  },
+  {
+   "name": "display_list_call",
+   "fix": "horizon_culling",
+   "address": "0x417808",
+   "length": 5,
+   "patch": "render_view: CALL display_list_draw (0x42B8B4, after every node is in the list, the far passes' too) -> CALL brr_hook_display_list (thunks.asm): brr_horizon_cull (horizon.c) walks the list near to far (from 0x5268C8 by +8, the reverse of the painting order), keeps per screen column the row from which nearer, opaque, front-facing ground surely covers down to the bottom, and unlinks every ground record and object whose possible pixels lie wholly there: they would be painted over anyway, so the picture is the same. Needs close_gaps (its exact edges); effects and decals are never culled; then display_list_draw",
+   "sha256": "efd920dedaf6aaae4260a72f6f491bbe57405ffb4306f1c48b32d0effac19f83"
+  },
+  {
+   "name": "scenery_snap",
+   "fix": "close_gaps",
+   "address": "0x448D06",
+   "length": 8,
+   "patch": "object_transform (0x448CA0): MOV EAX,[ESI]; MOV EBX,[ESI+4]; MOV ECX,[ESI+8] (the object's position) -> CALL brr_hook_scenery_pos (thunks.asm) + 3 NOPs: the same loads; for the level's own objects (scenery_objects *0x498054, 39-byte records, count 0x498572) an x or z one unit past a multiple of 256 is drawn on it. Across the 23 levels' MAP.DAT, 5,257 positions sit on a multiple of 256 and 5,053 one past it, the level editor's off-by-one: Italy's tunnel sections and the start's billboards were a world unit apart, a slit of sky 2 to 4 pixels wide at 1080 rows. Drawing only (object_transform's callers are object_draw, view_setup and light_level); 13 joints of BLOCK1 pieces made one unit apart on purpose open instead",
+   "sha256": "8e19fa130ed33ccc35aa76ae546ff822cefb2b407576f825c4c068b0f4a8d1a5"
+  },
+  {
+   "name": "edge_slope_1",
+   "fix": "close_gaps",
+   "address": "0x442D64",
+   "length": 31,
+   "patch": "edge_scan's first polygon type, edge set-up (the edge's x step): SHR EBX,15; ...; IMUL EAX,EBX, dx x floor(2^16 / dy) (EBX was 2^31 / dy, the reciprocal table's 2^32 / dy halved at 0x442D01) -> IMUL EBX; SHRD EAX,EDX,15: (dx x 2^31 / dy) >> 15 in 64 bits, the full precision the shading, texture and depth steps already have; the start x and the row count as before. The floor lost up to dx x dy / 65536 pixels along an edge, 5 to 30 at 1080 rows on long diagonals: cracks where edges aren't shared (T-junctions in some models, objects meeting the ground)",
+   "sha256": "388d9a885124e3b98339b5ea074757aa670613f2d31985b8d90e6766432f4b62"
+  },
+  {
+   "name": "edge_slope_2",
+   "fix": "close_gaps",
+   "address": "0x442DDD",
+   "length": 31,
+   "patch": "edge_scan's second polygon type: the same change as edge_slope_1",
+   "sha256": "388d9a885124e3b98339b5ea074757aa670613f2d31985b8d90e6766432f4b62"
+  },
+  {
+   "name": "edge_slope_3",
+   "fix": "close_gaps",
+   "address": "0x442E69",
+   "length": 31,
+   "patch": "edge_scan_no_depth (0x442E10): the same change as edge_slope_1",
+   "sha256": "388d9a885124e3b98339b5ea074757aa670613f2d31985b8d90e6766432f4b62"
+  },
+  {
+   "name": "ground_ring_routine",
+   "fix": "ground_perspective",
+   "address": "0x41CF26",
+   "length": 4,
+   "patch": "Modern renderer, [display] ground_perspective. landscape_setup's ring table (0x4552E0): the rings from landscape_ring_near + 1 to landscape_ring_textured got landscape_draw_cell_textured (0x41BD80: the square's corners projected, two affine screen-space triangles, fill 3) -> MOV ECX,0x41C9CC, landscape_draw_cell_near, as the nearest rings: camera-space corners and the engine's perspective-correct triangles (fill 0x204), the same tile, texture corners and diagonal. Squares are no longer drawn one way far off and another close up; the switch showed as banks' textures jumping and twitching (Phase 3c, 2026-11-16)",
+   "sha256": "2273874c6a5e437ed6c53572f88de287c41c0c25b9e5140dd66d46859ab3bc4d"
+  },
+  {
+   "name": "ground_near_range",
+   "fix": "ground_perspective",
+   "address": "0x41CAE6",
+   "length": 4,
+   "patch": "Modern renderer, [display] ground_perspective. landscape_draw_cell_near: a square is drawn perspective-correct when its nearest corner is within landscape_near_range (0x46BBB0: (texture distance - 3) x 512, capped at 0x800, 4 squares), else by landscape_draw_cell_near_affine, which projects it and draws it affine like the far squares -> MOV EDI,[0x46BB9C], landscape_texture_range (texture distance x 512): perspective-correct as far as the ground is textured. Beyond it the square still goes on to near_affine, near_flat and landscape_draw_cell_haze, the flat hazed colour the textured routine gave it. At 4 squares the affine mapping was 1.7 texels off (13 px on a bank at 1600x900), with half a texel more from the two span routines' rounding, and the test runs every frame, so squares at the boundary likely flipped back and forth as the camera bobbed",
+   "sha256": "ddd0d19a71c8c7c78679921cecf9d094b604c2a459111b5a8fdf41f9b62c077d"
+  },
+  {
+   "name": "persp_setup_hook",
+   "fix": "ground_perspective",
+   "address": "0x442057",
+   "length": 4,
+   "patch": "Modern renderer, [display] ground_perspective. engine_draw_polygon, type 4 (perspective- textured; the landscape's squares from site ground_ring_routine on): poly_setup_hook (0x5430D4) = poly_setup_perspective (0x446FF0) -> brr_hook_persp_setup. Without the depth buffer (render_flags bit 0x10, how the ground is drawn) brr_persp_setup does the same job more precisely: 1/z (+0x14) scaled by the same power of two for the whole polygon, as far as the span's log table allows, and u/z, v/z (+0x18, +0x1C) as u x 1/z / 2^24 with their fractions, so span_persp's log/exp tables give the same texel from larger whole numbers. The game's set-up keeps only whole parts: 2^21 / z is 164 at 25 squares and 68 at 60, 2.5 to 5 texels out; ours is within half a texel at any distance. It also keeps 1/z under 0x7FFF0000: clip_edge_near's 0x7FFFFFFF read past the log table. With the depth buffer, or for a ring it wasn't written for, the game's own set-up runs",
+   "sha256": "13e166d49246c188759404e71c9c7e0b3325fd3af5fee971b6eb60afdd49056c"
+  },
+  {
+   "name": "sort_radius_object",
+   "fix": "sort_footprint",
+   "address": "0x42BD81",
+   "length": 1,
+   "patch": "display_list_add_object (0x42BCF8): MOV EBX,[EBX+EAX+0xA] displacement 0x0A -> 0x0C: the sort key, the depth along the view less the model's radius read as the high half of the dword at shape_info + 0xA (the short at +0xC, a bounding sphere that includes the model's height: a tree 1,200 against a 137 footprint) -> +0xC, so the high half is the short at +0xE, its footprint radius: tall objects no longer sort up to 2 squares nearer than they are, and stop drawing over hill crests in front of them (the ground is drawn without the depth buffer, so only the order hides objects behind it)",
+   "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+  },
+  {
+   "name": "sort_radius_object_mode1",
+   "fix": "sort_footprint",
+   "address": "0x42BE5D",
+   "length": 1,
+   "patch": "display_list_add_object_mode1 (0x42BDD4): the same change as sort_radius_object",
+   "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+  },
+  {
+   "name": "sort_radius_ground_object",
+   "fix": "sort_footprint",
+   "address": "0x42C229",
+   "length": 1,
+   "patch": "display_list_add_ground_object (0x42C1A0): the same change as sort_radius_object",
+   "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+  },
+  {
+   "name": "sort_radius_ground_object_mode1",
+   "fix": "sort_footprint",
+   "address": "0x42C305",
+   "length": 1,
+   "patch": "display_list_add_ground_object_mode1 (0x42C27C): the same change as sort_radius_object",
+   "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+  },
+  {
+   "name": "sort_radius_fit",
+   "fix": "sort_footprint",
+   "address": "0x42B73E",
+   "length": 1,
+   "patch": "scenery_fit_lods_to_ground (0x42B6EC), its near-sorted branch: MOV EAX,[EDX+EAX+0xA] displacement 0x0A -> 0x0C, so it works the object's centre depth back out of the sort key with the same radius the key now uses (the far-sorted branch at 0x42B717 stays)",
+   "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+  },
+  {
+   "name": "car_select_zoom",
+   "fix": "wide_menus",
+   "address": "0x4052E5",
+   "length": 5,
+   "patch": "car_select_draw: MOV EBX,0xC8 (menu_draw_vehicle_model's zoom, 200: the camera at the model's size x 512 / zoom) -> MOV EBX,176: with the widescreen menu backgrounds, the car about 12% smaller, so it no longer reaches the menu's left edge (x 0 of the 320x200 picture), where it was cut off; in 1996 that was the screen's edge",
+   "sha256": "764088ba29afcfc556ff85a73eed4a27fc50946a301ea845fe769fbe37391e66"
+  },
+  {
+   "name": "project_x",
+   "fix": "precise_3d",
+   "address": "0x4413B0",
+   "length": 8,
+   "patch": "Modern renderer, [display] precise_3d. model_op_vertices: IMUL EAX,[0x542000]; CDQ (x x the horizontal scale in 32 bits, then sign-extended for IDIV by the depth) -> CALL brr_project_x (thunks.asm) and 3 NOPs: IMUL dword ptr [0x542000], the product in EDX:EAX, counting the ones that wouldn't fit 32 bits. x is view space x 256, so the 32-bit product overflowed for corners more than about 10.7 squares to the side at 1,440 rows (32 at 640x480): the corner landed anywhere on screen, a spike across the picture. The quotient stays within 3.4 million (x < 2^23, the scale < 6,600, the depth >= 16,384), so the IDIV can't overflow",
+   "sha256": "76729edab1a039c639fc0d3535e80fdd74a88296e40a98af11db5151d2845c0a"
+  },
+  {
+   "name": "project_y",
+   "fix": "precise_3d",
+   "address": "0x4413C5",
+   "length": 8,
+   "patch": "Modern renderer, [display] precise_3d. model_op_vertices: IMUL EAX,[0x542004]; CDQ -> CALL brr_project_y and 3 NOPs, as project_x for y",
+   "sha256": "ec9ba065f9a1ec4820d453f89e86b5c058edb3bb5b1cd6779e179f5bcc3b459c"
+  },
+  {
+   "name": "backface_model",
+   "fix": "precise_3d",
+   "address": "0x445C19",
+   "length": 15,
+   "patch": "Modern renderer, [display] precise_3d. poly_cull_outcodes (model polygons): IMUL EAX,EDX; SUB EDI,EBX; MOV EBX,[ESI+0xC]; SUB EBX,ECX; IMUL EDI,EBX; SUB EDI,EAX (the screen cross product, 32 bits) -> CALL brr_backface (thunks.asm) and NOPs: the same in 64 bits, its sign for the JS after. With corners far off screen the 32-bit product's sign was wrong: faces dropped or back faces drawn",
+   "sha256": "6575fa8bdab13c4c6e2f25f3e9585b5cbac80ce440d51de0c56c3104e4a8c1e0"
+  },
+  {
+   "name": "backface_polygon",
+   "fix": "precise_3d",
+   "address": "0x445E39",
+   "length": 15,
+   "patch": "Modern renderer, [display] precise_3d. poly_cull_visible (engine_draw_polygon's polygons): the same as backface_model",
+   "sha256": "6575fa8bdab13c4c6e2f25f3e9585b5cbac80ce440d51de0c56c3104e4a8c1e0"
+  },
+  {
+   "name": "clip_x_t",
+   "fix": "precise_3d",
+   "address": "0x4431F9",
+   "length": 15,
+   "patch": "Modern renderer, [display] precise_3d. clip_edge_x: SHL EAX,16; NEG ECX; JZ; CDQ; IDIV ECX; MOV [ESI+0x10],EBX; MOV ECX,EAX (the fraction of the edge at the screen's left or right edge, from (x0 - edge) << 16 in 32 bits) -> CALL brr_clip_t_x and NOPs: the dividend in 64 bits. Wrong beyond 32,767 pixels off screen",
+   "sha256": "fc08f1c7164b3c57efc665e9c54bfd0b5cb127155289c93c25e435062a692332"
+  },
+  {
+   "name": "clip_x_lerp",
+   "fix": "precise_3d",
+   "address": "0x443210",
+   "length": 6,
+   "patch": "Modern renderer, [display] precise_3d. clip_edge_x: IMUL EAX,ECX; SAR EAX,16 ((y1 - y0) x the fraction, 32 bits) -> IMUL ECX; SHRD EAX,EDX,16, as the game interpolates the depth just after",
+   "sha256": "aa0b39c95b5cbf9e8d16e81f40319d9ee12d605da89f68b727a3b09d0de200e2"
+  },
+  {
+   "name": "clip_y_t",
+   "fix": "precise_3d",
+   "address": "0x443289",
+   "length": 15,
+   "patch": "Modern renderer, [display] precise_3d. clip_edge_y: as clip_x_t for the top and bottom edges (MOV [ESI+0xC],EBX) -> CALL brr_clip_t_y",
+   "sha256": "e19620139e37ec8cc55734e90fa8fa6e7e6bb1060348a2ac090f56a828910dac"
+  },
+  {
+   "name": "clip_y_lerp",
+   "fix": "precise_3d",
+   "address": "0x4432A0",
+   "length": 6,
+   "patch": "Modern renderer, [display] precise_3d. clip_edge_y: as clip_x_lerp, for x",
+   "sha256": "aa0b39c95b5cbf9e8d16e81f40319d9ee12d605da89f68b727a3b09d0de200e2"
+  },
+  {
+   "name": "cull_margin",
+   "fix": "precise_3d",
+   "address": "0x4487B8",
+   "length": 7,
+   "patch": "Modern renderer, [display] precise_3d. object_cull_sphere: SHL dword ptr [0x54B498],7 (the radius x 128, the margin for the screen-edge tests, against x x the projection scale) -> CALL brr_cull_margin and NOPs: the radius x the larger scale. x 128 was half the radius at 320 wide and a twelfth at 1,440 rows: objects vanished at the screen's sides while mostly still in view",
+   "sha256": "abba69e48a4574e3d7b9b286c7a007d6faf48fa4065c9a85385e953b95911324"
+  },
+  {
+   "name": "unlit_restore_6",
+   "fix": "object_lighting",
+   "address": "0x42BAFF",
+   "length": 13,
+   "patch": "Modern renderer, [display] object_lighting. display_list_draw, node type 6 (effects: dust, smoke, drawn unlit): CMP DI,2; JNZ; PUSH 2; CALL engine_set_shading (put back the near objects' smooth lighting only once the list had reached them) -> CALL brr_shading_restore and NOPs: mode 2 then, else 1. The game left the engine unlit, so far objects drawn after an effect came out unlit, flickering bright and lit as dust came and went",
+   "sha256": "06e7e44c48db2151c8fa4b93e92d2884d5c4f03932a787f8bc429b2782d3eb7a"
+  },
+  {
+   "name": "unlit_restore_9",
+   "fix": "object_lighting",
+   "address": "0x42BB26",
+   "length": 13,
+   "patch": "Modern renderer, [display] object_lighting. display_list_draw, node type 9 (also drawn unlit): as unlit_restore_6; the JNZ's target is the JMP that follows",
+   "sha256": "3dbbea2f9ee7b2d4dcfcdbfd37142b7dd3c61e62bf0c7ecc77ed91c5005b6e17"
+  },
+  {
+   "name": "shading_threshold",
+   "fix": "object_shading",
+   "address": "0x42B8BA",
+   "length": 31,
+   "patch": "Modern renderer, [display] object_shading smooth or flat. display_list_draw's start: MOV EBP,[0x44B044]; SUB EBP,9; XOR EDI,EDI; clamp EBP to 3-8 (the distance in squares inside which objects get smooth vertex lighting; flat face lighting beyond) -> CALL brr_hook_shading_threshold (thunks.asm; EBP from brr_shading_threshold, render.c: 4,096 every object smooth, -4,096 none), XOR EDI,EDI and NOPs",
+   "sha256": "071b19be3cad5ec55e72dd589525faade95f0249c3e3f5e38d049af07aed5835"
+  },
+  {
+   "name": "lod_select",
+   "fix": "object_detail",
+   "address": "0x4411BE",
+   "length": 7,
+   "patch": "Modern renderer, [display] object_detail matched (the default) or highest. object_draw: CMP dword ptr [0x54B488],0 (the object's depth, 16.16, before the level-of-detail loop; ESI the model's table of (depth, offset) pairs ended by -1) -> CALL brr_hook_lod (thunks.asm) and 2 NOPs: brr_lod_select (render.c) sets brr_lod_depth (the depth x 512 / the horizontal scale: the depth the object would have in the game's 640-wide picture; or 0, the most detailed), then the same CMP for the JS after",
+   "sha256": "4cb0fc51182e46094ca99952b749a037f84642f5520b5c8cf9343c7513b55a5e"
+  },
+  {
+   "name": "lod_compare",
+   "fix": "object_detail",
+   "address": "0x4411D7",
+   "length": 4,
+   "patch": "Modern renderer, [display] object_detail. object_draw's level-of-detail loop: CMP ECX,[0x54B488] -> CMP ECX,[brr_lod_depth]: the model's level by the depth it would have in the game's 640-wide picture. At 1600x900 widescreen (scale 960) an object at the same depth is 1.9 times bigger than at 640x480: fences switched from their thin far model to the thick near one close up, and objects vanished at their last level nearer than they looked",
+   "sha256": "233272a4a2c52c6f3f251d66af4000482a114e1ec2938d5f333f8c7f3517b231"
+  },
+  {
+   "name": "fit_depth",
+   "fix": "object_detail",
+   "address": "0x42B744",
+   "length": 6,
+   "patch": "Modern renderer, [display] object_detail. scenery_fit_lods_to_ground (0x42B6EC; ground-hugging scenery such as wooden fences, fitted to the ground just before they're drawn): XOR EAX,EAX; MOV AX,[ECX+0x22] where its two branches meet, ESI the object's centre depth -> CALL brr_hook_fit_depth (thunks.asm) and a NOP: ESI the depth as the level-of-detail choice sees it (brr_lod_scale), then the same two instructions. It fits only the versions whose distance band holds the depth, so with matched detail the version drawn hadn't been fitted to the spot: fences leant at odd angles, twitching, until the game's own depth reached its band",
+   "sha256": "e05955ca1f480bf866e1523dc19f208c2c53119a4669290a7afd71ce3d4a2406"
+  },
+  {
+   "name": "if_distance_depth",
+   "fix": "object_detail",
+   "address": "0x441525",
+   "length": 4,
+   "patch": "Modern renderer, [display] object_detail. model_op_if_distance (model opcode 15, the models' own 'if nearer than' tests, which choose detailed parts such as the armco barriers' high-resolution texture): MOV ECX,[0x54B488] -> MOV ECX,[brr_lod_depth], the depth object_draw's level-of-detail choice has just worked out for the same object (site lod_select), so the models' parts switch where their versions do",
+   "sha256": "233272a4a2c52c6f3f251d66af4000482a114e1ec2938d5f333f8c7f3517b231"
+  },
+  {
+   "name": "record_init_base",
+   "fix": "big_lists",
+   "address": "0x42B7E6",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_init (start-up and each level's reset): MOV EDX,0x4CA430, the first landscape record -> brr_records (distance.c, 8,192 records of 0xBD bytes), so the game prepares ours (type 7, two 3-point triangles)",
+   "sha256": "3219aa7bb226b033d6cc51f52b53f01f12a3e6aa8a8f4f12b38d28e4d8d58983"
+  },
+  {
+   "name": "record_init_end",
+   "fix": "big_lists",
+   "address": "0x42B7EC",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_init: CMP EDX,0x5268C0, the records' end before the loop -> the end of ours",
+   "sha256": "65daaf18d2a6cd5fba4b47558eb8375127600deff471bf0eab0df0521b806c67"
+  },
+  {
+   "name": "record_init_loop",
+   "fix": "big_lists",
+   "address": "0x42B81A",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_init: the same CMP at the loop's end -> the end of ours",
+   "sha256": "65daaf18d2a6cd5fba4b47558eb8375127600deff471bf0eab0df0521b806c67"
+  },
+  {
+   "name": "record_rewind",
+   "fix": "big_lists",
+   "address": "0x42B857",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_rewind (each landscape walk): MOV EDX,0x4CA430 -> brr_records",
+   "sha256": "3219aa7bb226b033d6cc51f52b53f01f12a3e6aa8a8f4f12b38d28e4d8d58983"
+  },
+  {
+   "name": "record_limit",
+   "fix": "big_lists",
+   "address": "0x41D642",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). landscape_walk: CMP EDX,0x523980 (stop when the next column might not fit: 64 records short of 2,000) -> 64 short of our 8,192. At 44 squares in 16:9 the game's 1,936 were 93% full; 60 squares needs about 3,400",
+   "sha256": "5e99b9ca83e9560c535e217517761c5f5289bdf9ab8c9e16cbfbbc1c9bd632a7"
+  },
+  {
+   "name": "node_first",
+   "fix": "big_lists",
+   "address": "0x42B82D",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_clear (each view): MOV ECX,0x5268D1, the first object node -> brr_nodes (distance.c, 8,192 nodes of 17 bytes instead of 999)",
+   "sha256": "fc088c0710593debfdb75fcfeccf2ffc13a572e1e07953c69abc231e61bfe64a"
+  },
+  {
+   "name": "node_hint",
+   "fix": "big_lists",
+   "address": "0x42B87E",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_rewind: MOV [0x52D6EC],0x5268D1 (the cells' insertion hint: the first node) -> brr_nodes",
+   "sha256": "fc088c0710593debfdb75fcfeccf2ffc13a572e1e07953c69abc231e61bfe64a"
+  },
+  {
+   "name": "node_limit_after_last",
+   "fix": "big_lists",
+   "address": "0x42BCC7",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_add_after_last: CMP ...,0x52AB28 (the object nodes' end: 999 nodes) -> the end of brr_nodes (8,192). Seen 157 at most at 25 squares; objects out to 60 need about 900",
+   "sha256": "d423bf964bcc68a31ef51aa7038a55f48ec7942f8c53237089c100b7e93a5769"
+  },
+  {
+   "name": "node_limit_object",
+   "fix": "big_lists",
+   "address": "0x42BD0E",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_add_object: CMP ...,0x52AB28 (the object nodes' end: 999 nodes) -> the end of brr_nodes (8,192). Seen 157 at most at 25 squares; objects out to 60 need about 900",
+   "sha256": "d423bf964bcc68a31ef51aa7038a55f48ec7942f8c53237089c100b7e93a5769"
+  },
+  {
+   "name": "node_limit_object_mode1",
+   "fix": "big_lists",
+   "address": "0x42BDEA",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_add_object_mode1: CMP ...,0x52AB28 (the object nodes' end: 999 nodes) -> the end of brr_nodes (8,192). Seen 157 at most at 25 squares; objects out to 60 need about 900",
+   "sha256": "d423bf964bcc68a31ef51aa7038a55f48ec7942f8c53237089c100b7e93a5769"
+  },
+  {
+   "name": "node_limit_vehicle",
+   "fix": "big_lists",
+   "address": "0x42BEC6",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_add_vehicle: CMP ...,0x52AB28 (the object nodes' end: 999 nodes) -> the end of brr_nodes (8,192). Seen 157 at most at 25 squares; objects out to 60 need about 900",
+   "sha256": "d423bf964bcc68a31ef51aa7038a55f48ec7942f8c53237089c100b7e93a5769"
+  },
+  {
+   "name": "node_limit_texture_tile",
+   "fix": "big_lists",
+   "address": "0x42BFB5",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_add_texture_tile: CMP ...,0x52AB28 (the object nodes' end: 999 nodes) -> the end of brr_nodes (8,192). Seen 157 at most at 25 squares; objects out to 60 need about 900",
+   "sha256": "d423bf964bcc68a31ef51aa7038a55f48ec7942f8c53237089c100b7e93a5769"
+  },
+  {
+   "name": "node_limit_object_mode0",
+   "fix": "big_lists",
+   "address": "0x42BFFE",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_add_object_mode0: CMP ...,0x52AB28 (the object nodes' end: 999 nodes) -> the end of brr_nodes (8,192). Seen 157 at most at 25 squares; objects out to 60 need about 900",
+   "sha256": "d423bf964bcc68a31ef51aa7038a55f48ec7942f8c53237089c100b7e93a5769"
+  },
+  {
+   "name": "node_limit_object_far",
+   "fix": "big_lists",
+   "address": "0x42C0DA",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_add_object_far: CMP ...,0x52AB28 (the object nodes' end: 999 nodes) -> the end of brr_nodes (8,192). Seen 157 at most at 25 squares; objects out to 60 need about 900",
+   "sha256": "d423bf964bcc68a31ef51aa7038a55f48ec7942f8c53237089c100b7e93a5769"
+  },
+  {
+   "name": "node_limit_ground_object",
+   "fix": "big_lists",
+   "address": "0x42C1B6",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_add_ground_object: CMP ...,0x52AB28 (the object nodes' end: 999 nodes) -> the end of brr_nodes (8,192). Seen 157 at most at 25 squares; objects out to 60 need about 900",
+   "sha256": "d423bf964bcc68a31ef51aa7038a55f48ec7942f8c53237089c100b7e93a5769"
+  },
+  {
+   "name": "node_limit_ground_object_mode1",
+   "fix": "big_lists",
+   "address": "0x42C292",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_add_ground_object_mode1: CMP ...,0x52AB28 (the object nodes' end: 999 nodes) -> the end of brr_nodes (8,192). Seen 157 at most at 25 squares; objects out to 60 need about 900",
+   "sha256": "d423bf964bcc68a31ef51aa7038a55f48ec7942f8c53237089c100b7e93a5769"
+  },
+  {
+   "name": "node_limit_ground_object_far",
+   "fix": "big_lists",
+   "address": "0x42C36E",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_add_ground_object_far: CMP ...,0x52AB28 (the object nodes' end: 999 nodes) -> the end of brr_nodes (8,192). Seen 157 at most at 25 squares; objects out to 60 need about 900",
+   "sha256": "d423bf964bcc68a31ef51aa7038a55f48ec7942f8c53237089c100b7e93a5769"
+  },
+  {
+   "name": "node_limit_polygon",
+   "fix": "big_lists",
+   "address": "0x42C44B",
+   "length": 4,
+   "patch": "Modern renderer ([display] big_lists, always with it). display_list_add_polygon: CMP ...,0x52AB28 (the object nodes' end: 999 nodes) -> the end of brr_nodes (8,192). Seen 157 at most at 25 squares; objects out to 60 need about 900",
+   "sha256": "d423bf964bcc68a31ef51aa7038a55f48ec7942f8c53237089c100b7e93a5769"
+  },
+  {
+   "name": "object_radius_vision",
+   "fix": "draw_distance_far",
+   "address": "0x41772D",
+   "length": 4,
+   "patch": "Modern renderer, max_draw_distance above 25. render_view: MOV EAX,[0x44B044] (the vision distance, for the radius objects and other vehicles are gathered within: isqrt(vision^2 + (camera height / 512)^2) squares) -> brr_object_vision (patch.c: the far distance), so trees, buildings and vehicles are drawn as far as the ground; the vision distance stays 25 for the near pass. Their distance fade (display_list_draw) already follows the far distance",
+   "sha256": "89bfbf28c21915ae4b99201b3f22f8933f8bab436d5bb736ea98c8257b9ffa4a"
+  },
+  {
+   "name": "set_view_entry",
+   "fix": "render_max",
+   "address": "0x425F78",
+   "length": 5,
+   "patch": "Experimental, [display] render_resolution=max with the new renderer. set_view's first instructions (PUSH EBX; PUSH ECX; PUSH ESI; MOV ESI,EDX) -> JMP brr_hook_set_view: brr_view_size (render.c) turns the single-view 640x480 race view (split-screen flag 0x44BE74 clear) into the biggest 4:3 view up to 1008x756 that fills the final picture best by a whole number; every other size passes through; then set_view runs as before from 0x425F7D",
+   "sha256": "7c030aa13f378d6f84082190a9636ef53af80882de32ff9ae933e4296aa6fde9"
+  },
+  {
+   "name": "prtsc_skip",
+   "fix": "no_screenshot",
+   "address": "0x428D88",
+   "length": 2,
+   "patch": "With the Modern renderer. run_screen_frame's PrtSc check (key-table index 0x54): JZ 0x428DCD -> JMP 0x428DCD (74 43 -> EB 43), so PrtSc does nothing: no PCX screenshot, and no wait for the key's release. Our own screenshots are to come",
+   "sha256": "c5e0bcf36e1ea2b0f60473aa4037f3f0610d86b2afe9a4afd3de7c8244851f51"
+  },
+  {
+   "name": "dd_setup_entry",
+   "fix": "renderer",
+   "address": "0x42C590",
+   "length": 9,
+   "patch": "The DirectDraw set-up's first 4 instructions (PUSH ESI; PUSH EDI; PUSH EBP; SUB ESP,0x84) -> JMP brr_hook_dd_setup + 4 NOP: in full screen the mode becomes the screen's own size (the new renderer), then those instructions, and on at 0x42C599",
+   "sha256": "a0c422f50aea3bfb4cc00a0ee47f0ec3ab788de2a230b32a8e4c01606c81c505"
+  },
+  {
+   "name": "dd_mode_check",
+   "fix": "renderer",
+   "address": "0x42C74B",
+   "length": 20,
+   "patch": "The set-up's full-screen size check (320x200 -> cooperative level 0x51, 640x480 -> 0x11, else 'Invalid full screen size') from its 640x480 test -> JMP 0x42C782 (level 0x11, DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN) + NOPs, so the screen's own size is accepted",
+   "sha256": "6593b31258dfe8a6ef3baf878fbabe7ca8be2890003433988e4f9c97d9ce19de"
+  },
+  {
+   "name": "dd_mode_bpp",
+   "fix": "full_colour",
+   "address": "0x42C7D8",
+   "length": 1,
+   "patch": "dd_setup's SetDisplayMode bits per pixel (the immediate of PUSH 0x8 at 0x42C7D7) -> 0x20: full colour in full screen; render.c composes the 32-bit picture straight into the back surface and flips, instead of the game's 8-bit copy, and clears dd_palette_pending (0x44BFC4), as a 32-bit surface takes no palette",
+   "sha256": "beead77994cf573341ec17b58bbf7eb34d2711c993c1d976b128b3188dc1829a"
+  },
+  {
+   "name": "sky_draw_call",
+   "fix": "sky",
+   "address": "0x4176F6",
+   "length": 5,
+   "patch": "render_view: CALL sky_draw (0x41A4D0) -> CALL brr_hook_sky_draw: the view's camera and projection recorded, the bands drawn in the marker colour 255, and coloured as a smooth gradient when the frame is presented (sky.c); also where smooth shading (shade.c) starts each view",
+   "sha256": "013df2c085750453d9535f6459bfd0e7ed9cb3966d18696f9c746d3a0e6b7512"
+  },
+  {
+   "name": "fill_flat_smooth",
+   "fix": "shading",
+   "address": "0x543120",
+   "length": 32,
+   "patch": "fill_descriptors' smoothly lit flat-colour polygons (render flags 0x40, with and without depth): lighting set-up poly_light_smooth (0x446D70) -> brr_poly_light_smooth and spans span_gouraud_z (0x4438D0) / span_gouraud (0x443710) -> brr_span_gouraud_z / brr_span_gouraud (thunks.asm): the same pixels, plus each corner's shade fraction and each pixel's index and fraction for the full-colour picture (shade.c). Data, not code: the 3D engine reads the routines from here for every polygon",
+   "sha256": "6c264034bd93aae22b9d4a6ba695074c094184e685731c9f99466f8ac43672ea"
+  },
+  {
+   "name": "fill_seethrough_smooth",
+   "fix": "shading",
+   "address": "0x543180",
+   "length": 32,
+   "patch": "fill_descriptors' see-through (checkerboard) polygons with smooth lighting: poly_light_smooth -> brr_poly_light_smooth; their stipple spans stay the game's",
+   "sha256": "c3929cc81adcb875f206fbd4c122f5727bdbdbae50a5c2ac4cc27c4e57690843"
+  },
+  {
+   "name": "fill_gouraud",
+   "fix": "shading",
+   "address": "0x5431A0",
+   "length": 64,
+   "patch": "fill_descriptors' Gouraud polygons (shades from the model): span_gouraud_z / span_gouraud -> our copies, as fill_flat_smooth; their lighting set-ups stay the game's",
+   "sha256": "d7936b036ab621c9b97f2c0c8b6de0a0f96680fc2a40c36069bbb5f2b361993a"
+  },
+  {
+   "name": "render_view_entry",
+   "fix": "draw_distance",
+   "address": "0x4176C4",
+   "length": 6,
+   "patch": "Experimental, [display] max_draw_distance above 0 only. render_view's first 6 instructions (PUSH EBX, ECX, EDX, ESI, EDI, EBP) -> JMP brr_hook_render_view + NOP: the view is drawn with vision distance (detail_level, 0x44B044) 25, the most the 64x64 visible-area grid holds (the game's limit is 22), and texture distance (0x44B048) max_draw_distance (the game's limit is 14); the player's values are put back afterwards; a trampoline repeats the PUSHes and continues at 0x4176CA",
+   "sha256": "21f784e92e3fbe130cfc5c00c283283d3177b7e09bff21d535b1c31bda8ea6ec"
+  },
+  {
+   "name": "landscape_walk_call",
+   "fix": "draw_distance_far",
+   "address": "0x4177E7",
+   "length": 5,
+   "patch": "Experimental, [display] max_draw_distance 26-60 only. render_view: CALL 0x41D5E4 (the landscape walk) -> CALL brr_hook_landscape_walk: the walk with the vision distance at max_draw_distance (the flat squares' and the display list's fades), then distance.c's far passes: the squares beyond the near pass, in 61x61 windows of the 64x64 grid, each with the tables rebuilt by 0x41D24C (camera square shifted) and the walk's loop from 0x41D618",
+   "sha256": "8cee3a7e3d13d8fa410307122323f984664c15068f8654340efc3afd523bbc0c"
+  },
+  {
+   "name": "music_check_call",
+   "fix": "music",
+   "address": "0x4011D3",
+   "length": 5,
+   "patch": "WinMain: CALL 0x409F00 (the start-up music check, just after the DirectDraw set-up) -> CALL brr_hook_music_check, which puts our mciSendCommandA back in the import slot 0x56C160 (cnc-ddraw's hooks replace it during the set-up), then runs the check",
+   "sha256": "ee617de270097cad1ebc33aadf85d88d65e1cc9b52db789610b265c73883836f"
+  }
+ ],
+ "protected_about": "Game functions reachable from the race tick (direct calls, Phase 3 call graph) except approach_clamped and FUN_004274fc (the menus' mouse position, skipped in a race), which are patched on purpose, and (2026-11-16, [sound] distance_volume) ds_set_volume, ds_set_pan ([sound] stereo_pan) and sound_update_vehicles: the volume and pan DirectSound is given, and the order the vehicles' sounds are gathered in (each still once, so as many rand() calls); neither changes the game's state. The DLL hashes them before and after patching. With [sound] channels=16 the sound channel layer is patched throughout (ds_is_playing, ds_load_sample, ds_play, ds_set_frequency, ds_shutdown, ds_stop, sound_channel_find, sound_channel_find_free, sound_channel_mark_oneshot, sound_channel_play, sound_channel_stop, sound_channels_shutdown, sound_request_add, sound_update_channels, vehicle_sounds): its tables move to 16 channels and requests of our own, with the same layout, and its loops and limits follow; vehicle_sounds still calls rand() once per vehicle, so the game's state is unchanged.",
+ "protected": [
+  {
+   "name": "fixed_mul15",
+   "address": "0x40103B",
+   "size": 10,
+   "sha256": "745e5ab0a340cea46a04cbef1050d4afe31d9b5cb2913c54063fa05b70d25b69"
+  },
+  {
+   "name": "mul_div",
+   "address": "0x401045",
+   "size": 5,
+   "sha256": "d9acd0f02c49d4f4ec37c088106b4cb625335b3f2b09902340dcb50057490594"
+  },
+  {
+   "name": "camera_mouse_look",
+   "address": "0x402C4C",
+   "size": 140,
+   "sha256": "01afe1ae9e3cd41e2b7a04d9193d6e64893bb3f7061ab87f3bee36f660715a35"
+  },
+  {
+   "name": "camera_incar_defaults",
+   "address": "0x402CD8",
+   "size": 48,
+   "sha256": "b0d3a9ab7139fef5c9d56baae784d734ae55de3ee1f1d5b218e1e531e07f4920"
+  },
+  {
+   "name": "camera_switch_mode1",
+   "address": "0x402D1C",
+   "size": 209,
+   "sha256": "3cae84136ad3cd2cd570e0680d656a0bfe76b3eba5036a062d00ba64689327d1"
+  },
+  {
+   "name": "camera_mode1_reset",
+   "address": "0x402DF0",
+   "size": 29,
+   "sha256": "d76322b5721ede69e47dbe76a5c7f9dede1b78ec3f3b54a963866dafa406c74f"
+  },
+  {
+   "name": "camera_control",
+   "address": "0x402F20",
+   "size": 668,
+   "sha256": "4915558809479f54e881b4ff2402542bbecf6d2dca0fbde8802aa8b731609e79"
+  },
+  {
+   "name": "camera_orbit_set_preset",
+   "address": "0x4031BC",
+   "size": 231,
+   "sha256": "151a89c2033ce190906da703c036997eec2414fc1228a92b8fb9cff0200b368e"
+  },
+  {
+   "name": "camera_switch_mode0",
+   "address": "0x4032B8",
+   "size": 263,
+   "sha256": "89fe03d26326c266044035b8815cf61b50ad1d0dcd266ef1452e74e54aa9cb79"
+  },
+  {
+   "name": "camera_mode0_reset",
+   "address": "0x4033C0",
+   "size": 5,
+   "sha256": "0f7b989e916c2f6a23a332f4f0afe44922b93053705edb560a5adb283f71b409"
+  },
+  {
+   "name": "camera_orbit_to_mode0",
+   "address": "0x4034C8",
+   "size": 46,
+   "sha256": "d6fd8447cd534a90d3d1b55194d885d207f8bd532f9096fb0b97d99e05442d4e"
+  },
+  {
+   "name": "camera_orbit_to_mode2",
+   "address": "0x4034F8",
+   "size": 46,
+   "sha256": "2b87d35baa74a1390fa4d117abe1bdec2a9e1680dc28d5765f33422d9fcafd4b"
+  },
+  {
+   "name": "camera_switch_mode2",
+   "address": "0x40353C",
+   "size": 304,
+   "sha256": "32f921c7b049c8256df7a0ced33ff01b0e8b92d3de6c6f9910cf0b105623eab4"
+  },
+  {
+   "name": "camera_mode2_reset",
+   "address": "0x40366C",
+   "size": 5,
+   "sha256": "9f60ef29e39bf2d309ff347a7a81e6288e11c85c1da1515feee31b12329a71c3"
+  },
+  {
+   "name": "camera_transition_start",
+   "address": "0x4036C0",
+   "size": 508,
+   "sha256": "a85788b82bfae84c8b0aba62efad86bb2bf633c581ba17b7b099f5b638f02682"
+  },
+  {
+   "name": "camera_mode5_tick",
+   "address": "0x403A00",
+   "size": 183,
+   "sha256": "b9f1b8356930f741c89b21e8175770aaa8070b2d623f59b2dbaf7c13ba5fc22b"
+  },
+  {
+   "name": "camera_mode5_reset",
+   "address": "0x403AC8",
+   "size": 6,
+   "sha256": "9317c554f7a647b7b4ab22ef118b26dc9a316d7a305e30100048808912fb15d8"
+  },
+  {
+   "name": "camera_vector_to_vehicle",
+   "address": "0x403C70",
+   "size": 98,
+   "sha256": "c401f38444aada507ad299329e198bcf4815643afd70fedb93ad0fdb9a878077"
+  },
+  {
+   "name": "camera_wrap_to_vehicle",
+   "address": "0x403CD4",
+   "size": 142,
+   "sha256": "f4d18be62b48f276a4ace180293c00770014a5f00bd5edad10c68db1fad496ad"
+  },
+  {
+   "name": "camera_follow_orbit_yaw",
+   "address": "0x403D94",
+   "size": 143,
+   "sha256": "b357e7f44ec9a63b1a538cb24377419732cdd7819a37af21545b1e03127b22fd"
+  },
+  {
+   "name": "camera_follow_orbit_pitch",
+   "address": "0x403E24",
+   "size": 134,
+   "sha256": "40f91e335bbd809e06b4010773b86200ec66f3874d7dbfd85d8b2f5acf823136"
+  },
+  {
+   "name": "camera_follow_mouse",
+   "address": "0x403EAC",
+   "size": 317,
+   "sha256": "59ff35e97e89d904f96d2b93ba12c19e83e890ebbc1d87392fd011b860964e70"
+  },
+  {
+   "name": "camera_follow_swing",
+   "address": "0x403FEC",
+   "size": 154,
+   "sha256": "fb15880fb8e09c153790029546c9d69168855834232279e2705f872183a267cc"
+  },
+  {
+   "name": "camera_mode4_tick",
+   "address": "0x404088",
+   "size": 557,
+   "sha256": "6c2ea056f7b7cc31727452ab4bccaa35a60110ac8ee174679f544c940649fdb4"
+  },
+  {
+   "name": "camera_follow_set_preset",
+   "address": "0x4042B8",
+   "size": 119,
+   "sha256": "c23ed447fea2e1c57d1fe861e3ca129a20b5904b55335af16f02a1e1937d5713"
+  },
+  {
+   "name": "camera_orbit_from_follow",
+   "address": "0x404340",
+   "size": 142,
+   "sha256": "c8687e034a7b06196f0f2cea31db55ba3fa6870633d62ce555332861f2da5996"
+  },
+  {
+   "name": "camera_switch_mode4",
+   "address": "0x4043D0",
+   "size": 174,
+   "sha256": "a29bf85fdb8d317b7e4b4ca0ab702a6241df4b78c0834de6a9f31b53264192e1"
+  },
+  {
+   "name": "camera_mode4_reset",
+   "address": "0x404484",
+   "size": 181,
+   "sha256": "6a1fc9b0439d68c1d70985157991aa5a543eec0a79e85615f2e302adccb78d4c"
+  },
+  {
+   "name": "camera_mode3_tick",
+   "address": "0x404654",
+   "size": 1,
+   "sha256": "ae3f4619b0413d70d3004b9131c3752153074e45725be13b9a148978895e359e"
+  },
+  {
+   "name": "camera_switch_mode3",
+   "address": "0x404658",
+   "size": 8,
+   "sha256": "228afbcdbfdaafe87eb96187543ecd546537f4505720ad8eaa77117f7e38d4e2"
+  },
+  {
+   "name": "camera_mode3_reset",
+   "address": "0x404660",
+   "size": 5,
+   "sha256": "1951fc18d3fe983178d36790a74831ff061716f635d3680d77ff443823621128"
+  },
+  {
+   "name": "camera_mouse_adjust",
+   "address": "0x404670",
+   "size": 33,
+   "sha256": "0ddb56580e9285b04fec6583a48ad881564180c3f3cfc7712214f05c34e1b6ad"
+  },
+  {
+   "name": "camera_mouse_adjust_clamped",
+   "address": "0x404694",
+   "size": 102,
+   "sha256": "2dc3b8957759352d982baef7c6a55206c9560614581d8f1e324f7f7176f0bea6"
+  },
+  {
+   "name": "camera_aim",
+   "address": "0x404778",
+   "size": 116,
+   "sha256": "d526c2c0b31d057ba661b727eae745debf88eb0b66f0155230635ed601ffb172"
+  },
+  {
+   "name": "camera_keep_above_ground",
+   "address": "0x404820",
+   "size": 44,
+   "sha256": "5cc09f37ad1e2045b13f9d9bfcd33e75294410f71548aa8eb692a7b3421ebeb7"
+  },
+  {
+   "name": "camera_min_distance",
+   "address": "0x40484C",
+   "size": 40,
+   "sha256": "6da90bb881d1958c7e2f054f7f69d79786a87c9b5d8b6440de39bda17e10903e"
+  },
+  {
+   "name": "camera_clamp_distance",
+   "address": "0x404874",
+   "size": 58,
+   "sha256": "530e68f99bed3d24f9e4a78f3c89d26fd5a8632e9bed4bf38205860c2138ef2d"
+  },
+  {
+   "name": "camera_orbit_snap",
+   "address": "0x4048B0",
+   "size": 64,
+   "sha256": "f770b1c8868256936f87421a943f5e80354a381ce9813bfbd88991e08a531e95"
+  },
+  {
+   "name": "camera_tick",
+   "address": "0x4049E4",
+   "size": 59,
+   "sha256": "3dff6820792d6d47ce7a5e8aad5201b2a3a6ec7992bf6f96b17624ca27d5b4ee"
+  },
+  {
+   "name": "camera_set_vehicle",
+   "address": "0x404A34",
+   "size": 90,
+   "sha256": "3e1fde5d9247418894fc230edb7fc2bd9e436476d621c3062c944a280764af4d"
+  },
+  {
+   "name": "camera_set_mode",
+   "address": "0x404AA4",
+   "size": 20,
+   "sha256": "47a433e1bdb21aeadba8502cc2fbf88d98aeb9e558b0a68fca2d045c7f15f362"
+  },
+  {
+   "name": "camera_set_mode_and_vehicle",
+   "address": "0x404AF4",
+   "size": 135,
+   "sha256": "29c1ab3874f3ee5ec9e3d87b3808ee5cc118066c06b23d4caa187f747ba42005"
+  },
+  {
+   "name": "camera_next_vehicle",
+   "address": "0x404BE8",
+   "size": 221,
+   "sha256": "d6ad8ecb24f40fb9a97b05ec9d312de5f888ffbde047fa633762be9b4e493495"
+  },
+  {
+   "name": "cd_audio_play_track",
+   "address": "0x404F50",
+   "size": 242,
+   "sha256": "6702346121aefe8105cb6390351d88f216f5c99e8fe23a7beb33cf77f23643fd"
+  },
+  {
+   "name": "cd_audio_stop",
+   "address": "0x405044",
+   "size": 112,
+   "sha256": "d04a971f018e60bf91eb79eea192655428872290a538ff26c3b1b2612032a393"
+  },
+  {
+   "name": "sound_stop",
+   "address": "0x406874",
+   "size": 25,
+   "sha256": "83dd2ab6a833403e3a7d01de2d166d4ffe3049666812d74e2251f69d485dd023"
+  },
+  {
+   "name": "music_stop",
+   "address": "0x409F48",
+   "size": 14,
+   "sha256": "4740153c607823a84b1079b6160c24ebba8eddba83d583ace0310593ab848a70"
+  },
+  {
+   "name": "cd_audio_fade_tick",
+   "address": "0x409FC4",
+   "size": 131,
+   "sha256": "8fe4944475de0d9aea81d328bfa07041d40b5ab480dcee51f1bfea733c9fc40f"
+  },
+  {
+   "name": "cd_audio_poll",
+   "address": "0x40A048",
+   "size": 312,
+   "sha256": "6da4141b7dbe0e360e1e37335dc2dc04297d1fc86ee1bd18bb0f4b5d58f16e4a"
+  },
+  {
+   "name": "vehicle_damage_add",
+   "address": "0x40BC40",
+   "size": 49,
+   "sha256": "4661c2ab5c67217135cb87ebb8e26b2c73773aaeb6e3e9addb0b613c523e912e"
+  },
+  {
+   "name": "vehicle_damage_check_wreck",
+   "address": "0x40BC74",
+   "size": 54,
+   "sha256": "01f75a0bfd6cf5bfada3fec596d4f38c92bcebf57cd1b6b1be0ffc508ade6c97"
+  },
+  {
+   "name": "vehicle_damage_update",
+   "address": "0x40BCAC",
+   "size": 147,
+   "sha256": "fbdb3a0eac58a264684612c311e405e5de3ceba15d8862f16fe252a093d36b31"
+  },
+  {
+   "name": "collision_push_out",
+   "address": "0x40BE18",
+   "size": 209,
+   "sha256": "6149833712a616f523bc9e62989941057e9a876581848d5f426a11c96bca7b59"
+  },
+  {
+   "name": "collision_push_vehicle",
+   "address": "0x40BFD4",
+   "size": 225,
+   "sha256": "afc07e33de1baeda79b24906b4684fc453bdd93040a85cf9d1dd6fc0480c308f"
+  },
+  {
+   "name": "collision_vehicle_deflect",
+   "address": "0x40C0B8",
+   "size": 544,
+   "sha256": "24209556c543fa54430dd0f89edfb683530b945efecfdf5ec0c2b5813d9e312b"
+  },
+  {
+   "name": "collision_net_bump",
+   "address": "0x40C2D8",
+   "size": 294,
+   "sha256": "e3871a913669e7c2ebda4da1be5af71ffcc9f8d81411a2ca2245cef2072eedfc"
+  },
+  {
+   "name": "scenery_wheel_contact",
+   "address": "0x40C5F4",
+   "size": 1114,
+   "sha256": "911e6346b3c2e82e1a3afaf40979789f30fb99497de7a130bbab7739f1d681b2"
+  },
+  {
+   "name": "collision_set_point",
+   "address": "0x40D190",
+   "size": 128,
+   "sha256": "5cd8a4b9d892aec0934b2ae43ed2437be6e21ef1e5a998eeef280a7800d37fc7"
+  },
+  {
+   "name": "collision_test_radial",
+   "address": "0x40D210",
+   "size": 768,
+   "sha256": "4dc1896f74bfddf0403937a48e26b901fc6ef31e3a128ff6c760c3c41bffc08c"
+  },
+  {
+   "name": "vehicle_sound_if_viewed",
+   "address": "0x40D65C",
+   "size": 35,
+   "sha256": "88be061f1db3342cd6ac8caa2ba9643f953107b8ba9e5a25c2bd5483cf81f5e3"
+  },
+  {
+   "name": "vehicle_wheel_object_contact",
+   "address": "0x40E9B8",
+   "size": 434,
+   "sha256": "e87687cca8db212290dfb8675baab05861f70cd9d56f025714bd1c09aeaa0ecb"
+  },
+  {
+   "name": "vehicle_overlap_vehicle",
+   "address": "0x40EB6C",
+   "size": 92,
+   "sha256": "62ebe2e6ebcee938a3d497cdfdccbae7d9ac52a705ca6adc1a0642495f1ceb9b"
+  },
+  {
+   "name": "vehicle_hit_vehicle",
+   "address": "0x40EBC8",
+   "size": 585,
+   "sha256": "4a373ed049aa6c6285609adec5af120f44b5dba7d6816d1becd6adac7de8bc30"
+  },
+  {
+   "name": "vehicle_save_old_state",
+   "address": "0x40EE14",
+   "size": 38,
+   "sha256": "c57a7229c7c992f5f21e9e868ad78c8be240aff0d18da55dd3e86e61377e35f2"
+  },
+  {
+   "name": "vehicle_collide",
+   "address": "0x40EE3C",
+   "size": 224,
+   "sha256": "be38172f8ca8a87844bde24138a302fa747c1268374fff6689531c3e35e09318"
+  },
+  {
+   "name": "vehicle_collide_no_physics",
+   "address": "0x40EF1C",
+   "size": 94,
+   "sha256": "edaa2617baff749863a4daee7768d05949cf663e0df01635606902274886bfaa"
+  },
+  {
+   "name": "vehicle_spot_blocked",
+   "address": "0x40EF7C",
+   "size": 127,
+   "sha256": "85bb06628bc2f166e037bc0f7e42d3273b71f61f4229014b9776cd2d330a25a0"
+  },
+  {
+   "name": "track_section_locate",
+   "address": "0x40F738",
+   "size": 271,
+   "sha256": "013bb01af2e3905abe65decdd4289a1da2e6637dcaa3c53316816387aa592697"
+  },
+  {
+   "name": "vehicle_wrong_way_check",
+   "address": "0x40F868",
+   "size": 172,
+   "sha256": "43a5fe004d46a6d63a4238585be742564d90a1b194e1bb0987db7cff98abed41"
+  },
+  {
+   "name": "vehicle_track_progress",
+   "address": "0x40F914",
+   "size": 657,
+   "sha256": "945d0304982af46afb8538a710595e2e4a0273ce5c47b280da91fe0cd35ebb39"
+  },
+  {
+   "name": "vehicle_respot",
+   "address": "0x40FF38",
+   "size": 588,
+   "sha256": "721dc5a44ba79a7e6278f0362e8eac3cd85ce35bae7aa898ce0f48e1320cc5be"
+  },
+  {
+   "name": "file_load_direct",
+   "address": "0x4120B8",
+   "size": 108,
+   "sha256": "e67658cb0aa7e3e96864e0e15a4ef215ce314ef880d04107145b9a8a1a1dd46a"
+  },
+  {
+   "name": "wap_close",
+   "address": "0x4121D8",
+   "size": 57,
+   "sha256": "34f0fa08dccdeaadd491ad06cab2d3525377abeb560f301db7365d8ef5c528e0"
+  },
+  {
+   "name": "fonts_free",
+   "address": "0x4122F0",
+   "size": 37,
+   "sha256": "6cb38457f1459738e7d493e804aa7741934185e6a4ae6236d23561b443dd13a3"
+  },
+  {
+   "name": "atan2_units",
+   "address": "0x412A20",
+   "size": 12,
+   "sha256": "6b78dfa9d972d3432911ad857b2217c42f56d7dd2b3c589f8a990b76608c3dc5"
+  },
+  {
+   "name": "vec_length_2d",
+   "address": "0x412A2C",
+   "size": 109,
+   "sha256": "c16be4a64cdc0f56358cba53da127db02d87108c0cbf6142e9b62fbf7d451706"
+  },
+  {
+   "name": "vec_length_3d",
+   "address": "0x412A9C",
+   "size": 141,
+   "sha256": "1f5800c9a2946b3fd3d9704bdef7fe8d7ad4a18c1a2f98eb50387fd3db2db938"
+  },
+  {
+   "name": "thunk_FUN_0042f9c8",
+   "address": "0x412F40",
+   "size": 5,
+   "sha256": "abf8502fc0eaef24fca5b5bff2fb880c720810ad2c61ad4dca96b41e2ed280ad"
+  },
+  {
+   "name": "shade_table_free",
+   "address": "0x4130B8",
+   "size": 10,
+   "sha256": "721c76c6e90389445633a0959a23e552e68b6c2d6a0bad01bd31cef821afdaad"
+  },
+  {
+   "name": "sound_channel_idle",
+   "address": "0x4137D4",
+   "size": 17,
+   "sha256": "092472b1896b46b0971174c5f78e15098d7a2520864f25c529d5dad9b88eceac"
+  },
+  {
+   "name": "sound_channel_set_volume",
+   "address": "0x4137E8",
+   "size": 56,
+   "sha256": "6345eea84906db3d21ec01360d7b6f62440d215c5d5b9a193fa36839af7cfefd"
+  },
+  {
+   "name": "sound_channel_set_pitch",
+   "address": "0x413820",
+   "size": 61,
+   "sha256": "971c099bf6f4927e14793de76dd5c95de6045783afadb835f4c1f7b71c8597c6"
+  },
+  {
+   "name": "sound_channel_set_pan",
+   "address": "0x413860",
+   "size": 9,
+   "sha256": "75a353e4b720e29dc43a01d02b54a12187e8165a62c3061f8d7ce9fd1e48a2c5"
+  },
+  {
+   "name": "camera_random_place",
+   "address": "0x413D54",
+   "size": 89,
+   "sha256": "8e4d72bbf628dd9d108a54c256fb22ff9652743464398f69aec5610df5f61445"
+  },
+  {
+   "name": "race_camera_keys_split",
+   "address": "0x413DC0",
+   "size": 92,
+   "sha256": "77b4a5781d9c06600ef1be8aad3d56ede2e28b441183b2a0028133088331f114"
+  },
+  {
+   "name": "race_camera_keys",
+   "address": "0x413E40",
+   "size": 329,
+   "sha256": "3ea7bfc4c1d968c5ecb31cb7b211541cd1ea20308e3d1ea164832d5b21199bd6"
+  },
+  {
+   "name": "race_tape_keys",
+   "address": "0x414034",
+   "size": 327,
+   "sha256": "4c16ed49ebf148b660a2d65c78bfc59a90eb2700850a21da4ebf76f42fa89894"
+  },
+  {
+   "name": "race_quit",
+   "address": "0x41417C",
+   "size": 195,
+   "sha256": "813385be1c1d70bbff1134badde298b8c86b83a15b6d57dff35f4c7d9e93cb69"
+  },
+  {
+   "name": "race_keys_tick",
+   "address": "0x414240",
+   "size": 133,
+   "sha256": "87652818b8405c4f75dcef915844cb5a07aec9dbd34f553556d771bf4303f8a7"
+  },
+  {
+   "name": "vehicle_post_tick",
+   "address": "0x414EA4",
+   "size": 629,
+   "sha256": "f1beb493f5c7cb4029cbc4bd4d86475b54d488231e2e50dd49c6ee756291d6ce"
+  },
+  {
+   "name": "vehicle_tick_mode0",
+   "address": "0x41511C",
+   "size": 79,
+   "sha256": "d749a55a937017f3eba52cb962d8c46682564aed1356548a6cc6b915bb42dbe0"
+  },
+  {
+   "name": "vehicle_tick_mode3",
+   "address": "0x41516C",
+   "size": 77,
+   "sha256": "7a40720d5c8b9b72649d330739efac16f98588c8305c0cafedf16729a639f988"
+  },
+  {
+   "name": "vehicle_tick_driving",
+   "address": "0x4151BC",
+   "size": 69,
+   "sha256": "45426656f3f9e279de8a0ab25bfb27d6b2be7e0ffe7549f13a3918f5af4458a2"
+  },
+  {
+   "name": "race_tick",
+   "address": "0x415204",
+   "size": 837,
+   "sha256": "6b0351359fca988933d26f6f3d67dadea45bf48d2f9e98ee5c888986727c128b"
+  },
+  {
+   "name": "race_tick_paused",
+   "address": "0x415570",
+   "size": 87,
+   "sha256": "5be3472f4b7244bd3cd0597446d0d2de9f102b92781fd78395619fcc4335ef0f"
+  },
+  {
+   "name": "sound_sample_load",
+   "address": "0x415690",
+   "size": 384,
+   "sha256": "5768efc27cbfb8cda26e63ed8f3ddc9751dd78d1dc1088d6c687d8dd032e13f5"
+  },
+  {
+   "name": "sound_free_queue_flush",
+   "address": "0x415854",
+   "size": 76,
+   "sha256": "2f29fc55ff8a2b985871b1b799be12b493dbc00e4f21c8d373392630f35fc668"
+  },
+  {
+   "name": "sound_samples_free",
+   "address": "0x415904",
+   "size": 87,
+   "sha256": "0b21d5cf3acb10d4a8f3d6decace25f2e21a090ebff8cc6cf877df9567e7465d"
+  },
+  {
+   "name": "sound_play_sample",
+   "address": "0x415A28",
+   "size": 114,
+   "sha256": "d64352460f4ef3d009d76b454cce7f69d47903cfe1a4515d470448cabbecaa11"
+  },
+  {
+   "name": "sound_commentary_play_loaded",
+   "address": "0x415AF8",
+   "size": 85,
+   "sha256": "aa77626636215c47ee6ab762ad9a2c33db42acbdcc0eea9bf9dbc967ac4fa26c"
+  },
+  {
+   "name": "sound_commentary_play",
+   "address": "0x415B50",
+   "size": 133,
+   "sha256": "99510496a6cab22ea0f18a5fccb5b47501599c9c0ee2110d391f1a10a4581804"
+  },
+  {
+   "name": "sound_commentary_play_numbered",
+   "address": "0x415BD8",
+   "size": 113,
+   "sha256": "2edd8d551f6fbf1026db7ab354b8e5bddc63ea7f44f26e6432d8ca29c216df6b"
+  },
+  {
+   "name": "sound_commentary_random",
+   "address": "0x415D00",
+   "size": 74,
+   "sha256": "980e781a4906235ade06db0435edc4494087127a1d3f42fd38f3d20120b7bf98"
+  },
+  {
+   "name": "sound_source_from_camera",
+   "address": "0x416438",
+   "size": 152,
+   "sha256": "848b5d6903ac964e843fafb051b87d86f4ff84a8005c20739efc60ecb850574f"
+  },
+  {
+   "name": "sound_source_from_views",
+   "address": "0x4164D0",
+   "size": 80,
+   "sha256": "999c4051bdccd46893ae50ccc63aae8bef64f37e6a4f144a01399d23aa0621bc"
+  },
+  {
+   "name": "vehicle_sound_event",
+   "address": "0x41681C",
+   "size": 53,
+   "sha256": "7cb5a38aa0a3c6e8fa69d9cf29d3c0d7916e0cd3c5c6c18f5ae9159fc8ab0ed0"
+  },
+  {
+   "name": "vehicle_sound_event_type",
+   "address": "0x416854",
+   "size": 59,
+   "sha256": "1ec2ded9d09ec5a8d38b3edcadd7b87c208f5059c8daa66e745e4e25b71431a7"
+  },
+  {
+   "name": "scenery_for_each_near",
+   "address": "0x416A40",
+   "size": 307,
+   "sha256": "5defaafd83b2d144984d8b348f261c8991476d1ce80706de46edd0a2a10c0b4a"
+  },
+  {
+   "name": "vehicle_normalise_angles",
+   "address": "0x417890",
+   "size": 141,
+   "sha256": "506389a1c6f311e440cf9c2a75952d0c6b07f6a127cbcbf0d76c533b7ca3193f"
+  },
+  {
+   "name": "vehicle_integrate",
+   "address": "0x417928",
+   "size": 295,
+   "sha256": "0ffe4157ec85146c2de0e1be4d987cd24aaea5612e472bf45b98fe079de85fe1"
+  },
+  {
+   "name": "vehicle_corner_points",
+   "address": "0x417AB4",
+   "size": 184,
+   "sha256": "57c2dab0b671bc8ec84a6280637fa379b85d7fde0d08a6fd410bcca5bcc51931"
+  },
+  {
+   "name": "vehicle_ground_contact",
+   "address": "0x417B6C",
+   "size": 1073,
+   "sha256": "72e2cbef2106227cc6356dc31d44bc089d3219b2f292beb71cb16fa54948fd8d"
+  },
+  {
+   "name": "vehicle_ground_contact_simple",
+   "address": "0x417FA0",
+   "size": 427,
+   "sha256": "06a78cc791c5d259e39c86f15d21e8c3c9bea22b363296fcdd4a3a881023899f"
+  },
+  {
+   "name": "vehicle_landing_impact",
+   "address": "0x41814C",
+   "size": 105,
+   "sha256": "ef37312054866d4771fa5eb4ceb40d01ad9980d09b85bf3698a9d28ca93aa299"
+  },
+  {
+   "name": "vehicle_ground_bounce",
+   "address": "0x4181B8",
+   "size": 561,
+   "sha256": "a6766b606e12a4e281c5db5b40eb599b436b3ca81b54f88c75738cad79e4827a"
+  },
+  {
+   "name": "vehicle_control_axis",
+   "address": "0x4183EC",
+   "size": 358,
+   "sha256": "3c36629c00c730cdf021f9330111055a953f792c62ee9df4afeed5b6a313eb9a"
+  },
+  {
+   "name": "vehicle_control_pedal",
+   "address": "0x418554",
+   "size": 145,
+   "sha256": "a6ad93343626308692e26f3d9b8f09a8eacd2fe5088bcd1393feaea2f8b7d9c2"
+  },
+  {
+   "name": "friction_apply",
+   "address": "0x4185E8",
+   "size": 51,
+   "sha256": "0ac13c75ffbfdeb6d11b49a789b8e6814bc4f70e86d9221278c541c56ce6485f"
+  },
+  {
+   "name": "spring_toward",
+   "address": "0x41861C",
+   "size": 96,
+   "sha256": "87640bc59d3b1b694f4d312bad04296fe5db75e563007c2c0e472f37bffe368e"
+  },
+  {
+   "name": "vehicle_check_settle",
+   "address": "0x4186CC",
+   "size": 156,
+   "sha256": "9de84211c4f65aefea65c4f87ab9cd3bc1dba3585f881bb07a2f426a9d0a12fa"
+  },
+  {
+   "name": "vehicle_tilt_from_contacts",
+   "address": "0x4187B8",
+   "size": 88,
+   "sha256": "0fcb9db38b980293144b8fad1c57b7a7b601225589fe0bd894e2e0596df3711b"
+  },
+  {
+   "name": "bounce_pitch",
+   "address": "0x418810",
+   "size": 120,
+   "sha256": "8a026f0a8c393f99b9000cfcd8571333e1cf6b417eff2774d874ecd171528168"
+  },
+  {
+   "name": "bounce_roll",
+   "address": "0x418888",
+   "size": 120,
+   "sha256": "30c998741a85e7818fe1044eb9d4df4a69d23fda07274f56a3ecf90f18655698"
+  },
+  {
+   "name": "bounce_pitch_type1",
+   "address": "0x418900",
+   "size": 127,
+   "sha256": "f12c62c0c3b88bb14df7cb8f74236d9fc8e3b616b1fff8b8ce43ab6f76a088bb"
+  },
+  {
+   "name": "bounce_roll_type1",
+   "address": "0x418980",
+   "size": 230,
+   "sha256": "c073b2aa52b984d9ace10d8fb10d773edd63bf9a38027e06de4f0b87cdba8f2f"
+  },
+  {
+   "name": "bounce_roll_type3",
+   "address": "0x418A9C",
+   "size": 73,
+   "sha256": "2bf201ad76329ef5707c33f54398749c625ecae81d72a68ec3434e715070b9cf"
+  },
+  {
+   "name": "bounce_pitch_type2",
+   "address": "0x418AE8",
+   "size": 500,
+   "sha256": "66ec3dc2ea64b914a7c1b5d0e758136ca36d5ea8f0db47dd324565c95e79e127"
+  },
+  {
+   "name": "bounce_roll_type2",
+   "address": "0x418CDC",
+   "size": 147,
+   "sha256": "150a963a50a9c236ed9e099aae22d68b2846dadc98be2d2a232ae3cedf890383"
+  },
+  {
+   "name": "vehicle_side_slope_yaw",
+   "address": "0x418D70",
+   "size": 179,
+   "sha256": "a5258b7d3c98f7084fc780cd1bc055f1807eaa2e1dd69f7d9f84981acf790824"
+  },
+  {
+   "name": "vehicle_gear_lookup",
+   "address": "0x418E24",
+   "size": 180,
+   "sha256": "a7e1ede5a03a0772255e043b66bd2f83f2d977a836e25a4cadc881414c831534"
+  },
+  {
+   "name": "vehicle_steering_rate",
+   "address": "0x418FD4",
+   "size": 185,
+   "sha256": "08070f377bf3a2be171c68bfa300f24b47fcd36081beb29c68fe95a6ef927545"
+  },
+  {
+   "name": "vehicle_drive_force",
+   "address": "0x419140",
+   "size": 811,
+   "sha256": "6ce1799e34db071d93b0d9b39b037dec1566bef669944ce28e0846280a393cf7"
+  },
+  {
+   "name": "vehicle_nitro",
+   "address": "0x41946C",
+   "size": 770,
+   "sha256": "2288b0eb6c5d1b796b3acb3ff8b81a4c2cab27d6bcbac225636edbbd70680de4"
+  },
+  {
+   "name": "vehicle_physics",
+   "address": "0x4197F8",
+   "size": 3274,
+   "sha256": "3a8a7e95c7520c314c1ea0a53ff4501aa188b879a93b19a430d94fa91f40e19e"
+  },
+  {
+   "name": "joystick_to_keys",
+   "address": "0x41A950",
+   "size": 272,
+   "sha256": "dca15977c5729f79b6c9480f98c7da7f3c3c5e137b910bf0c372e3c78d0e9bdd"
+  },
+  {
+   "name": "joystick_axis_amount",
+   "address": "0x41AAE8",
+   "size": 177,
+   "sha256": "0cb6284462669051a96f3d57f0b5eb97928278c7bcec5727ee7984afc263ee56"
+  },
+  {
+   "name": "keys_stop",
+   "address": "0x41AB9C",
+   "size": 17,
+   "sha256": "fd387704aa2da7d027c77d1b6de84d70a02b239cd2c2a976f1ffa437cb09d16d"
+  },
+  {
+   "name": "landscape_height_at",
+   "address": "0x41D754",
+   "size": 216,
+   "sha256": "e0ab68590e76df3acacfa8d972837085d8766ba192b1d39416a31d40ce676827"
+  },
+  {
+   "name": "landscape_height_at_fine",
+   "address": "0x41DBAC",
+   "size": 249,
+   "sha256": "92bbe67a436b4dd68c7cd15ad0eeb0ce4604b3313685f81a6aaaaf18d1b42dc1"
+  },
+  {
+   "name": "landscape_height_slope_at",
+   "address": "0x41DCA8",
+   "size": 419,
+   "sha256": "c186c4e6e59e41ee20df667303670dbf8df84c9713b8ea6b2b49ac585b2f7ec2"
+  },
+  {
+   "name": "landscape_push_out",
+   "address": "0x41DE4C",
+   "size": 262,
+   "sha256": "b7bec82620cacbe44bc998bdb8380af7f31bb5a144fe1337c31f959fffca1a86"
+  },
+  {
+   "name": "orient_matrix_set",
+   "address": "0x41DF54",
+   "size": 387,
+   "sha256": "c6f4bbc208575c4a3b2122350d82f67e88f4a8b6d9a20b3c1e6f1b3c0e4401c2"
+  },
+  {
+   "name": "orient_matrix_rotate",
+   "address": "0x41E0D8",
+   "size": 172,
+   "sha256": "c3542598688e2a842fe68529c618adc2dfaf4a7db3c38d6c62411c3a8b843081"
+  },
+  {
+   "name": "mem_alloc",
+   "address": "0x420FD0",
+   "size": 26,
+   "sha256": "51876f288e243d2d5dc398f7056db2df70c8efe1631f6fc48b9a44b2a2caad1a"
+  },
+  {
+   "name": "mem_free",
+   "address": "0x420FEC",
+   "size": 5,
+   "sha256": "941d3a97b2a02597225dccff032cd74f07bb303a36ffaeb568e16deef1e10626"
+  },
+  {
+   "name": "net_race_receive",
+   "address": "0x421724",
+   "size": 442,
+   "sha256": "54155e1d1ff8c4b04948da91eaf21049acf4c62ae07fbaaee1fb313dad2725a6"
+  },
+  {
+   "name": "net_session_close",
+   "address": "0x421B74",
+   "size": 25,
+   "sha256": "cbcc4e3155d52c15de86ecb40022d66b9107afc90e32673cd05b09f0da634e29"
+  },
+  {
+   "name": "net_sync_race_start",
+   "address": "0x421FB8",
+   "size": 100,
+   "sha256": "234d838507ea3bc402ec1901d1fd341791d4fd04eb37b1bcd2485627655abd10"
+  },
+  {
+   "name": "net_race_tick",
+   "address": "0x42244C",
+   "size": 238,
+   "sha256": "cd7d71b69d0a1253bd3719921f861204fd7593c704d64c086da150fb7a2d0059"
+  },
+  {
+   "name": "game_free_buffers",
+   "address": "0x423DFC",
+   "size": 121,
+   "sha256": "a1bf89c815de748772a3cae0a352e7412375d4c658674169b06b8a11d317e5be"
+  },
+  {
+   "name": "level_cache_invalidate",
+   "address": "0x424174",
+   "size": 17,
+   "sha256": "f1afc409ed0aeca65fd915500d6196fff7428ce03f022fa83379a2e81b598cb2"
+  },
+  {
+   "name": "fatal_error",
+   "address": "0x424320",
+   "size": 151,
+   "sha256": "fc9c871c6500595f6ed4e9f66705ce77c41c557c20768b44518d2d8621a16780"
+  },
+  {
+   "name": "fatal_error_detail",
+   "address": "0x4243B8",
+   "size": 154,
+   "sha256": "e6924c9d266e38295b83ad47768b9714f0fb7b0488e5ab3803c79ad19eddbcb0"
+  },
+  {
+   "name": "fatal_error_text",
+   "address": "0x424454",
+   "size": 46,
+   "sha256": "a2e5f23fbf774fd800a948164d25dba204a7727bbc4e04f986e0471766fa3006"
+  },
+  {
+   "name": "tape_record_vehicle",
+   "address": "0x424490",
+   "size": 342,
+   "sha256": "06dfa73ba67036ddae2ed97022e17db3f4df600e197950cfe36f68c4870ae84b"
+  },
+  {
+   "name": "tape_read_sample",
+   "address": "0x4245E8",
+   "size": 160,
+   "sha256": "f578327482134c67e97345f0343938c85cc0e5e7e45616cfa2a28526cb0a7462"
+  },
+  {
+   "name": "tape_advance",
+   "address": "0x424688",
+   "size": 134,
+   "sha256": "bbc591e4d20c50704cf1d051f8c3778844e24a41b653db18ecfdce1bc66c714a"
+  },
+  {
+   "name": "tape_slot_next_pos",
+   "address": "0x424710",
+   "size": 138,
+   "sha256": "9de9a65303a019f7d6592d66564a34b49cfbb7a8e5f8dcee1d776e23962d4357"
+  },
+  {
+   "name": "tape_slot_clamp_pos",
+   "address": "0x42479C",
+   "size": 68,
+   "sha256": "1f477e7d103aa810497d337f40b01a41df58b2b2e48b2eefd68f777094966437"
+  },
+  {
+   "name": "tape_drive_vehicle",
+   "address": "0x4247E0",
+   "size": 843,
+   "sha256": "105ed783fa1ec4638ceb4f2babe02528cdfefe4a87dba14773ba58e0a2215565"
+  },
+  {
+   "name": "vehicle_speeds_from_motion",
+   "address": "0x424B2C",
+   "size": 206,
+   "sha256": "a77e31860338155410a18f84a1cff61059ce7d34d6839bdd2dddb3ddb306e95f"
+  },
+  {
+   "name": "vehicle_state_from_motion",
+   "address": "0x424BFC",
+   "size": 354,
+   "sha256": "62e3858f51cefd517a057d7e55e696e3a52baaef5ba91a3310bb27f72cad604e"
+  },
+  {
+   "name": "race_clock_advance",
+   "address": "0x424E40",
+   "size": 68,
+   "sha256": "a525ca7d2797c7e993994659c685adf5b0990875dc529d4dbae96c1339a431dc"
+  },
+  {
+   "name": "tape_pause",
+   "address": "0x424EA0",
+   "size": 31,
+   "sha256": "47fae47b6d669665fd6b6b8ed6fc65bbd2e41cd3e7c684ba828b881987fba9f9"
+  },
+  {
+   "name": "tape_play",
+   "address": "0x424EC0",
+   "size": 37,
+   "sha256": "50a0e662d6f460ec3596e15666639b1596f47c8fd1d93fb0df697acb21ce8faa"
+  },
+  {
+   "name": "tape_fast_forward",
+   "address": "0x424EE8",
+   "size": 73,
+   "sha256": "c6d7e87a0bb38e1b3c90c6418dce1f317a8eac54b7f2b3914c66e5ff3a2bb3e9"
+  },
+  {
+   "name": "tape_rewind",
+   "address": "0x424F34",
+   "size": 73,
+   "sha256": "6dca5b14d5e139b7878d48db596c93d9c4365a0da9b54ad49c6d914de7bc0ca5"
+  },
+  {
+   "name": "ai_rubber_band",
+   "address": "0x425174",
+   "size": 412,
+   "sha256": "b82d9ec4f188fd8f7b8b45c40b8da6e0d6672e7b51ec018f7c3098a42455cca0"
+  },
+  {
+   "name": "tape_free_buffers",
+   "address": "0x4258C0",
+   "size": 24,
+   "sha256": "3e049144835074415c6c1fa89ed415ebdeba5481097719b752d722d8ce9ce83c"
+  },
+  {
+   "name": "video_stop",
+   "address": "0x425DB0",
+   "size": 1,
+   "sha256": "ae3f4619b0413d70d3004b9131c3752153074e45725be13b9a148978895e359e"
+  },
+  {
+   "name": "effects_alloc",
+   "address": "0x4265E4",
+   "size": 67,
+   "sha256": "aee00428eb79d82a7c16fdec0da96136398b1a98a0506a12fb51b7edf09c4cfd"
+  },
+  {
+   "name": "effects_tick",
+   "address": "0x426654",
+   "size": 144,
+   "sha256": "c33ebf2d707e94086f211febccbec612993cafa49bccafc9aa07e3edbbeb4bb2"
+  },
+  {
+   "name": "effects_spawn_at_wheel",
+   "address": "0x4266E4",
+   "size": 194,
+   "sha256": "8692413935f6b45490ceeae147ad243fb8f0bc72620cb57a1ba6a5a3be6ba12a"
+  },
+  {
+   "name": "vehicle_effects",
+   "address": "0x426834",
+   "size": 676,
+   "sha256": "f4a7bc90880e1e26d981207187ad5b994b2ebb3ec2b862a84201bf02b585ee4f"
+  },
+  {
+   "name": "menu_mouse_tick",
+   "address": "0x427650",
+   "size": 165,
+   "sha256": "d33c61b903edde0ea85893787ffc11de75cbfcc0ce77f7373d46b12c659863ec"
+  },
+  {
+   "name": "menu_mbox_check",
+   "address": "0x4276F8",
+   "size": 154,
+   "sha256": "6c8ce299f02c4cb876e45b4afe6fa6db831b8d932bb8d49b2de190dbbcc0cc43"
+  },
+  {
+   "name": "menu_hotspots_tick",
+   "address": "0x427E28",
+   "size": 310,
+   "sha256": "cc311b37979e83866e80f339da56a3ddfbf47cf3b1057296d58fcc0789cc78b7"
+  },
+  {
+   "name": "text_label_equal",
+   "address": "0x42804C",
+   "size": 78,
+   "sha256": "eea7fbcf0ff3555dfa6d89a8ada668cf6b38ea33957f9ab855f248edf60f73db"
+  },
+  {
+   "name": "text_find",
+   "address": "0x4280E4",
+   "size": 167,
+   "sha256": "8fba41336f93eed1cb35cdb878c48634dacace412ad42b7cbf25331befc11233"
+  },
+  {
+   "name": "text_lookup",
+   "address": "0x42818C",
+   "size": 74,
+   "sha256": "f1f0268caee3b9a1fb86e169b7835e52b42d51a707b7da92f72bd66009049c12"
+  },
+  {
+   "name": "text_free_all",
+   "address": "0x428284",
+   "size": 56,
+   "sha256": "f13f4b055bfdbf3b40fd537b5d7bd838b96f7ad84a2374c6c267b1165d264cb7"
+  },
+  {
+   "name": "timer_stop",
+   "address": "0x428BD8",
+   "size": 17,
+   "sha256": "cefdbccb7485c978b481145390dbc1a8c34c2b4b0a34adc5ceec242139599491"
+  },
+  {
+   "name": "net_disconnect",
+   "address": "0x42B47C",
+   "size": 22,
+   "sha256": "3e09749917b44580a1a163ee54e15d2bcaa903b1a4e75eaee7947d123c04f67f"
+  },
+  {
+   "name": "net_poll",
+   "address": "0x42B494",
+   "size": 18,
+   "sha256": "b10985e7963275657bf89e2abeafe615eb60b030e8c416efd203b2f58244a280"
+  },
+  {
+   "name": "net_receive",
+   "address": "0x42B59C",
+   "size": 88,
+   "sha256": "078921026f3c9247d134ab9cfc69433d3570f7ed6144af5516e1fcb0205ec305"
+  },
+  {
+   "name": "dd_release",
+   "address": "0x42D120",
+   "size": 156,
+   "sha256": "3628578579fe5c93d4ca5823dcbe317598b8785c0775f6323c8ce79faaa50efb"
+  },
+  {
+   "name": "net_dp_receive",
+   "address": "0x42E3B0",
+   "size": 152,
+   "sha256": "49d0048c526d37cfbca943623944981aaebfcca6e6e886d40e64699582f8d2b3"
+  },
+  {
+   "name": "net_dp_close",
+   "address": "0x42E488",
+   "size": 77,
+   "sha256": "e4ef410db62a2afe7eecc6fc91258d4891d13f561b2e2407a911c3a3a9cd041e"
+  },
+  {
+   "name": "net_ten_receive",
+   "address": "0x42E6FC",
+   "size": 200,
+   "sha256": "99b7a483781ee054adacf837899203f478fad0aab16ee95f6ec83d98fd37cd97"
+  },
+  {
+   "name": "net_ten_poll",
+   "address": "0x42E7C4",
+   "size": 20,
+   "sha256": "48c846dee4f77570788e8b8b25ae50a56aec6f8b388359eb47a41880476d62b8"
+  },
+  {
+   "name": "ds_copy_sample",
+   "address": "0x42E964",
+   "size": 67,
+   "sha256": "ff8410effad35a26632ced4149a3e96505a4a8576fb6dbe968338007b64b1c71"
+  },
+  {
+   "name": "memset",
+   "address": "0x42ED80",
+   "size": 24,
+   "sha256": "8993d8d327eb515e1e4a1f18e7dec695878380c72957b1673469d599990288c4"
+  }
+ ]
+}

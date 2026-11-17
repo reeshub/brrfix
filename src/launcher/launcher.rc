@@ -1,0 +1,176 @@
+/* The launcher's resources: settings window, version information, and the game's own icon
+ * (taken from the player's WINRACE.EXE by dropin-build) */
+#include <windows.h>
+#include "resource.h"
+#include "version.h"
+
+IDI_APP ICON "launcher.ico"
+
+/* 324x276 dialog units: about 486x449 pixels with its 8-point font at 96 dpi, about 473
+ * with Windows 95's title bar and frame, so it fits a 640x480 screen (director, 2026-11-10).
+ * The settings are on six tabs (director, 2026-11-15; Video split into Display and Renderer
+ * on 2026-11-16): one dialog, its controls shown and hidden by tab (launcher.c, show_page). The tab control comes last, at the bottom of the
+ * z-order, so the clicks reach the controls drawn over it; WS_CLIPSIBLINGS stops it painting
+ * over them. */
+IDD_SETTINGS DIALOG 0, 0, 324, 276
+STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX
+CAPTION "Big Red Launcher"
+FONT 8, "MS Sans Serif"
+BEGIN
+    /* General */
+    LTEXT           "", IDC_TITLE, 14, 26, 296, 10
+    LTEXT           "ctrl-alt-rees.com", IDC_PAGE_GENERAL, 14, 37, 296, 8
+    LTEXT           "A small utility to patch and launch the original Windows version of Big Red Racing (Big Red Software, 1996) on Windows 95 onwards, and on Linux through Wine / Proton.", IDC_PAGE_GENERAL, 14, 52, 296, 16
+    LTEXT           "Choose your settings on these tabs, then press Play. Hover over a setting for a one-line reminder; Help (or F1) explains every setting.", IDC_PAGE_GENERAL, 14, 72, 296, 16
+    GROUPBOX        "Defaults for your PC", IDC_PAGE_GENERAL, 12, 94, 300, 90
+    PUSHBUTTON      "Period defaults", IDC_PERIOD, 20, 108, 64, 14, WS_TABSTOP
+    LTEXT           "For a 1990s PC with Windows 95, 98 or ME: full screen at the game's low resolution (320x200), drawn as the 1996 game drew it.", IDC_PAGE_GENERAL, 90, 107, 216, 24
+    PUSHBUTTON      "Modern defaults", IDC_MODERN, 20, 136, 64, 14, WS_TABSTOP
+    LTEXT           "For today's Windows, Linux and Steam Deck: full screen, races at your screen's resolution and drawn as far as the engine allows, sharp and in full colour by the Modern renderer, with modern pads.", IDC_PAGE_GENERAL, 90, 135, 216, 24
+    LTEXT           "Each sets every setting; press Save or Play to keep them.", IDC_PAGE_GENERAL, 20, 164, 286, 16
+
+    /* Display (launcher.c, layout_display, shows each renderer's rows and moves the rows below
+     * them) */
+    GROUPBOX        "Display", IDC_DISPLAY_GROUP, 12, 24, 156, 136
+    LTEXT           "&Renderer:", IDC_RENDERER_LABEL, 18, 38, 54, 8
+    COMBOBOX        IDC_RENDERER, 74, 36, 88, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "&Mode:", IDC_PAGE_DISPLAY, 18, 52, 54, 8
+    COMBOBOX        IDC_MODE, 74, 50, 88, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Resolutio&n:", IDC_PAGE_DISPLAY, 18, 66, 54, 8
+    COMBOBOX        IDC_RESOLUTION, 74, 64, 88, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Ma&x limit:", IDC_MAXLIMIT_LABEL, 18, 80, 54, 8
+    COMBOBOX        IDC_MAXLIMIT, 74, 78, 88, 80, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    AUTOCHECKBOX    "Na&tive widescreen", IDC_WIDESCREEN, 18, 92, 140, 10, WS_TABSTOP
+    LTEXT           "Scaling &aspect:", IDC_ASPECT_LABEL, 18, 80, 54, 8
+    COMBOBOX        IDC_ASPECT, 74, 78, 88, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Scalin&g:", IDC_PRESET_LABEL, 18, 80, 54, 8
+    COMBOBOX        IDC_PRESET, 74, 78, 88, 80, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "&Window size:", IDC_SCALE_LABEL, 18, 94, 54, 8
+    COMBOBOX        IDC_SCALE, 74, 92, 88, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "&Colour depth:", IDC_COLOUR_LABEL, 18, 107, 54, 8
+    COMBOBOX        IDC_COLOUR, 74, 105, 88, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+
+    GROUPBOX        "Frame rate", IDC_PAGE_DISPLAY, 174, 24, 138, 46
+    LTEXT           "&Framerate cap:", IDC_PAGE_DISPLAY, 180, 38, 56, 8
+    COMBOBOX        IDC_FRAMES, 238, 36, 68, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    AUTOCHECKBOX    "&Vsync", IDC_VSYNC, 180, 54, 128, 10, WS_TABSTOP
+
+    /* Renderer (launcher.c, layout_renderer: the Modern renderer's groups, or with the Original
+     * just Smoothness and Miscellaneous) */
+    GROUPBOX        "Smoothness", IDC_PAGE_RENDERER, 12, 24, 138, 44
+    AUTOCHECKBOX    "&Interpolation (smooth motion)", IDC_INTERP, 18, 36, 128, 10, WS_TABSTOP
+    LTEXT           "Camera smoot&hing:", IDC_PAGE_RENDERER, 18, 52, 60, 8
+    COMBOBOX        IDC_SMOOTHING, 80, 50, 64, 70, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    GROUPBOX        "Full colour", IDC_GRADIENT_GROUP, 12, 72, 138, 40
+    AUTOCHECKBOX    "Smoother sk&y gradients", IDC_SMOOTH_SKY, 18, 84, 128, 10, WS_TABSTOP
+    AUTOCHECKBOX    "Smoother game &object gradients", IDC_SMOOTH_SHADING, 18, 96, 128, 10, WS_TABSTOP
+    GROUPBOX        "Race world", IDC_WORLD_GROUP, 156, 24, 156, 74
+    LTEXT           "&Draw distance:", IDC_DRAWDIST_LABEL, 162, 38, 52, 8
+    COMBOBOX        IDC_DRAWDIST, 216, 36, 90, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "&Textures:", IDC_TEXTURES_LABEL, 162, 52, 52, 8
+    COMBOBOX        IDC_TEXTURES, 216, 50, 90, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "O&bject lighting:", IDC_LIGHTING_LABEL, 162, 66, 52, 8
+    COMBOBOX        IDC_LIGHTING, 216, 64, 90, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Ob&ject detail:", IDC_DETAIL_LABEL, 162, 80, 52, 8
+    COMBOBOX        IDC_DETAIL, 216, 78, 90, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    GROUPBOX        "Miscellaneous", IDC_MISC_GROUP, 12, 116, 300, 44
+    AUTOCHECKBOX    "Colour &animation (as in DOS)", IDC_COLOUR_ANIM, 18, 128, 140, 10, WS_TABSTOP
+    AUTOCHECKBOX    "4:3 H&UD correction", IDC_HUD43, 160, 128, 140, 10, WS_TABSTOP
+    LTEXT           "HUD si&ze:", IDC_HUDSIZE_LABEL, 18, 144, 40, 8
+    COMBOBOX        IDC_HUDSIZE, 62, 142, 94, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    AUTOCHECKBOX    "Widescreen &menu backgrounds", IDC_WIDEMENUS, 160, 143, 140, 10, WS_TABSTOP
+    GROUPBOX        "Engine fixes", IDC_FIXES_GROUP, 12, 164, 300, 44
+    AUTOCHECKBOX    "Steady &ground textures", IDC_GROUND_PERSP, 18, 176, 140, 10, WS_TABSTOP
+    AUTOCHECKBOX    "Better draw ord&er", IDC_SORT_FOOT, 160, 176, 140, 10, WS_TABSTOP
+    AUTOCHECKBOX    "&Close gaps between polygons", IDC_CLOSE_GAPS, 18, 190, 140, 10, WS_TABSTOP
+    AUTOCHECKBOX    "Horizo&n culling (experimental)", IDC_HORIZON, 160, 190, 140, 10, WS_TABSTOP
+
+    /* Audio */
+    GROUPBOX        "Music", IDC_PAGE_AUDIO, 12, 24, 300, 78
+    AUTOCHECKBOX    "CD &music from ripped tracks", IDC_MUSIC, 18, 36, 200, 10, WS_TABSTOP
+    LTEXT           "V&olume:", IDC_VOLUME_LABEL, 18, 52, 40, 8
+    COMBOBOX        IDC_VOLUME, 62, 50, 50, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Folder:", IDC_FOLDER_LABEL, 18, 68, 40, 8
+    EDITTEXT        IDC_FOLDER, 62, 66, 198, 12, ES_AUTOHSCROLL | WS_TABSTOP
+    PUSHBUTTON      "&Browse...", IDC_BROWSE, 264, 65, 42, 14, WS_TABSTOP
+    LTEXT           "", IDC_TRACKS, 62, 84, 244, 8
+    GROUPBOX        "Sound effects", IDC_SFX_GROUP, 12, 106, 300, 44
+    AUTOCHECKBOX    "Distant vehicles &quieter", IDC_DISTANCE_VOL, 18, 119, 140, 10, WS_TABSTOP
+    AUTOCHECKBOX    "Natural &stereo", IDC_STEREO_PAN, 18, 133, 140, 10, WS_TABSTOP
+    LTEXT           "Sound &channels:", IDC_CHANNELS_LABEL, 160, 120, 56, 8
+    COMBOBOX        IDC_CHANNELS, 218, 118, 50, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+
+    /* Controller */
+    GROUPBOX        "Controller", IDC_PAD_GROUP, 12, 24, 300, 82
+    AUTOCHECKBOX    "Modern &pad (XInput)", IDC_PAD, 18, 36, 120, 10, WS_TABSTOP
+    PUSHBUTTON      "Configure...", IDC_JOYCPL, 256, 34, 50, 14, WS_TABSTOP
+    LTEXT           "&Deadzone:", IDC_PAD_L1, 18, 54, 44, 8
+    COMBOBOX        IDC_DEADZONE, 64, 52, 50, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Sensiti&vity:", IDC_PAD_L2, 18, 70, 44, 8
+    COMBOBOX        IDC_SENSITIVITY, 64, 68, 50, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    LTEXT           "Layo&ut:", IDC_PAD_L3, 18, 86, 44, 8
+    COMBOBOX        IDC_LAYOUT, 64, 84, 70, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    GROUPBOX        "Vibration", IDC_VIB_GROUP, 12, 112, 300, 62
+    AUTOCHECKBOX    "Enable vehicle damage vibration", IDC_VIBRATION, 18, 124, 200, 10, WS_TABSTOP
+    AUTOCHECKBOX    "Enable nitro boost vibration", IDC_NITRO_RUMBLE, 18, 138, 200, 10, WS_TABSTOP
+    LTEXT           "Intensity:", IDC_INTENSITY_LABEL, 18, 156, 44, 8
+    COMBOBOX        IDC_INTENSITY, 64, 154, 50, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    GROUPBOX        "Menus", IDC_MENU_GROUP, 12, 178, 300, 30
+    AUTOCHECKBOX    "Controller &menu navigation", IDC_MENU_NAV, 18, 191, 200, 10, WS_TABSTOP
+    LTEXT           "Modern pads (XInput) need a newer version of Windows. Configure opens Windows' own joystick settings; choose the joystick in the game's controls menu.", IDC_PAD_NOTE, 18, 38, 230, 24
+
+    /* Advanced */
+    GROUPBOX        "Game", IDC_PAGE_ADVANCED, 12, 24, 300, 30
+    LTEXT           "L&anguage:", IDC_PAGE_ADVANCED, 18, 38, 44, 8
+    COMBOBOX        IDC_LANGUAGE, 64, 36, 90, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
+    GROUPBOX        "Clock", IDC_PAGE_ADVANCED, 12, 58, 300, 46
+    LTEXT           "&Tick rate:", IDC_PAGE_ADVANCED, 18, 72, 44, 8
+    COMBOBOX        IDC_RATE, 64, 70, 100, 50, CBS_DROPDOWNLIST | WS_TABSTOP
+    LTEXT           "&Catch-up:", IDC_PAGE_ADVANCED, 18, 88, 44, 8
+    COMBOBOX        IDC_CAP, 64, 86, 64, 50, CBS_DROPDOWNLIST | WS_TABSTOP
+    GROUPBOX        "Troubleshooting", IDC_PAGE_ADVANCED, 12, 108, 300, 28
+    AUTOCHECKBOX    "Lo&g (writes BRRFIX.LOG next to the launcher)", IDC_LOG, 18, 120, 200, 10, WS_TABSTOP
+
+    /* Updates */
+    GROUPBOX        "This version", IDC_PAGE_UPDATES, 12, 24, 300, 30
+    LTEXT           "", IDC_VERSION, 18, 38, 288, 8
+    GROUPBOX        "New versions", IDC_PAGE_UPDATES, 12, 58, 300, 46
+    LTEXT           "New versions of Big Red Launcher and the DOS patch are published on GitHub.", IDC_PAGE_UPDATES, 18, 70, 288, 8
+    PUSHBUTTON      "Open the &Releases page", IDC_RELEASES, 18, 84, 100, 14, WS_TABSTOP
+
+    /* under the tabs */
+    AUTOCHECKBOX    "S&kip this window next time (to see it again, hold Shift while starting, or use -setup)", IDC_SKIP, 8, 238, 310, 10, WS_TABSTOP
+    PUSHBUTTON      "Patch the DOS ve&rsion...", IDC_DOSPATCH, 8, 256, 96, 14, WS_TABSTOP
+    PUSHBUTTON      "Help", IDC_HELPFILE, 108, 256, 40, 14, WS_TABSTOP
+    DEFPUSHBUTTON   "&Play", IDOK, 214, 254, 34, 16, WS_TABSTOP
+    PUSHBUTTON      "&Save", IDC_SAVE, 250, 254, 34, 16, WS_TABSTOP
+    PUSHBUTTON      "&Quit", IDCANCEL, 286, 254, 32, 16, WS_TABSTOP
+
+    CONTROL         "", IDC_TABS, "SysTabControl32", WS_TABSTOP | WS_CLIPSIBLINGS, 6, 4, 312, 228
+END
+
+1 VERSIONINFO
+FILEVERSION BRRFIX_VERSION_NUMBERS
+PRODUCTVERSION BRRFIX_VERSION_NUMBERS
+FILEOS VOS__WINDOWS32
+FILETYPE VFT_APP
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080904E4"
+        BEGIN
+            VALUE "CompanyName", "ctrl-alt-rees.com\0"
+            VALUE "FileDescription", "Big Red Launcher\0"
+            VALUE "FileVersion", BRRFIX_VERSION "\0"
+            VALUE "Comments", "Big Red Launcher by ctrl-alt-rees. ctrl-alt-rees.com\0"
+            VALUE "ProductName", "Big Red Launcher by ctrl-alt-rees\0"
+            VALUE "ProductVersion", BRRFIX_VERSION "\0"
+            VALUE "InternalName", "Big Red Launcher\0"
+            VALUE "OriginalFilename", "Big Red Racing.exe\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0809, 1252
+    END
+END
