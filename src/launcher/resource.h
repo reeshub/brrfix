@@ -103,6 +103,11 @@
 #define IDC_CAP          1603
 #define IDC_LOG          1604
 
+/* Updates */
+#define IDC_PAGE_UPDATES 1700
+#define IDC_VERSION      1701
+#define IDC_RELEASES     1702
+
 /* under the tabs, always shown */
 #define IDC_SKIP         1050
 #define IDC_SAVE         1051

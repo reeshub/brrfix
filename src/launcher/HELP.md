@@ -11,7 +11,7 @@ after ticking "Skip this window next time", hold **Shift** while starting it,
 or start it with **-setup**.
 
 The settings are on six tabs: General, Display, Renderer, Audio, Controller
-and Advanced.
+and Advanced; a seventh, Updates, shows the version and where new ones are.
 Click a tab, or use the arrow keys while the tabs are selected (as they are
 when the window opens). This file follows the same order.
 
@@ -560,6 +560,13 @@ The physics is the same either way; only how a pause is made up changes. If in d
 Writes BRRFIX.LOG next to Big Red Racing.exe: what was fixed and how the clock
 ran. It's off by default; turn it on if you're reporting a problem, and send
 the file with your report.
+
+## Updates
+
+Shows this Big Red Launcher's version and the day it was built. **Open the
+Releases page** opens github.com/reeshub/brrfix/releases in your web browser,
+where new versions of Big Red Launcher and the DOS patch are published: compare
+the version there with yours.
 
 ## The buttons
 

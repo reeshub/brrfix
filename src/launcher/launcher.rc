@@ -131,6 +131,13 @@ BEGIN
     GROUPBOX        "Troubleshooting", IDC_PAGE_ADVANCED, 12, 108, 300, 28
     AUTOCHECKBOX    "Lo&g (writes BRRFIX.LOG next to the launcher)", IDC_LOG, 18, 120, 200, 10, WS_TABSTOP
 
+    /* Updates */
+    GROUPBOX        "This version", IDC_PAGE_UPDATES, 12, 24, 300, 30
+    LTEXT           "", IDC_VERSION, 18, 38, 288, 8
+    GROUPBOX        "New versions", IDC_PAGE_UPDATES, 12, 58, 300, 46
+    LTEXT           "New versions of Big Red Launcher and the DOS patch are published on GitHub.", IDC_PAGE_UPDATES, 18, 70, 288, 8
+    PUSHBUTTON      "Open the &Releases page", IDC_RELEASES, 18, 84, 100, 14, WS_TABSTOP
+
     /* under the tabs */
     AUTOCHECKBOX    "S&kip this window next time (to see it again, hold Shift while starting, or use -setup)", IDC_SKIP, 8, 238, 310, 10, WS_TABSTOP
     PUSHBUTTON      "Patch the DOS ve&rsion...", IDC_DOSPATCH, 8, 256, 96, 14, WS_TABSTOP

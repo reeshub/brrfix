@@ -230,7 +230,8 @@ static void enable(HWND dialog, int id, int on) { EnableWindow(GetDlgItem(dialog
 /* ---- the tabs ---- */
 /* All the settings are in one dialog; a tab shows its own controls and hides the rest.
  * resource.h numbers each tab's controls in its own hundred, from 1100. */
-static const char *const tab_names[] = {"General", "Display", "Renderer", "Audio", "Controller", "Advanced"};
+static const char *const tab_names[] = {"General", "Display", "Renderer", "Audio", "Controller", "Advanced",
+                                        "Updates"};
 #define TAB_COUNT ((int)(sizeof tab_names / sizeof tab_names[0]))
 
 /* controls that this PC never shows (Windows 9x, Proton), whichever tab is chosen */
@@ -293,6 +294,29 @@ static void add_tabs(HWND dialog)
 }
 
 /* the title on the General tab, in bold */
+#define RELEASES_URL "https://github.com/reeshub/brrfix/releases"
+
+/* The Updates tab's version line: the version and the day this launcher was built (the
+ * compiler's __DATE__, "Nov 17 2026") */
+static void show_version(HWND dialog)
+{
+    static const char months[] = "JanFebMarAprMayJunJulAugSepOctNovDec";
+    static const char *const names[] = {"January", "February", "March", "April", "May", "June", "July",
+                                        "August", "September", "October", "November", "December"};
+    const char *date = __DATE__;
+    char text[128];
+    int month;
+    for (month = 0; month < 12; month++)
+        if (!memcmp(months + month * 3, date, 3))
+            break;
+    if (month < 12)
+        wsprintfA(text, "Big Red Launcher %s, built %d %s %s", BRRFIX_VERSION,
+                  (date[4] == ' ' ? 0 : date[4] - '0') * 10 + date[5] - '0', names[month], date + 7);
+    else
+        wsprintfA(text, "Big Red Launcher %s, built %s", BRRFIX_VERSION, date);
+    SetDlgItemTextA(dialog, IDC_VERSION, text);
+}
+
 static void set_title(HWND dialog)
 {
     char text[96];
@@ -563,6 +587,7 @@ static const struct { int id; const char *text; } tips[] = {
     {IDC_RATE, "Game ticks a second: 70.0 as the DOS version (real time), or 71.43 as the 1996 Windows version ran (2% fast)."},
     {IDC_CAP, "After a pause, how much missed game time is caught up at once: 8 ticks, or 35 as the original (see Help)."},
     {IDC_LOG, "Writes BRRFIX.LOG next to the launcher: what was fixed, for bug reports."},
+    {IDC_RELEASES, "Opens github.com/reeshub/brrfix/releases in your web browser, to see if there's a newer version."},
     {IDC_DRAWDIST, "How far the ground, scenery and other vehicles are drawn: the options menu's sliders, or 25, "
                    "44 or 60 squares (the most the engine's numbers allow). Further costs frame rate."},
     {IDC_TEXTURES, "How far the ground is textured with a draw distance chosen here: as far as it's drawn, 25 "
@@ -936,6 +961,7 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
         SetWindowTextA(dialog, title);
         SendMessageA(dialog, WM_SETICON, ICON_BIG, (LPARAM)LoadIconA(GetModuleHandleA(NULL), MAKEINTRESOURCEA(IDI_APP)));
         set_title(dialog);
+        show_version(dialog);
         load(dialog, FROM_FILES);
         add_tips(dialog);
         if (windows_9x) {  /* no cnc-ddraw (DirectDraw does full screen itself), no XInput, no new renderer */
@@ -1030,6 +1056,11 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
             return TRUE;
         case IDC_DOSPATCH:
             patch_dos(dialog);
+            return TRUE;
+        case IDC_RELEASES:
+            if ((DWORD)ShellExecuteA(dialog, "open", RELEASES_URL, NULL, NULL, SW_SHOWNORMAL) <= 32)
+                MessageBoxA(dialog, "No web browser could be opened. The releases are at:\n" RELEASES_URL,
+                            "Big Red Launcher", MB_OK | MB_ICONINFORMATION);
             return TRUE;
         case IDC_JOYCPL:
             if ((DWORD)ShellExecuteA(dialog, "open", "control.exe", "joy.cpl", NULL, SW_SHOWNORMAL) <= 32)
