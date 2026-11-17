@@ -1,0 +1,116 @@
+{
+  "zips": {
+    "Big-Red-Racing_DOS_EN_Disc-Image.zip": {
+      "size": 512612979,
+      "sha256": "939bc520975eb25d05c03e08b850de8cc1a1f7f0549600d5188a2666a78d4187"
+    },
+    "Big-Red-Racing_Patch_DOS_EN_Patch-v2-25.zip": {
+      "size": 1065369,
+      "sha256": "45dbe0b0eb3fac985241b292ef95098f7851689e931361e18303168277fda7d6"
+    }
+  },
+  "disc": {
+    "BRRacing.bin": {
+      "size": 618585408,
+      "sha256": "31267b1e5f579eed81a77004d7babc55b4fec21915ad6679ba0f661f1f4deab0",
+      "date": "2008-06-09 12:51:04"
+    },
+    "BRRacing.cue": {
+      "size": 3442,
+      "sha256": "9f4277a91d37958b581a9c9891d80cd09d3cfe3a3d7e730e4c137805378df752",
+      "date": "2020-10-23 10:57:14"
+    }
+  },
+  "patch": {
+    "BYESCN.SCN": {
+      "size": 49832,
+      "sha256": "bdf3e4e42272e420e2cb8d681891866d0a4bf33483b8576817d03e6fb512bab2",
+      "date": "1996-06-11 10:21:38"
+    },
+    "CARSCN.SCN": {
+      "size": 2681,
+      "sha256": "315bbf06d25f22e1103e922f7f0a75df9da324549174d2a863e5e72daef39cca",
+      "date": "1996-04-01 12:17:46"
+    },
+    "CHOOSCN.SCN": {
+      "size": 18543,
+      "sha256": "dafdb35774bf6015cec26e11842d08a75043cb47e8ab03a3a328b0e1d3881dd8",
+      "date": "1996-04-01 12:17:38"
+    },
+    "CONFSCN.SCN": {
+      "size": 22029,
+      "sha256": "8d2e87ba0a1b5579d1b89c10e5b42645a805d889a076a6656691c963c0ddf16f",
+      "date": "1996-04-01 12:17:10"
+    },
+    "GLOBESCN.SCN": {
+      "size": 139523,
+      "sha256": "aec040a7a54216654dfc1e96dd90d7bdbe023266b495ed1ae011cbe1aad72176",
+      "date": "1996-06-03 15:14:36"
+    },
+    "NAMESCN.SCN": {
+      "size": 17058,
+      "sha256": "da8162e1a3acb37e6fdb5423f1abaf995578203fdc3e64176dd3b621a1a2b9f4",
+      "date": "1996-04-01 12:20:54"
+    },
+    "NETSCN.SCN": {
+      "size": 21109,
+      "sha256": "6bc785a48d8db70fa5afdcee1ee591f2a38017719b920bf2264a5972e074065e",
+      "date": "1996-05-14 09:56:44"
+    },
+    "OPTSCN.SCN": {
+      "size": 18619,
+      "sha256": "b2bf6435197bca4b0502c9dae539311328fbd2ccade9cae61d233d60480cdc63",
+      "date": "1996-04-01 12:17:56"
+    },
+    "RACING.EXE": {
+      "size": 629472,
+      "sha256": "5186af0605ea87dfb8aee3463ff24acc259118fab611b07ec6e56b9f46c52636",
+      "date": "1996-06-03 14:55:50"
+    },
+    "READ_225.TXT": {
+      "size": 9292,
+      "sha256": "3073d1e340ec055f274ceda861b5a455ee69913786353e54249e2ca01c0289f9",
+      "date": "1996-09-05 09:07:10"
+    },
+    "RESULSCN.SCN": {
+      "size": 52459,
+      "sha256": "fd21a57bc4df1f12cc546cd81f5fbaa1419c3377cb30daec45ed219685a592f9",
+      "date": "1996-04-01 12:18:10"
+    },
+    "SETSOUND.EXE": {
+      "size": 202681,
+      "sha256": "76d75eeba67438393f989381e7323bf4f1b361a13697259dfdaa64950e36c184",
+      "date": "1996-05-28 09:21:48"
+    },
+    "STICKSCN.SCN": {
+      "size": 24547,
+      "sha256": "4f6741a3d72ed36e23bfcad6f8b1f9a02f852852e0f862f30a897b75e33f3445",
+      "date": "1996-03-07 15:35:06"
+    },
+    "TOURN.WAP": {
+      "size": 88508,
+      "sha256": "c3f110b2dceaa3b77ca6a2346d8b96042e4f8e9c560bc617b1f902112ea1cc73",
+      "date": "1996-06-11 11:19:26"
+    },
+    "TRAKSCN.SCN": {
+      "size": 1904,
+      "sha256": "e1049700eafa4e3790e136b9ee636852c45efff8b79706f9bdf96e24811bc369",
+      "date": "1996-04-01 12:18:00"
+    },
+    "VIDIT.BAT": {
+      "size": 111,
+      "sha256": "655ddf0941b035b75bf56a124f75b12a2c7b4f939fe242d16b510464d218cbab",
+      "date": "1996-05-28 09:42:20"
+    },
+    "VIDSTALL.EXE": {
+      "size": 195741,
+      "sha256": "c1c4238ccbfd0f9f990779a30e95e2355bf0a9177f81df8d63d024e6e94b18ba",
+      "date": "1996-03-18 19:23:18"
+    },
+    "WINRACE.EXE": {
+      "size": 534016,
+      "sha256": "c0274f1248d552f09310a489cc34bc04a7e03f9485f40d24549b3a729752ecaa",
+      "date": "1996-06-14 09:36:30"
+    }
+  }
+}

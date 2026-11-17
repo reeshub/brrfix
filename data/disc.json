@@ -1,0 +1,374 @@
+{
+  "source": {
+    "file": "BRRacing.bin",
+    "sectors": 263004
+  },
+  "volume": {
+    "label": "BRR",
+    "file_system_sectors": 35315,
+    "application": "NERO BURNING ROM",
+    "created": "2008-04-21 19:32:00 +02:00",
+    "joliet": true,
+    "rock_ridge": false,
+    "iso_size": 72325120,
+    "iso_sha256": "1d319b09ab1b129b50d16f148b4c8e4202212ebbfc2ef0559ae093609f3c67ef"
+  },
+  "data_track_tail": "150 more sector(s) (a two-second gap): 150 sector(s) all zeros, with no sync pattern",
+  "audio_byte_order": "little-endian",
+  "audio_byte_order_evidence": {
+    "little-endian": 367089.9,
+    "big-endian": 15022028.2
+  },
+  "flac": {
+    "album_tag": "Big Red Racing",
+    "compression_level": 1.0
+  },
+  "cue": {
+    "file": "BRRacing.cue",
+    "size": 2796,
+    "sha256": "df9337b9010919ea52050161ed42dd41dc4e3f5898214709af6fe5e2f062ecd9"
+  },
+  "tracks": [
+    {
+      "number": 1,
+      "type": "data",
+      "start": 0,
+      "sectors": 35465,
+      "duration": "07:52:65",
+      "seconds": 472.87
+    },
+    {
+      "number": 2,
+      "type": "audio",
+      "start": 35465,
+      "sectors": 16885,
+      "duration": "03:45:10",
+      "seconds": 225.13,
+      "audio_sha256": "ea2a22b50192179b27136241386aabf134c3b979eafdec13f94a3e4c04d46eef"
+    },
+    {
+      "number": 3,
+      "type": "audio",
+      "start": 52350,
+      "sectors": 15743,
+      "duration": "03:29:68",
+      "seconds": 209.91,
+      "audio_sha256": "e52327760e16327258f2f052dfec1259e136f75d9365e49b21dd72a3d3c344d8"
+    },
+    {
+      "number": 4,
+      "type": "audio",
+      "start": 68093,
+      "sectors": 11019,
+      "duration": "02:26:69",
+      "seconds": 146.92,
+      "audio_sha256": "ba4cb688a0f972a1b782f7eae3b581a4742257bbc0442fe07ec2e6ce6a6258aa"
+    },
+    {
+      "number": 5,
+      "type": "audio",
+      "start": 79112,
+      "sectors": 9793,
+      "duration": "02:10:43",
+      "seconds": 130.57,
+      "audio_sha256": "8a5a0f567aa83d375137b6566e72b1aa61fd89afdc9f0cd81183912352371639"
+    },
+    {
+      "number": 6,
+      "type": "audio",
+      "start": 88905,
+      "sectors": 10802,
+      "duration": "02:24:02",
+      "seconds": 144.03,
+      "audio_sha256": "7e1905fdd5d836556cd5769d6d8c6c11e4e1cb4be9d30e8e24e2f776c9354230"
+    },
+    {
+      "number": 7,
+      "type": "audio",
+      "start": 99707,
+      "sectors": 10760,
+      "duration": "02:23:35",
+      "seconds": 143.47,
+      "audio_sha256": "1d244c51edb2fe3f7be4859e46505c8d6167d6084b0bec675e8470f3733b280c"
+    },
+    {
+      "number": 8,
+      "type": "audio",
+      "start": 110467,
+      "sectors": 11429,
+      "duration": "02:32:29",
+      "seconds": 152.39,
+      "audio_sha256": "6f9266a8a49d903123a1fdf1206bb6b9d3d8b168ce8a147edb5bfdfb79a84132"
+    },
+    {
+      "number": 9,
+      "type": "audio",
+      "start": 121896,
+      "sectors": 12118,
+      "duration": "02:41:43",
+      "seconds": 161.57,
+      "audio_sha256": "b08d8c777974cc3acaa9ab5a4fa9c677e690a604da502d0bc2c24176710a4e22"
+    },
+    {
+      "number": 10,
+      "type": "audio",
+      "start": 134014,
+      "sectors": 10984,
+      "duration": "02:26:34",
+      "seconds": 146.45,
+      "audio_sha256": "ca52f3541c120115f81db3a55e31b35abcb7eccc1e28a01ed8b0203acadb58a7"
+    },
+    {
+      "number": 11,
+      "type": "audio",
+      "start": 144998,
+      "sectors": 10447,
+      "duration": "02:19:22",
+      "seconds": 139.29,
+      "audio_sha256": "3652624f48c408b8460d8bd66125d24df76ff246c7645815ff61c93167f0cc54"
+    },
+    {
+      "number": 12,
+      "type": "audio",
+      "start": 155445,
+      "sectors": 2479,
+      "duration": "00:33:04",
+      "seconds": 33.05,
+      "audio_sha256": "7c3a020151419442767946fdcb33bd90f6f6bf93afb14dccb24ff9ce9efb6ab9"
+    },
+    {
+      "number": 13,
+      "type": "audio",
+      "start": 157924,
+      "sectors": 876,
+      "duration": "00:11:51",
+      "seconds": 11.68,
+      "audio_sha256": "5dec819282eb07a0b0866f5e5982b54c1ffd8226a98ffade52c7a26317c16bf1"
+    },
+    {
+      "number": 14,
+      "type": "audio",
+      "start": 158800,
+      "sectors": 1466,
+      "duration": "00:19:41",
+      "seconds": 19.55,
+      "audio_sha256": "e893dec06713d7e59e7020c2a09932183396bd9974db74ec2a37d77346d38679"
+    },
+    {
+      "number": 15,
+      "type": "audio",
+      "start": 160266,
+      "sectors": 1335,
+      "duration": "00:17:60",
+      "seconds": 17.8,
+      "audio_sha256": "ac22c71e4573293a8fb4c6356d534d2847e7363a234ec7c2126ababee708dc1a"
+    },
+    {
+      "number": 16,
+      "type": "audio",
+      "start": 161601,
+      "sectors": 1858,
+      "duration": "00:24:58",
+      "seconds": 24.77,
+      "audio_sha256": "6da6c5aa89606be368d8d92a6ba7a0afc36facee92a889cda81c61b47ba70b35"
+    },
+    {
+      "number": 17,
+      "type": "audio",
+      "start": 163459,
+      "sectors": 1070,
+      "duration": "00:14:20",
+      "seconds": 14.27,
+      "audio_sha256": "ade117c895f812959145312193985e13afe851a7baeeb9760a5c6c2a3d17a796"
+    },
+    {
+      "number": 18,
+      "type": "audio",
+      "start": 164529,
+      "sectors": 1388,
+      "duration": "00:18:38",
+      "seconds": 18.51,
+      "audio_sha256": "edd0634af619f6e909aed9c9fe50e2dd3b0a9d6381297f3260fba4abd3e3961b"
+    },
+    {
+      "number": 19,
+      "type": "audio",
+      "start": 165917,
+      "sectors": 1047,
+      "duration": "00:13:72",
+      "seconds": 13.96,
+      "audio_sha256": "1f5622fe96851930697549ab0a46e91871872d3fa94e953ffa0c85358e131524"
+    },
+    {
+      "number": 20,
+      "type": "audio",
+      "start": 166964,
+      "sectors": 1023,
+      "duration": "00:13:48",
+      "seconds": 13.64,
+      "audio_sha256": "a1a2c861ca2b058859348893d88d8d180e7f8a71f32490bd1fb051763c7563ab"
+    },
+    {
+      "number": 21,
+      "type": "audio",
+      "start": 167987,
+      "sectors": 966,
+      "duration": "00:12:66",
+      "seconds": 12.88,
+      "audio_sha256": "0d99a0465646403eed56f40782ebbb91ebde4a4e307da2049343de23c6925855"
+    },
+    {
+      "number": 22,
+      "type": "audio",
+      "start": 168953,
+      "sectors": 1368,
+      "duration": "00:18:18",
+      "seconds": 18.24,
+      "audio_sha256": "73123940138d99a9bdb55ef9f2ed4dcc6393cb53996348885af3b0389b573931"
+    },
+    {
+      "number": 23,
+      "type": "audio",
+      "start": 170321,
+      "sectors": 1110,
+      "duration": "00:14:60",
+      "seconds": 14.8,
+      "audio_sha256": "163287c90f5e00edb463b7444475890b664e30cff1421d5fe2952f2419a9a590"
+    },
+    {
+      "number": 24,
+      "type": "audio",
+      "start": 171431,
+      "sectors": 1421,
+      "duration": "00:18:71",
+      "seconds": 18.95,
+      "audio_sha256": "9e9625c0c5a5fd2410320893a54886340ea3e4f20385c571be1d552d59bf26d3"
+    },
+    {
+      "number": 25,
+      "type": "audio",
+      "start": 172852,
+      "sectors": 1582,
+      "duration": "00:21:07",
+      "seconds": 21.09,
+      "audio_sha256": "4dac8a420e2f324645fa4937d1094fb6895d39b1064c0c5e0764f3bf252c2cc6"
+    },
+    {
+      "number": 26,
+      "type": "audio",
+      "start": 174434,
+      "sectors": 1276,
+      "duration": "00:17:01",
+      "seconds": 17.01,
+      "audio_sha256": "85cdd68ef130fad37f41d5bbe1e5bc3eabd2cc040d6acad8bd6c8b94a8a1d409"
+    },
+    {
+      "number": 27,
+      "type": "audio",
+      "start": 175710,
+      "sectors": 1572,
+      "duration": "00:20:72",
+      "seconds": 20.96,
+      "audio_sha256": "9fba328788e6eb384839dd52bd2e9ae40b1df14f6ad44bd070338cf8f904b8c9"
+    },
+    {
+      "number": 28,
+      "type": "audio",
+      "start": 177282,
+      "sectors": 1270,
+      "duration": "00:16:70",
+      "seconds": 16.93,
+      "audio_sha256": "3f8e1c73a957126db5dd2a8d450045a807585e775c02bffcf33bd34869819a83"
+    },
+    {
+      "number": 29,
+      "type": "audio",
+      "start": 178552,
+      "sectors": 2032,
+      "duration": "00:27:07",
+      "seconds": 27.09,
+      "audio_sha256": "e954301180821d1e6b4c7b40e00fd54e3d2375ba80fd0a96fdbac9026bc58a9c"
+    },
+    {
+      "number": 30,
+      "type": "audio",
+      "start": 180584,
+      "sectors": 11993,
+      "duration": "02:39:68",
+      "seconds": 159.91,
+      "audio_sha256": "535bbed2efc1a12c1f024f00a043ecfa992c88495e8b521214e33a7eeb8a8fad"
+    },
+    {
+      "number": 31,
+      "type": "audio",
+      "start": 192577,
+      "sectors": 36187,
+      "duration": "08:02:37",
+      "seconds": 482.49,
+      "audio_sha256": "7a6712ca0f9433d3b58d721865ee4727692c9cee5c57a7f7e22bb0f2fc2f9af6"
+    },
+    {
+      "number": 32,
+      "type": "audio",
+      "start": 228764,
+      "sectors": 23601,
+      "duration": "05:14:51",
+      "seconds": 314.68,
+      "audio_sha256": "46b76cc4e8386557d5663e7fdde96ae7df5304b104cbdc6c8b192bd5c7ef00bd"
+    },
+    {
+      "number": 33,
+      "type": "audio",
+      "start": 252365,
+      "sectors": 1713,
+      "duration": "00:22:63",
+      "seconds": 22.84,
+      "audio_sha256": "08c00f32cb7d90b65db21f4dd0642f30a9b740da0b978b02adc29946c42a8a3a"
+    },
+    {
+      "number": 34,
+      "type": "audio",
+      "start": 254078,
+      "sectors": 1274,
+      "duration": "00:16:74",
+      "seconds": 16.99,
+      "audio_sha256": "3269c90b626fbdd3cbd6a809439eb8d05a373c75915c720fa31b6908babbf7fc"
+    },
+    {
+      "number": 35,
+      "type": "audio",
+      "start": 255352,
+      "sectors": 2183,
+      "duration": "00:29:08",
+      "seconds": 29.11,
+      "audio_sha256": "85643726943bb9da08c61fc2c5048c911512ff969cb7565d1c4872bda815a487"
+    },
+    {
+      "number": 36,
+      "type": "audio",
+      "start": 257535,
+      "sectors": 1791,
+      "duration": "00:23:66",
+      "seconds": 23.88,
+      "audio_sha256": "da454a59c77af031fd60baad9d9b0522d9824eac4773e8051c9b64893241a505"
+    },
+    {
+      "number": 37,
+      "type": "audio",
+      "start": 259326,
+      "sectors": 1570,
+      "duration": "00:20:70",
+      "seconds": 20.93,
+      "audio_sha256": "f230f766fc152736cb895607986e1c74477c227d28953614bc4b4f12f6bb000c"
+    },
+    {
+      "number": 38,
+      "type": "audio",
+      "start": 260896,
+      "sectors": 2108,
+      "duration": "00:28:08",
+      "seconds": 28.11,
+      "audio_sha256": "3e1712d83237194d685de65858a92c80482dd18946152bd5b1e891091bf316ee"
+    }
+  ]
+}

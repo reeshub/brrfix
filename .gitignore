@@ -1,0 +1,5 @@
+# Made by build.py: your game link, the builds and the release zips; Open Watcom and the
+# downloaded open-source parts
+work/
+tools/
+__pycache__/
