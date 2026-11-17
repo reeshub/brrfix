@@ -604,3 +604,13 @@ BRRFIX.INI (the fix's settings) and ddraw.ini (cnc-ddraw's, for full screen),
 next to Big Red Racing.exe. Each setting is explained in the files, and some that the
 window doesn't show can be changed there. The launcher changes only the values
 it shows, and keeps everything else in the files as it was.
+
+## Licence
+
+Big Red Launcher is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version. It comes with NO WARRANTY. See LICENSE.txt, next to Big Red
+Racing.exe, for the details; THIRD-PARTY.txt lists the parts by others and
+their licences. Big Red Racing itself is not included, and not covered by this
+licence.

@@ -98,8 +98,18 @@ What's in this zip
 - PYTHON\DOSPATCH.PY   the Python patcher (see "On Linux and macOS")
 - PYTHON\DOSPATCH.JSN  its patch data: our own compiled code, where it goes,
                        and checksums of the places it changes
+- LICENSE.TXT    the patch's licence: the GNU GPL, version 3
 
 About
 -----
 Made for the Big Red Racing preservation project, with the blessing of Paul
 and Peter Ranson of Big Red Software. Patch version @VERSION@.
+
+The DOS patch and BRRPATCH are free software: you can redistribute them
+and/or modify them under the terms of the GNU General Public License as
+published by the Free Software Foundation, either version 3 of the License,
+or (at your option) any later version. They are distributed in the hope that
+they will be useful, but WITHOUT ANY WARRANTY; without even the implied
+warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See
+LICENSE.TXT for the details. Big Red Racing itself is not included, and not
+covered by this licence.

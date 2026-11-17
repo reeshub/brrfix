@@ -4,8 +4,8 @@ Writes work/release/brr-dos-patch-<version>.zip containing BRRPATCH.EXE (the DOS
 patcher for MS-DOS 6 and later, rebuilt by brrpatch-build), README.TXT
 (src/dospatch/README.txt, with the version and RACING.EXE's checksum filled in), the
 Python patcher for Linux and macOS as PYTHON/DOSPATCH.PY with its data PYTHON/DOSPATCH.JSN
-(scripts/dos_patch.py and data/dos-patches.json), and LICENSE.TXT once the project has a
-licence: 8.3 names throughout, so the files copy straight onto a DOS PC. Text files get
+(scripts/dos_patch.py and data/dos-patches.json), and LICENSE.TXT (the GNU GPL, version 3,
+from LICENSE): 8.3 names throughout, so the files copy straight onto a DOS PC. Text files get
 DOS line endings. On the development PC it first checks that data/dos-patches.json is up
 to date with src/dospatch/ (dos-build --check, which needs the Ghidra exports); elsewhere
 it says so and packages the committed data. Our bytes only: brrpatch-build refuses any 16

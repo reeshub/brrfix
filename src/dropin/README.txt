@@ -42,8 +42,14 @@ works like the game's own TIMER.DLL.
 
 You need
 --------
-Your own copy of Big Red Racing, installed and updated to v2.25 with the
-official patch. Check: WINRACE.EXE should be 534,016 bytes, SHA-256
+Your own copy of Big Red Racing, patched to v2.25. The easy way, on Windows 10
+and 11: the game's two zips from myabandonware.com (search there for Big Red
+Racing), the disc image and the official v2.25 patch:
+  Big-Red-Racing_DOS_EN_Disc-Image.zip
+  Big-Red-Racing_Patch_DOS_EN_Patch-v2-25.zip
+and "Install Game Files.bat" does the rest (see Install). Or a copy you have
+installed and updated with the official patch yourself. Check: WINRACE.EXE
+should be 534,016 bytes, SHA-256
 @WINRACE_SHA256@
 
 What's in this zip
@@ -60,6 +66,9 @@ What's in this zip
                       modern Windows, Wine and Proton (its ddraw.dll, renamed
                       so that no other DirectDraw can take its place)
 - ddraw.ini           our cnc-ddraw settings, with scaling presets
+- Install Game Files.bat  makes the Game and Music folders from the game's
+                      two zips (Windows 10 and 11; see Install)
+- LICENSE.txt         Big Red Launcher's licence: the GNU GPL, version 3
 - THIRD-PARTY.txt     the open-source parts and their licences
 
 Install (Windows 95 to 11)
@@ -78,12 +87,24 @@ called Game inside it and the CD music in a folder called Music:
    from this zip into it.
    On Windows 95, 98 and ME you can leave out CNCDD.DLL, ddraw.ini, Shaders and
    DPLAY.DLL: their own DirectX draws the game properly and has DirectPlay.
-2. Make a folder called Game inside it, and copy your installed game into it:
-   everything in the game's folder (for example C:\BIGRED). Or leave the game
-   where it is, and set [launcher] game= in BRRFIX.INI to its folder (game=
-   C:\BIGRED).
-3. Put the music in a folder called Music, next to Big Red Racing.exe (see
-   Music).
+2. The game, the easy way (Windows 10 and 11): put the game's two zips (see
+   You need) in the same folder and double-click "Install Game Files.bat".
+   It checks the zips, installs the game into a folder called Game and patches
+   it to v2.25, checking every file against the known game; converts the CD
+   music into a folder called Music if you want it (FLAC, Ogg Vorbis or WAV;
+   for FLAC or Ogg it downloads the converter, the official FLAC tool or
+   FFmpeg, into a folder called Tools and checks it); and offers a desktop
+   shortcut, and to delete the zips and the converter afterwards. Run it again
+   at any time to check the Game folder: it puts back any of the game's files
+   that are missing or changed, and leaves everything else alone. Windows may
+   warn that it came from the internet ("More info", then "Run anyway"): it's
+   a plain batch file, which you can read in Notepad.
+   Or, with a copy you installed yourself: make a folder called Game inside it,
+   and copy your installed game into it: everything in the game's folder (for
+   example C:\BIGRED). Or leave the game where it is, and set [launcher] game=
+   in BRRFIX.INI to its folder (game=C:\BIGRED).
+3. The music goes in a folder called Music, next to Big Red Racing.exe:
+   "Install Game Files.bat" puts it there, or see Music.
 4. Start Big Red Racing.exe (make a shortcut to it if you like).
    It makes WINRACEP.EXE ("P" for patched) beside itself: a copy of the game's
    WINRACE.EXE with small changes. Its file headers are corrected, because
@@ -105,7 +126,9 @@ move it there too.
 Steam Deck and Linux (Proton)
 -----------------------------
 1. Install as above (the game folder can be anywhere, for example in your home
-   folder).
+   folder). "Install Game Files.bat" needs Windows PowerShell, which Linux and
+   Proton don't have: run it on a Windows PC and copy the whole folder across,
+   or install the game yourself.
 2. In Steam: Games > Add a Non-Steam Game to My Library > Browse, choose
    Big Red Racing.exe. Steam shows it as "Big Red Racing".
 3. Right-click it > Properties > Compatibility > "Force the use of a specific
@@ -146,9 +169,8 @@ The game's music was CD audio. Without the CD, put the tracks in a folder
 called Music next to Big Red Racing.exe, one file per CD track, named by track
 number:
 track02.flac, Track02.ogg, 02.wav, "02 - Title.flac" and so on (FLAC, Ogg
-Vorbis or 16-bit WAV). Either rip your own CD, or, with the project's tools,
-run "python3 brr.py prepare" with your own copy of the game's disc image: it
-writes the tracks to work/disc/audio/. The game's own CD volume option works.
+Vorbis or 16-bit WAV). "Install Game Files.bat" makes them from the game's disc
+image (see Install), or rip your own CD. The game's own CD volume option works.
 With no tracks there, the game plays a real CD if there is one.
 
 Sound effects
@@ -260,3 +282,12 @@ About
 -----
 Made for the Big Red Racing preservation project, with the blessing of Paul
 and Peter Ranson of Big Red Software. Version @VERSION@.
+
+Big Red Launcher is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version. It is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See LICENSE.txt for the details. Big Red
+Racing itself is not included, and not covered by this licence. The parts by
+others keep their own licences (THIRD-PARTY.txt).

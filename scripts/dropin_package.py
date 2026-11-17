@@ -2,8 +2,9 @@
 
 Writes work/release/big-red-launcher-<version>.zip containing our PATCH.DLL and launcher
 (Big Red Racing.exe, from work/build/dropin/ - run dropin-build first), BRRFIX.INI and
-ddraw.ini (defaults, with comments), README.txt, THIRD-PARTY.txt, LICENSE.txt once the
-project has a licence, and cnc-ddraw (its ddraw.dll, renamed CNCDD.DLL, which the launcher's
+ddraw.ini (defaults, with comments), "Install Game Files.bat" (the players' installer for
+the game and its music, made by setup-build), README.txt, THIRD-PARTY.txt, LICENSE.txt (the
+GNU GPL, version 3, from LICENSE) and cnc-ddraw (its ddraw.dll, renamed CNCDD.DLL, which the launcher's
 WINRACEP.EXE imports by that name, and the three shaders our presets use),
 taken from its pinned official release zip, checked by SHA-256 (downloaded into
 tools/cnc-ddraw/ if missing), with its licence. THIRD-PARTY.txt (also written to the
@@ -23,6 +24,7 @@ import urllib.request
 import zipfile
 
 from common import DATA, ROOT, WORK
+import setup_build
 from dropin_build import CNC_DDRAW_DLL
 from prepkit import rel
 
@@ -89,8 +91,10 @@ def third_party_text(cnc_licence, shaders):
     from dropin_build import DECODERS
     parts = ["Third-party code in Big Red Launcher",
              "====================================",
-             "Everything else in this package is the project's own code. Each part below is",
-             "pinned to a release or commit and checked by SHA-256 when the package is built.", ""]
+             "Everything else in this package is the project's own code: free software under the",
+             "GNU General Public License, version 3 or (at your option) any later version",
+             "(LICENSE.txt). Each part below is pinned to a release or commit and checked by",
+             "SHA-256 when the package is built.", ""]
     parts += ["cnc-ddraw " + CNC_DDRAW["version"] + " (" + CNC_DDRAW_DLL + ", which is its ddraw.dll renamed, "
               "and Shaders\\nearest-neighbor.glsl)",
               "  Source: https://github.com/FunkyFr3sh/cnc-ddraw (official release cnc-ddraw.zip,",
@@ -108,6 +112,13 @@ def third_party_text(cnc_licence, shaders):
                   licence_block(text, "This software is available as a choice of the following licenses")
                   if "This software is available as a choice" in text
                   else licence_block(text, "This software is available under 2 licenses"), ""]
+    parts += ["Downloaded by Install Game Files.bat, only if you choose that music format",
+              "(not in this package; each from its own source, checked by SHA-256):",
+              f"  {setup_build.FLAC['Label']} for FLAC: {setup_build.FLAC['Url']}",
+              "  (Xiph.Org's Windows build; the flac tool is under the GNU GPL, version 2 or",
+              "  later, libFLAC under the BSD-3-Clause licence; their COPYING files are in that zip)",
+              f"  {setup_build.FFMPEG['Label']} for Ogg Vorbis: {setup_build.FFMPEG['Url']}",
+              "  (gyan.dev's essentials build, linked from ffmpeg.org; GNU GPL, version 3)", ""]
     return "\n".join(parts) + "\n"
 
 
@@ -135,6 +146,7 @@ def main(args):
              "ddraw.ini": crlf((SOURCE / "ddraw.ini").read_text()),
              CNC_DDRAW_DLL: cnc["ddraw.dll"],
              **shaders,
+             setup_build.OUT_NAME: setup_build.make()[0],
              "README.txt": crlf(readme),
              "THIRD-PARTY.txt": crlf(third_party)}
     licence = next((path for path in LICENCES if path.exists()), None)
