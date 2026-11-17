@@ -143,8 +143,7 @@ here.
 
 How cnc-ddraw enlarges the picture: the Original renderer's in full screen,
 the Modern renderer's in full screen and in its window. Each renderer keeps
-its own choice: Square and Integer for the Original, Square and Sharp for
-the Modern one.
+its own choice, Square and Sharp by default for both.
 
 Scaling aspect is the shape the picture is shown at:
 
@@ -431,7 +430,11 @@ skid, ground and nitro, and its knocks) could take every channel.
   nitro and knocks at once: the whole field's chaos.
 
 With 16 or 32 the nearest trucks come first; far trucks are quiet anyway with
-"Distant vehicles quieter".
+"Distant vehicles quieter". The number is a limit, not a target: the game
+only plays what the race calls for (each truck's engine, skid and nitro, your
+own truck's ground noise, and knocks), and nothing from trucks more than
+about 16 squares away. With Log ticked (Advanced tab), BRRFIX.LOG notes each
+new most channels playing at once.
 
 ## Controller
 

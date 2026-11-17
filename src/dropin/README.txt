@@ -207,7 +207,7 @@ so they don't show through hills, and gaps between level pieces closed
 
 Original (renderer=original; the only one on Windows 95, 98 and ME): the 1996
 game's own drawing, as players saw it, with only the smooth-motion fixes and
-cnc-ddraw's full-screen scaling presets (Square and Integer by default).
+cnc-ddraw's full-screen scaling presets (Square and Sharp by default).
 Windowed, it's the game's own window with its
 1996 menu bar (About, Modes, Language) at the game's own size. Keypad + and -
 switch between 640x480 and 320x200 as in 1996; the draw distance is the

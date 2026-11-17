@@ -44,7 +44,7 @@ int32_t brr_snd_keep[SOUND_CHANNELS_MAX], brr_snd_data[SOUND_CHANNELS_MAX], brr_
 uint8_t brr_snd_requests[SOUND_CHANNELS_MAX * 0x1B], brr_snd_channels[SOUND_CHANNELS_MAX * 0x1B];
 void *brr_ds_buffers[SOUND_CHANNELS_MAX];
 int32_t brr_ds_pans[255];          /* pan -127..127 at [pan + 127]: DirectSound's pan */
-int brr_sound_debug_on;            /* [debug] sound_log: thunks.asm calls brr_sound_debug */
+int brr_sound_debug_on;            /* [log] log or [debug] sound_log: thunks.asm calls brr_sound_debug */
 
 void brr_sound_setup(void)
 {
@@ -59,7 +59,7 @@ void brr_sound_setup(void)
             hundredths = 10000;
         brr_ds_pans[v] = pan < 0 ? -hundredths : hundredths;
     }
-    brr_sound_debug_on = cfg.debug_sound_log;
+    brr_sound_debug_on = cfg.debug_sound_log || cfg.log;
     if (cfg.stereo_pan)
         brr_log("sound: stereo as a balance (pan 32 = %ld, 64 = %ld, 96 = %ld hundredths of a dB on the far speaker; "
                 "the game's own: 2520, 5039, 7559)", (long)brr_ds_pans[127 + 32], (long)brr_ds_pans[127 + 64],
@@ -70,34 +70,51 @@ void brr_sound_setup(void)
                 (long)brr_ds_volumes[1], (long)brr_ds_volumes[32], (long)brr_ds_volumes[64]);
 }
 
-/* [debug] sound_log: from sound_update_vehicles (site sound_nearest_first), its frame: the
- * vehicles' pans at +0 and distances at +0x1C (7 each). Every 2 seconds, each active vehicle's
- * pan and distance beside where it is from the camera (the engine's last view: right, forward),
- * to check that a vehicle on the right has a positive pan. */
+/* The channels in use: how many, the DirectSound buffers made, and each channel's owner and kind
+ * as two digits ("-." free) */
+static int channel_use(int *made, char *kinds)
+{
+    const uint8_t *channels = cfg.sound_channels > 8 ? (const uint8_t *)brr_snd_channels : (const uint8_t *)0x4544C8;
+    void *const *buffers = cfg.sound_channels > 8 ? (void *const *)brr_ds_buffers : (void *const *)0x52F240;
+    int busy = 0, n = cfg.sound_channels, i;
+    *made = 0;
+    for (i = 0; i < n; i++) {
+        busy += channels[i * 0x1B] != 0xFF;
+        *made += buffers[i] != NULL;
+        kinds[i * 2] = channels[i * 0x1B] == 0xFF ? '-' : (char)('0' + channels[i * 0x1B] % 10);
+        kinds[i * 2 + 1] = channels[i * 0x1B] == 0xFF ? '.' : (char)('0' + channels[i * 0x1B + 1] % 10);
+    }
+    kinds[n * 2] = 0;
+    return busy;
+}
+
+/* From sound_update_vehicles (site sound_nearest_first, thunks.asm), as each vehicle is gathered,
+ * with [log] log or [debug] sound_log; frame: its frame, the vehicles' pans at +0 and distances
+ * at +0x1C (7 each). Logs each new most channels playing at once (the director, 2026-11-17: do
+ * races use 16 or 32?). With [debug] sound_log, every 2 seconds, the channels in use and each
+ * active vehicle's pan and distance beside where it is from the camera (the engine's last view:
+ * right, forward), to check that a vehicle on the right has a positive pan. */
 void __cdecl brr_sound_debug(const int32_t *frame)
 {
     static int64_t next;
+    static int most;
     const volatile int32_t *m = (const volatile int32_t *)0x54A2B0, *c = (const volatile int32_t *)0x54A2D4;
-    int64_t now = brr_qpc();
-    int i;
+    char kinds[2 * SOUND_CHANNELS_MAX + 1];
+    int64_t now;
+    int i, made, busy = channel_use(&made, kinds);
+    if (busy > most) {
+        most = busy;
+        brr_log("sound: %d of %d channels playing at once, the most so far (owner and kind per channel: %s)", busy,
+                cfg.sound_channels, kinds);
+    }
+    if (!cfg.debug_sound_log)
+        return;
+    now = brr_qpc();
     if (now < next)
         return;
     next = now + 2 * brr_qpc_freq();
-    {
-        const uint8_t *channels = cfg.sound_channels > 8 ? (const uint8_t *)brr_snd_channels : (const uint8_t *)0x4544C8;
-        void *const *buffers = cfg.sound_channels > 8 ? (void *const *)brr_ds_buffers : (void *const *)0x52F240;
-        int busy = 0, made = 0, n = cfg.sound_channels;
-        char kinds[2 * SOUND_CHANNELS_MAX + 1];
-        for (i = 0; i < n; i++) {
-            busy += channels[i * 0x1B] != 0xFF;
-            made += buffers[i] != NULL;
-            kinds[i * 2] = channels[i * 0x1B] == 0xFF ? '-' : (char)('0' + channels[i * 0x1B] % 10);
-            kinds[i * 2 + 1] = channels[i * 0x1B] == 0xFF ? '.' : (char)('0' + channels[i * 0x1B + 1] % 10);
-        }
-        kinds[n * 2] = 0;
-        brr_log("sound: %d of %d channels playing, %d DirectSound buffers made; owner and kind per channel: %s", busy,
-                n, made, kinds);
-    }
+    brr_log("sound: %d of %d channels playing, %d DirectSound buffers made; owner and kind per channel: %s", busy,
+            cfg.sound_channels, made, kinds);
     for (i = 0; i < 7; i++) {
         const int32_t *p = (const int32_t *)(0x452A90 + i * 0x395);
         double dx = p[0] - c[0], dy = p[1] - c[1], dz = p[2] - c[2];

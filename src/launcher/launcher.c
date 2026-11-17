@@ -92,7 +92,7 @@ static const struct preset {
     {1, "Integer", "integer", {"true", "true", "", SHADER_NEAREST, "0"}},
     {1, "Stretch", "stretch", {"false", "false", "", SHADER_NEAREST, "0"}}};
 #define PRESET_COUNT ((int)(sizeof presets / sizeof presets[0]))
-#define PRESET_ORIGINAL "integer"     /* the Original renderer's default */
+#define PRESET_ORIGINAL "squaresharp" /* the Original renderer's default (director, 2026-11-17) */
 #define PRESET_MODERN "squaresharp"   /* the Modern renderer's (director, 2026-11-16) */
 #define PRESET_WINDOW "stretch"       /* the Original renderer's own window: no letterbox */
 static const struct choice aspects[] = {{"4:3", "4:3"}, {"Square", "square"}, {0, 0}};
@@ -673,7 +673,7 @@ static void load(HWND dialog, int defaults)
         int i, found = 0;
         ini_get(f, "display", "fullscreen_scaling", "", v, sizeof v);
         found = preset_index(v, PRESET_ORIGINAL);
-        if (!v[0]) {
+        if (!v[0] && d) {  /* a BRRFIX.INI from before the setting: ddraw.ini's keys say which */
             ini_get(d, "ddraw", "boxing", "true", boxing, sizeof boxing);
             ini_get(d, "ddraw", "maintas", "true", maintas, sizeof maintas);
             ini_get(d, "ddraw", "aspect_ratio", "", aspect, sizeof aspect);
