@@ -63,7 +63,7 @@ What's in this zip
                       network play on to a real DirectPlay if there is one
 - BRRFIX.INI          its settings (each one explained in the file)
 - CNCDD.DLL, Shaders  cnc-ddraw, the open-source DirectDraw (MIT licence), for
-                      modern Windows, Wine and Proton (its ddraw.dll, renamed
+                      Windows XP to 11, Wine and Proton (its ddraw.dll, renamed
                       so that no other DirectDraw can take its place)
 - ddraw.ini           our cnc-ddraw settings, with scaling presets
 - Install Game Files.bat  makes the Game and Music folders from the game's
@@ -87,6 +87,8 @@ called Game inside it and the CD music in a folder called Music:
    from this zip into it.
    On Windows 95, 98 and ME you can leave out CNCDD.DLL, ddraw.ini, Shaders and
    DPLAY.DLL: their own DirectX draws the game properly and has DirectPlay.
+   cnc-ddraw needs Windows XP or later, so there the launcher doesn't use it
+   even if it's in the folder.
 2. The game, the easy way (Windows 10 and 11): put the game's two zips (see
    You need) in the same folder and double-click "Install Game Files.bat".
    It checks the zips, installs the game into a folder called Game and patches
@@ -111,8 +113,10 @@ called Game inside it and the CD music in a folder called Music:
    the 1996 linker wrote them carelessly and Windows 10 and 11 refuse to start
    the original; the copy works on every version of Windows. It uses our
    PATCH.DLL where the game used its own TIMER.DLL, and, if CNCDD.DLL is
-   there, cnc-ddraw where it used Windows' DirectDraw. The launcher starts it
-   in the Game folder. Nothing in the Game folder is changed.
+   there (not on Windows 95, 98 or ME), cnc-ddraw where it used Windows'
+   DirectDraw. The launcher starts it in the Game folder, where the game's
+   KEY.DLL is, so always start the game with Big Red Racing.exe, not
+   WINRACEP.EXE. Nothing in the Game folder is changed.
 To remove it: delete the folder (the Game folder in it is your copy of the
 game, so keep that if you need it).
 
@@ -271,6 +275,12 @@ Troubleshooting
 - The picture is tiny in a corner of a black screen: cnc-ddraw isn't being
   used. Check CNCDD.DLL is next to Big Red Racing.exe, and start the game
   with Big Red Racing.exe.
+- "A required .DLL file, KEY.DLL, was not found": WINRACEP.EXE was started by
+  itself. Start Big Red Racing.exe instead: it starts WINRACEP.EXE in the
+  Game folder, where KEY.DLL is.
+- "CNCDD.DLL expects a newer version of Windows" (Windows 95, 98 or ME): an
+  older Big Red Launcher used cnc-ddraw there. Update the launcher; it makes
+  WINRACEP.EXE again without cnc-ddraw.
 - "This program requires 256 colour mode to run windowed": BRRFIX.INI has
   [display] mode=ask; set it to windowed or fullscreen.
 - No music: check the Music folder's file names (the launcher counts the

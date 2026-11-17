@@ -6,11 +6,12 @@
  * [launcher] game: another folder name or a full path) and the ripped CD tracks in Music.
  * The game's files are left as they are: the launcher makes WINRACEP.EXE beside itself,
  * WINRACE.EXE with its section headers corrected, our PATCH.DLL imported instead of the
- * game's TIMER.DLL and, if it's here, cnc-ddraw (CNCDD.DLL) instead of DirectDraw
- * (winfix.c), and starts that in the game's folder. Windows looks for DLLs beside the
- * program first, so the game gets ours (and DPLAY.DLL), and its own KEY.DLL from the game's
- * folder (the current folder, and added to PATH). Under Wine and Proton cnc-ddraw's own
- * name means no DLL override is needed.
+ * game's TIMER.DLL and, if it's here (and not on Windows 95, 98 or ME, which can't load it),
+ * cnc-ddraw (CNCDD.DLL) instead of DirectDraw (winfix.c), and starts that in the game's
+ * folder. Windows looks for DLLs beside the program first, so the game gets ours (and
+ * DPLAY.DLL), and its own KEY.DLL from the game's folder (the current folder, and added to
+ * PATH), which is why WINRACEP.EXE started by itself can't find KEY.DLL. Under Wine and
+ * Proton cnc-ddraw's own name means no DLL override is needed.
  *
  * Settings live in BRRFIX.INI (the drop-in's) and ddraw.ini (cnc-ddraw's). They're
  * changed with WritePrivateProfileStringA, value by value, so comments, layout and keys
@@ -1101,6 +1102,14 @@ static int file_contains(const char *path, const char *needle)
     return found;
 }
 
+/* Wine (and Proton), whichever Windows version it reports: ntdll exports wine_get_version.
+ * Real Windows 95, 98 and ME have no ntdll of that kind. */
+static int under_wine(void)
+{
+    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+    return ntdll && GetProcAddress(ntdll, "wine_get_version") != NULL;
+}
+
 static int checks_pass(void)
 {
     char path[MAX_PATH], setting[MAX_PATH], message[MAX_PATH + 300];
@@ -1121,9 +1130,13 @@ static int checks_pass(void)
                                        "Big Red Launcher will leave the game unchanged.\n\nStart anyway?"))
         return 0;
     /* the copy the game runs as: the game's own files stay as they are */
-    /* cnc-ddraw: used when it's here; Windows 95-ME can do without it */
+    /* cnc-ddraw: used when it's here, but never on Windows 95, 98 or ME, which can't load it:
+     * its header asks for Windows XP (5.1), so WINRACEP.EXE wouldn't start ("CNCDD.DLL expects
+     * a newer version of Windows", the director's Windows ME, 2026-11-17); their own DirectDraw
+     * does full screen. Wine reporting Windows 95-ME loads it all the same, and needs it, as
+     * Wine's own DirectDraw can't change the display mode. */
     wsprintfA(path, "%s\\" CNC_DDRAW_DLL, folder);
-    cnc_ddraw = GetFileAttributesA(path) != 0xFFFFFFFFu;
+    cnc_ddraw = GetFileAttributesA(path) != 0xFFFFFFFFu && (!windows_9x || under_wine());
     if (!cnc_ddraw && !windows_9x
         && !ask("cnc-ddraw (" CNC_DDRAW_DLL ") isn't next to Big Red Racing.exe. On modern Windows and Proton "
                 "the game needs it to fill the screen.\n\nStart anyway?"))
