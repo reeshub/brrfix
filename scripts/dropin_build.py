@@ -284,8 +284,8 @@ def watcom_env():
                 PATH=f"{watcom_bin()}:{os.environ.get('PATH', '')}")
 
 
-def run_tool(command, env, what):
-    result = subprocess.run(command, capture_output=True, text=True, env=env)
+def run_tool(command, env, what, cwd=None):
+    result = subprocess.run(command, capture_output=True, text=True, env=env, cwd=cwd)
     output = (result.stdout + result.stderr).strip()
     if result.returncode != 0:
         raise BuildError(f"{what} failed:\n" + output[-4000:])
@@ -309,7 +309,10 @@ def fetch_decoders():
 
 def compile_dll(dll):
     env = watcom_env()
-    includes = [f"-i={folder}" for folder in fetch_decoders()]
+    # The decoders' folders relative to the repository, as the compiler runs there: their
+    # assert messages record each file's path as it was found, which would otherwise put the
+    # builder's own folder (user name included) into PATCH.DLL
+    includes = [f"-i={folder.relative_to(ROOT).as_posix()}" for folder in fetch_decoders()]
     objects = OUT / "obj"
     objects.mkdir(exist_ok=True)
     files = []
@@ -317,7 +320,7 @@ def compile_dll(dll):
         obj = objects / (name.rsplit(".", 1)[0] + ".obj")
         flags = [f for f in CFLAGS if f not in ("-w4", "-we")] + ["-w0"] if name in QUIET_FILES else CFLAGS
         run_tool([str(watcom_bin() / "wcc386"), *flags, f"-i={OUT}", f"-i={SOURCE}", *includes,
-                  f"-fo={obj}", str(SOURCE / name)], env, f"compiling {name}")
+                  f"-fo={obj}", str(SOURCE / name)], env, f"compiling {name}", cwd=ROOT)
         files.append(obj)
     for name in ASM_FILES:
         obj = objects / (name.rsplit(".", 1)[0] + ".obj")
