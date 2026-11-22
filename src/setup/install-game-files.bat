@@ -8,6 +8,24 @@ rem Makes the Game and Music folders next to Big Red Racing.exe from your own co
 rem two Big Red Racing zips from myabandonware.com (the disc image and the v2.25 patch).
 rem The work is done by Windows PowerShell (part of Windows), with the script below the
 rem marker line: nothing else needs installing.
+rem
+rem Windows 95, 98 and ME run this with COMMAND.COM, which has no PowerShell, nor cmd.exe's
+rem setlocal or exit /b; only Windows NT and its successors set OS to Windows_NT. So they
+rem are told why first, as is a newer Windows without PowerShell (XP). COMMAND.COM can't
+rem read the quoted "if exist", hence the order. Labels: 8 letters at most, for COMMAND.COM.
+if not "%OS%"=="Windows_NT" goto no_ps
+if exist "%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" goto has_ps
+:no_ps
+echo.
+echo This script requires Windows PowerShell and therefore only runs on modern
+echo Windows. To set up the game files, either re-run this script under modern
+echo Windows and copy the files over, or follow the instructions in the README.
+echo.
+pause
+if "%OS%"=="Windows_NT" exit /b 1
+rem COMMAND.COM may read on past an exit (DOSBox-X's does): the label is the file's last line
+goto brr_end
+:has_ps
 setlocal
 set "BRR_SETUP=%~f0"
 cd /d "%~dp0"
@@ -703,3 +721,8 @@ try {
     Say "Stopped: $($_.Exception.Message)" 'Red'
     exit 1
 }
+
+# Where the batch part sends Windows 95, 98 and ME ("goto brr_end", after its message): to
+# COMMAND.COM a label on the file's last line, so it stops reading here; to PowerShell a loop
+# that never runs (and is never reached: the script exits above).
+:brr_end while ($false) {}
