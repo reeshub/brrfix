@@ -1,6 +1,6 @@
 {
  "about": "Big Red Racing DOS patch (Phase 3b): our compiled code (src/dospatch/, built by 'python3 brr.py dos-build'), where it goes, and the sites it changes in the player's own RACING.EXE v2.24. Checksums only: no game bytes. Read by dos_patch.py.",
- "version": "0.1.0",
+ "version": "0.1.1",
  "input": {
   "name": "RACING.EXE",
   "version": "V2.24",
