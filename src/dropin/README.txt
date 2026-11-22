@@ -175,7 +175,9 @@ number:
 track02.flac, Track02.ogg, 02.wav, "02 - Title.flac" and so on (FLAC, Ogg
 Vorbis or 16-bit WAV). "Install Game Files.bat" makes them from the game's disc
 image (see Install), or rip your own CD. The game's own CD volume option works.
-With no tracks there, the game plays a real CD if there is one.
+With no tracks there, the game plays a real CD if there is one. On a 1990s PC,
+WAV is the lightest on the processor (no decoding, twice FLAC's size) and Ogg
+Vorbis the heaviest; FLAC and WAV are read from the disk as they play.
 
 Sound effects
 -------------
@@ -189,7 +191,8 @@ The stereo works too: the game panned a truck only a little off centre almost
 entirely into one speaker; it now moves smoothly between them ("Natural
 stereo"; [sound] stereo_pan). And it has 32 sound channels instead of 8 (or 16,
 or the game's 8: "Sound channels"), with every truck's engine heard instead of
-3 ([sound] channels).
+3 ([sound] channels). On Windows 95, 98 and ME it keeps the game's 8 unless you
+choose more: there each sound playing at once costs a 1990s PC some speed.
 
 Display and scaling
 -------------------
@@ -284,7 +287,9 @@ Troubleshooting
 - "This program requires 256 colour mode to run windowed": BRRFIX.INI has
   [display] mode=ask; set it to windowed or fullscreen.
 - No music: check the Music folder's file names (the launcher counts the
-  tracks it finds) and the game's CD volume option.
+  tracks it finds) and the game's CD volume option. On Windows 95, 98 and ME,
+  launchers before 0.1.1 never played the tracks (with Log ticked, BRRFIX.LOG
+  said "couldn't start the player thread"): update the launcher.
 - The pad does nothing: choose the joystick in the game's controls menu, and
   check [controller] enabled=1.
 

@@ -26,7 +26,8 @@ from:
   framerate cap at the display rate.
 - **Modern defaults:** for today's Windows, Linux and Steam Deck: full screen
   at high resolution (640x480), drawn sharp in full colour by the Modern
-  renderer, with modern pads on.
+  renderer, with modern pads on. Not on Windows 95, 98 or ME, which can't
+  run the Modern renderer or modern pads.
 
 Each button sets every setting on every tab. Press Save or Play to keep them.
 
@@ -385,6 +386,11 @@ folder, named by track number: track02.flac, Track02.ogg, 02.wav,
 "02 - Title.flac" and so on (FLAC, Ogg Vorbis or 16-bit WAV). The window says
 how many tracks it found.
 
+On a 1990s PC, WAV is the lightest: it needs no decoding, though it takes
+twice the space of FLAC. FLAC is quick to decode, Ogg Vorbis takes the most
+processor time. FLAC and WAV tracks are read from the disk as they play;
+Ogg Vorbis tracks (a few MB each) are read whole when they start.
+
 **Volume**
 
 The music's volume, on top of the game's own CD volume option.
@@ -418,16 +424,18 @@ and only trucks straight ahead were heard from both. Ticked, a truck's sound
 moves smoothly between the speakers as it moves round you (half way to the
 side: the far speaker 6 dB quieter), as the DOS version did.
 
-**Sound channels** (32 by default)
+**Sound channels** (32 by default; 8 on Windows 95, 98 and ME)
 
 The game mixes its sound effects on 8 channels and gathers at most 8 sounds
 at a time, and played only 3 trucks' engines: one busy truck (its engine,
 skid, ground and nitro, and its knocks) could take every channel.
 
-- **8 (1996):** as the game.
+- **8 (1996):** as the game. The default on Windows 95, 98 and ME, and with
+  Period defaults: DirectSound mixes every sound playing at once on the
+  processor, so on a 1990s PC more sounds cost speed.
 - **16:** twice as many, and every truck's engine.
-- **32** (the default): room for every truck's engine, skids, ground noise,
-  nitro and knocks at once: the whole field's chaos.
+- **32** (the default elsewhere): room for every truck's engine, skids,
+  ground noise, nitro and knocks at once: the whole field's chaos.
 
 With 16 or 32 the nearest trucks come first; far trucks are quiet anyway with
 "Distant vehicles quieter". The number is a limit, not a target: the game
