@@ -614,8 +614,9 @@ the version there with yours.
 - **Skip this window next time:** starts the game straight away from now on.
   Hold Shift while starting, or start with -setup, to see this window again.
 - **Patch the DOS version:** fixes the DOS version's RACING.EXE in the Game
-  folder (the same game fixes, for DOS PCs and DOSBox), keeping the original as
-  RACING.ORI. Press it again on a patched file to put the original back.
+  folder (the same game fixes, for DOS PCs and DOSBox), keeping the original
+  as RACING.ORI. Press it again on a patched file to put the original back. On
+  one patched by an earlier version, it offers to update it.
 - **Help:** opens this file (or press F1).
 - **Play:** saves the settings and starts the game. When the game ends, this
   window comes back (on the same tab), so you can change something and play

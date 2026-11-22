@@ -77,8 +77,10 @@ Patching on a DOS PC (or a Windows 95/98/ME MS-DOS Prompt)
    "Camera fix by ctrl-alt-rees".
 It needs about 650 KB of free disk space while it works.
 
-To change the fixes later, run BRRPATCH again: it asks again and changes
-the patched RACING.EXE. To put the original back:
+To change the fixes later, run BRRPATCH again: it asks again and changes the
+patched RACING.EXE. If an earlier version of BRRPATCH (or of Big Red Launcher)
+patched it, the new one updates it, rebuilding it from RACING.ORI, the saved
+original. To put the original back:
        BRRPATCH /U
 BRRPATCH /Y patches with every fix without asking (for batch files), and
 doesn't start the game; BRRPATCH /N asks but doesn't start the game.

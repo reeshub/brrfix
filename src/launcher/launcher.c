@@ -991,6 +991,12 @@ static void patch_dos(HWND dialog)
                   "(from RACING.ORI)?", dos_folder);
         if (MessageBoxA(dialog, text, title, MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES)
             return;
+    } else if (state == BRR_DOS_EARLIER) {
+        wsprintfA(text, "The DOS version's RACING.EXE in %s has an earlier version of this patch.\n\n"
+                  "Update it to patch %s? The original stays in RACING.ORI, and this button can put "
+                  "it back.", dos_folder, brr_dos_version());
+        if (MessageBoxA(dialog, text, title, MB_YESNO | MB_ICONQUESTION) != IDYES)
+            return;
     }
     cursor = SetCursor(LoadCursorA(NULL, IDC_WAIT));
     result = state == BRR_DOS_PATCHED ? brr_dos_restore(dos_folder, message, sizeof message)

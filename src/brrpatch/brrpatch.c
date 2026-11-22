@@ -9,7 +9,8 @@
  * The player's choices (BRRPATCH's questions) are the patch's options: after the default
  * file is rebuilt and checked, its options block and the main menu's tag ("F0.1 CIARV") get
  * them, as dos-patch writes them. A patched file is recognised with those bytes taken as
- * their defaults, so it's "patched" whatever was chosen. */
+ * their defaults, so it's "patched" whatever was chosen. A RACING.EXE patched by an earlier
+ * release (BRR_EARLIER) is rebuilt from RACING.ORI, which must be the original. */
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
@@ -64,6 +65,20 @@ static int matches(struct brr_sha256_state *s, const char *expected)
     brr_sha256_final(s, digest);
     brr_sha256_hex(digest, hex);
     return !strcmp(hex, expected);
+}
+
+static int earlier_release(uint32_t total, const char *hex)
+{
+#if BRR_EARLIER_COUNT
+    unsigned i;
+    for (i = 0; i < BRR_EARLIER_COUNT; i++)
+        if (total == BRR_EARLIER[i].size && !strcmp(hex, BRR_EARLIER[i].sha256))
+            return 1;
+#else
+    (void)total;
+    (void)hex;
+#endif
+    return 0;
 }
 
 /* the bytes of a default patched file where the choices go, in a chunk read at file offset at */
@@ -141,6 +156,8 @@ static int file_state(const char *path)
     uint32_t total = 0;
     size_t got;
     int failed, patched_size;
+    uint8_t digest[32];
+    char hex[65];
     FILE *f = path[0] ? fopen(path, "rb") : NULL;
     if (!f)
         return BRR_DOS_MISSING;
@@ -160,11 +177,13 @@ static int file_state(const char *path)
     fclose(f);
     if (failed)
         return BRR_DOS_UNREADABLE;
+    brr_sha256_final(&s, digest);
+    brr_sha256_hex(digest, hex);
     if (total == BRR_ORIGINAL_SIZE)
-        return matches(&s, BRR_ORIGINAL_SHA256) ? BRR_DOS_ORIGINAL : BRR_DOS_OTHER;
+        return strcmp(hex, BRR_ORIGINAL_SHA256) ? BRR_DOS_OTHER : BRR_DOS_ORIGINAL;
     if (total == BRR_PATCHED_SIZE)
-        return matches(&s, BRR_PATCHED_SHA256) ? BRR_DOS_PATCHED : BRR_DOS_OTHER;
-    return BRR_DOS_OTHER;
+        return strcmp(hex, BRR_PATCHED_SHA256) ? BRR_DOS_OTHER : BRR_DOS_PATCHED;
+    return earlier_release(total, hex) ? BRR_DOS_EARLIER : BRR_DOS_OTHER;
 }
 
 int brr_dos_state(const char *folder)
@@ -261,12 +280,18 @@ int brr_dos_patch(const char *folder, const struct brr_dos_choices *choices, cha
         return -1;
     }
     kept = file_state(backup);
+    if (state == BRR_DOS_EARLIER && kept != BRR_DOS_ORIGINAL) {
+        say(message, size, "RACING.EXE has an earlier version of this patch, and the original isn't "
+            "saved as RACING.ORI, so it can't be updated. Put the original RACING.EXE back, then "
+            "try again. Nothing was changed.");
+        return -1;
+    }
     if (kept != BRR_DOS_MISSING && kept != BRR_DOS_ORIGINAL) {
         say(message, size, "RACING.ORI is already there, and it isn't the original RACING.EXE. Move "
             "or rename it, then try again. Nothing was changed.");
         return -1;
     }
-    if (!write_patched(exe, fresh) || (choices && !write_choices(fresh, choices))) {
+    if (!write_patched(state == BRR_DOS_EARLIER ? backup : exe, fresh) || (choices && !write_choices(fresh, choices))) {
         remove(fresh);
         say(message, size, "Couldn't write the patched file (RACING.NEW). Is the disk full or "
             "write-protected? The patch needs about 650 KB free. Nothing was changed.");
@@ -275,7 +300,8 @@ int brr_dos_patch(const char *folder, const struct brr_dos_choices *choices, cha
     /* RACING.ORI may already hold the original, from an earlier patch and undo */
     if (kept == BRR_DOS_ORIGINAL ? remove(exe) != 0 : rename(exe, backup) != 0) {
         remove(fresh);
-        say(message, size, "Couldn't rename RACING.EXE to RACING.ORI (is it read-only?). "
+        say(message, size, kept == BRR_DOS_ORIGINAL ? "Couldn't replace RACING.EXE (is it read-only?). "
+            "Nothing was changed." : "Couldn't rename RACING.EXE to RACING.ORI (is it read-only?). "
             "Nothing was changed.");
         return -1;
     }
@@ -286,7 +312,11 @@ int brr_dos_patch(const char *folder, const struct brr_dos_choices *choices, cha
             "back in place.");
         return -1;
     }
-    sprintf(text, "Patched RACING.EXE (%s). The original is saved as RACING.ORI.", tag);
+    if (state == BRR_DOS_EARLIER)
+        sprintf(text, "Updated RACING.EXE from an earlier version of this patch to %s (%s). The "
+                "original is still saved as RACING.ORI.", BRR_PATCH_VERSION, tag);
+    else
+        sprintf(text, "Patched RACING.EXE (%s). The original is saved as RACING.ORI.", tag);
     say(message, size, text);
     return 0;
 }
@@ -313,13 +343,13 @@ int brr_dos_restore(const char *folder, char *message, unsigned size)
             "Nothing was changed.");
         return -1;
     }
-    if (state != BRR_DOS_PATCHED && state != BRR_DOS_MISSING) {
+    if (state != BRR_DOS_PATCHED && state != BRR_DOS_EARLIER && state != BRR_DOS_MISSING) {
         say(message, size, "RACING.EXE has been changed by something other than this patch, so it "
             "wasn't replaced. To put the original back anyway, delete RACING.EXE and rename "
             "RACING.ORI to RACING.EXE. Nothing was changed.");
         return -1;
     }
-    if (state == BRR_DOS_PATCHED && remove(exe) != 0) {
+    if ((state == BRR_DOS_PATCHED || state == BRR_DOS_EARLIER) && remove(exe) != 0) {
         say(message, size, "Couldn't replace RACING.EXE (is it read-only?). Nothing was changed.");
         return -1;
     }

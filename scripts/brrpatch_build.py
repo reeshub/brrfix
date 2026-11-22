@@ -8,7 +8,8 @@
    the build fails if any 16 bytes in a row of them also appear in RACING.EXE (apart from
    plain text of our own matching a common phrase, as in dos-package). Replays the steps
    to check they give exactly the patched file.
-3. Writes them, with both files' sizes and SHA-256, as brrdata.h (also used by the
+3. Writes them, with both files' sizes and SHA-256 (and those of earlier releases' patched
+   files, EARLIER, so they can be updated or undone), as brrdata.h (also used by the
    launcher's "Patch the DOS version" button, built by dropin-build).
 4. Compiles src/brrpatch/ with Open Watcom's 16-bit compiler as a real-mode DOS program
    (compact model, 386 instructions; no DOS extender needed), and checks it's an MZ
@@ -42,6 +43,15 @@ CFLAGS = ["-q", "-bt=dos", "-mc", "-3", "-za99", "-s", "-os", "-w4", "-we", "-zq
 LITERAL = 0xFFFFFFFF
 MIN_MATCH = 8
 MAX_CANDIDATES = 64
+# The patched RACING.EXE made by each earlier release (BRRPATCH, the launcher's DOS button, and
+# the Python patcher with no options), recognised so it can be updated or undone: (version,
+# size, SHA-256). Add each released patch's BRR_PATCHED_SIZE and BRR_PATCHED_SHA256 here
+# (RELEASING.md); one equal to this build's own is left out.
+# 0.1.0: brr-dos-patch-0.1.0.zip in releases 0.1.0 and 0.1.1 (the same zip), and Big Red
+# Launcher 0.1.0 and 0.1.1, which carry the same hash.
+EARLIER = [
+    ("0.1.0", 644832, "6336472a3c8de069617215f7333a3d6b0d4414a1c05e2ad2a74d4eeaf473eb2b"),
+]
 
 
 def sha256(data):
@@ -189,6 +199,20 @@ def choice_lines(patched, spec):
     return lines
 
 
+def earlier_lines(patched):
+    """brrdata.h's list of earlier releases' patched files (EARLIER), apart from this one."""
+    earlier = [(version, size, digest) for version, size, digest in EARLIER if digest != sha256(patched)]
+    for version, size, _ in earlier:
+        if size == len(patched):  # BRRPATCH ignores this build's options block in a file this size
+            raise BuildError(f"patch {version}'s RACING.EXE is the same size as this one's, so BRRPATCH "
+                             "would need that version's options block to recognise it")
+    lines = [f"#define BRR_EARLIER_COUNT {len(earlier)}"]
+    if earlier:
+        lines.append("static const struct { uint32_t size; const char *sha256; } BRR_EARLIER[BRR_EARLIER_COUNT] = {"
+                     + ", ".join(f'{{{size}UL, "{digest}"}}' for _, size, digest in earlier) + "};")
+    return lines
+
+
 def write_data():
     """Work out the steps and write brrdata.h; returns a summary dictionary."""
     from dos_package import shares_game_bytes
@@ -220,6 +244,7 @@ def write_data():
         lines.append("    " + ",".join(str(b) for b in literals[i:i + 20]) + ",")
     lines.append("};")
     lines += choice_lines(patched, spec)
+    lines += earlier_lines(patched)
     HEADER.write_text("\n".join(lines) + "\n")
     return {"ops": len(ops), "literals": len(literals), "copied": len(patched) - len(literals),
             "patched": len(patched), "tag": tag, "text": sorted({literals[i:i + 16].decode() for i in text})}

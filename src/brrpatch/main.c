@@ -214,9 +214,11 @@ int main(int argc, char **argv)
         fflush(stdout);
         state = brr_dos_state(folder);
         printf("\n\n");
-        if (state == BRR_DOS_ORIGINAL || state == BRR_DOS_PATCHED) {
+        if (state == BRR_DOS_ORIGINAL || state == BRR_DOS_PATCHED || state == BRR_DOS_EARLIER) {
             if (state == BRR_DOS_PATCHED)
                 printf("RACING.EXE is already patched: your answers change its fixes.\n");
+            if (state == BRR_DOS_EARLIER)
+                printf("RACING.EXE has an earlier version of this patch: your answers update it.\n");
             if (questions(&choices) < 0) {
                 printf("Stopped. Nothing was changed.\n");
                 return 1;
