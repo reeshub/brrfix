@@ -11,6 +11,9 @@
 #define IDC_TITLE        1101
 #define IDC_PERIOD       1102
 #define IDC_MODERN       1103
+#define IDC_MODERN_TEXT  1104
+#define IDC_DEFAULTS_NOTE 1105
+#define IDC_DEFAULTS_GROUP 1106
 
 /* Display */
 #define IDC_PAGE_DISPLAY 1200
@@ -32,6 +35,8 @@
 #define IDC_WIDESCREEN   1229
 #define IDC_ASPECT       1230
 #define IDC_ASPECT_LABEL 1231
+#define IDC_MODE_LABEL   1232
+#define IDC_RESOLUTION_LABEL 1233
 
 /* Renderer */
 #define IDC_PAGE_RENDERER 1300

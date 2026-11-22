@@ -192,9 +192,11 @@ static void load_config(void)
     cfg.music_follow_game = ini_int(path, "music", "follow_game_volume", 1);
     cfg.distance_volume = ini_int(path, "sound", "distance_volume", 1);
     cfg.stereo_pan = ini_int(path, "sound", "stereo_pan", 1);
-    cfg.sound_channels = ini_int(path, "sound", "channels", 32);
-    if (cfg.sound_channels != 8 && cfg.sound_channels != 16)
-        cfg.sound_channels = 32;
+    /* auto (the default, or anything else): 8, as the game, on Windows 95, 98 and ME, where
+     * DirectSound mixes each sound playing on a 1990s processor; 32 elsewhere */
+    cfg.sound_channels = ini_int(path, "sound", "channels", 0);
+    if (cfg.sound_channels != 8 && cfg.sound_channels != 16 && cfg.sound_channels != 32)
+        cfg.sound_channels = (GetVersion() & 0x80000000u) ? 8 : 32;
     GetPrivateProfileStringA("music", "folder", "Music", cfg.music_folder, sizeof cfg.music_folder, path);
     GetPrivateProfileStringA("display", "mode", "fullscreen", text, sizeof text, path);
     cfg.display_mode = !lstrcmpiA(text, "fullscreen") ? DISPLAY_FULLSCREEN

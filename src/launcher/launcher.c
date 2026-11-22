@@ -6,11 +6,12 @@
  * [launcher] game: another folder name or a full path) and the ripped CD tracks in Music.
  * The game's files are left as they are: the launcher makes WINRACEP.EXE beside itself,
  * WINRACE.EXE with its section headers corrected, our PATCH.DLL imported instead of the
- * game's TIMER.DLL and, if it's here, cnc-ddraw (CNCDD.DLL) instead of DirectDraw
- * (winfix.c), and starts that in the game's folder. Windows looks for DLLs beside the
- * program first, so the game gets ours (and DPLAY.DLL), and its own KEY.DLL from the game's
- * folder (the current folder, and added to PATH). Under Wine and Proton cnc-ddraw's own
- * name means no DLL override is needed.
+ * game's TIMER.DLL and, if it's here (and not on Windows 95, 98 or ME, which can't load it),
+ * cnc-ddraw (CNCDD.DLL) instead of DirectDraw (winfix.c), and starts that in the game's
+ * folder. Windows looks for DLLs beside the program first, so the game gets ours (and
+ * DPLAY.DLL), and its own KEY.DLL from the game's folder (the current folder, and added to
+ * PATH), which is why WINRACEP.EXE started by itself can't find KEY.DLL. Under Wine and
+ * Proton cnc-ddraw's own name means no DLL override is needed.
  *
  * Settings live in BRRFIX.INI (the drop-in's) and ddraw.ini (cnc-ddraw's). They're
  * changed with WritePrivateProfileStringA, value by value, so comments, layout and keys
@@ -397,46 +398,89 @@ static void place(HWND dialog, int id, int x, int y, int w, int h)
                  SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
-/* The Display tab: the Display group's rows below Resolution (the Modern renderer's Max limit
- * first), the group as tall as the rows shown (launcher.rc) */
+/* The Display tab: the rows each renderer shows (on Windows 95, 98 and ME no Renderer row, nor
+ * cnc-ddraw's scaling), 14 units apart, and the group as tall as them (launcher.rc's rules):
+ * there just Mode and Resolution, as tall as Frame rate beside it */
 static void layout_display(HWND dialog)
 {
-    int fresh = new_renderer(dialog), y = 78;
+    int fresh = new_renderer(dialog), y = 36;
+#define ROW(label, box, list) (place(dialog, label, 18, y + 2, 54, 8), place(dialog, box, 74, y, 88, list), y += 14)
+    if (!windows_9x)
+        ROW(IDC_RENDERER_LABEL, IDC_RENDERER, 60);
+    ROW(IDC_MODE_LABEL, IDC_MODE, 60);
+    ROW(IDC_RESOLUTION_LABEL, IDC_RESOLUTION, 60);
     if (fresh) {
-        place(dialog, IDC_MAXLIMIT_LABEL, 18, y + 2, 54, 8);
-        place(dialog, IDC_MAXLIMIT, 74, y, 88, 80);
+        ROW(IDC_MAXLIMIT_LABEL, IDC_MAXLIMIT, 80);
+        place(dialog, IDC_WIDESCREEN, 18, y, 144, 10);
         y += 14;
-        place(dialog, IDC_WIDESCREEN, 18, y, 140, 10);
-        y += 12;
     }
-    place(dialog, IDC_ASPECT_LABEL, 18, y + 2, 54, 8);
-    place(dialog, IDC_ASPECT, 74, y, 88, 60);
-    y += 14;
-    place(dialog, IDC_PRESET_LABEL, 18, y + 2, 54, 8);
-    place(dialog, IDC_PRESET, 74, y, 88, 80);
+    if (!windows_9x) {
+        ROW(IDC_ASPECT_LABEL, IDC_ASPECT, 60);
+        ROW(IDC_PRESET_LABEL, IDC_PRESET, 80);
+    }
     if (fresh) {
-        y += 14;
-        place(dialog, IDC_SCALE_LABEL, 18, y + 2, 54, 8);
-        place(dialog, IDC_SCALE, 74, y, 88, 90);
-        y += 13;
-        place(dialog, IDC_COLOUR_LABEL, 18, y + 2, 54, 8);
-        place(dialog, IDC_COLOUR, 74, y, 88, 60);
+        ROW(IDC_SCALE_LABEL, IDC_SCALE, 90);
+        ROW(IDC_COLOUR_LABEL, IDC_COLOUR, 60);
     }
-    place(dialog, IDC_DISPLAY_GROUP, 12, 24, 156, y + 15 - 24);
+#undef ROW
+    /* down to the last row's 12 units and 6 below them */
+    place(dialog, IDC_DISPLAY_GROUP, 12, 24, 156, y - 14 + 12 + 6 - 24);
 }
 
-/* The Renderer tab: Smoothness and Full colour on the left, Race world on the right (the
- * Modern renderer's), Miscellaneous below them (or under Smoothness with the Original), then
- * Engine fixes (Modern; launcher.rc places it) */
+/* The Renderer tab: Smoothness and Full colour side by side, then Race world, Miscellaneous
+ * and Engine fixes across (launcher.rc); with the Original renderer just Smoothness, and
+ * Miscellaneous under it as wide */
 static void layout_renderer(HWND dialog)
 {
-    int fresh = new_renderer(dialog), top = fresh ? 116 : 72;
-    place(dialog, IDC_MISC_GROUP, 12, top, 300, fresh ? 44 : 30);
-    place(dialog, IDC_COLOUR_ANIM, 18, top + 12, fresh ? 140 : 280, 10);
-    place(dialog, IDC_HUD43, 160, top + 12, 140, 10);
-    place(dialog, IDC_HUDSIZE_LABEL, 18, top + 28, 40, 8);
-    place(dialog, IDC_HUDSIZE, 62, top + 26, 94, 60);
-    place(dialog, IDC_WIDEMENUS, 160, top + 27, 140, 10);
+    if (new_renderer(dialog)) {
+        place(dialog, IDC_MISC_GROUP, 12, 120, 300, 44);
+        place(dialog, IDC_COLOUR_ANIM, 18, 132, 144, 10);
+    } else {
+        place(dialog, IDC_MISC_GROUP, 12, 72, 156, 30);
+        place(dialog, IDC_COLOUR_ANIM, 18, 84, 144, 10);
+    }
+}
+
+/* The tabs as tall as the tallest page this PC can show (its lowest control, 6 units above the
+ * tabs' bottom, as at their sides), the controls under them and the window moved up to match:
+ * on Windows 95, 98 and ME, whose pages are shorter, the window is too. With either renderer
+ * possible, all of both renderers' controls count, so changing it never resizes the window.
+ * Measured with GetWindowRect only (the game imports it, so Windows 95 has it): the window's
+ * inside starts where the tabs' screen position less their place in launcher.rc says. */
+#define TABS_X 6
+#define TABS_Y 4
+static void fit_window(HWND dialog)
+{
+    static const int below[] = {IDC_SKIP, IDC_DOSPATCH, IDC_HELPFILE, IDOK, IDC_SAVE, IDCANCEL};
+    HWND tabs = GetDlgItem(dialog, IDC_TABS), child;
+    RECT r, units = {TABS_X, TABS_Y, 0, 6};
+    int lowest = 0, shift, i, origin_x, origin_y;
+    for (child = GetWindow(dialog, GW_CHILD); child; child = GetWindow(child, GW_HWNDNEXT)) {
+        int id = GetDlgCtrlID(child), skip = page_of(id) < 0 || (windows_9x && hidden_by_choice(dialog, id));
+        for (i = 0; i < never_shown_count && !skip; i++)
+            skip = never_shown[i] == id;
+        if (skip)
+            continue;
+        GetWindowRect(child, &r);
+        if (!lowest || r.bottom > lowest)
+            lowest = r.bottom;
+    }
+    MapDialogRect(dialog, &units);
+    GetWindowRect(tabs, &r);
+    shift = r.bottom - (lowest + units.bottom);
+    if (!lowest || shift <= 0)
+        return;
+    origin_x = r.left - units.left;
+    origin_y = r.top - units.top;
+    SetWindowPos(tabs, NULL, 0, 0, r.right - r.left, r.bottom - r.top - shift, SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
+    for (i = 0; i < (int)(sizeof below / sizeof below[0]); i++) {
+        GetWindowRect(GetDlgItem(dialog, below[i]), &r);
+        SetWindowPos(GetDlgItem(dialog, below[i]), NULL, r.left - origin_x, r.top - origin_y - shift, 0, 0,
+                     SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
+    }
+    GetWindowRect(dialog, &r);  /* still centred (DS_CENTER placed it) */
+    SetWindowPos(dialog, NULL, r.left, r.top + shift / 2, r.right - r.left, r.bottom - r.top - shift,
+                 SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
 /* The resolutions each renderer offers, keeping the choice where it can (Max -> High) */
@@ -568,7 +612,8 @@ static const struct { int id; const char *text; } tips[] = {
     {IDC_STEREO_PAN, "Vehicles to the right sound more from the right speaker, smoothly; the game's own panning sent "
                      "anything a little off centre almost entirely to one side."},
     {IDC_CHANNELS, "How many sounds play at once: the game's 8, or 16 or 32, with every truck's engine (the game "
-                   "allowed 3), so more of the field is heard at once."},
+                   "allowed 3), so more of the field is heard at once. 8 on Windows 95, 98 and ME, where each "
+                   "costs a 1990s PC some speed."},
     {IDC_MUSIC, "Plays the CD music from ripped tracks (trackNN.flac, .ogg or .wav) instead of the CD."},
     {IDC_VOLUME, "Music volume, on top of the game's own CD volume option."},
     {IDC_FOLDER, "The folder with the ripped tracks: Music next to the launcher, or a full path."},
@@ -725,7 +770,10 @@ static void load(HWND dialog, int defaults)
     check(dialog, IDC_MUSIC, defaults ? 1 : ini_flag("music", "music", 1));
     check(dialog, IDC_DISTANCE_VOL, defaults ? 1 : ini_flag("sound", "distance_volume", 1));
     check(dialog, IDC_STEREO_PAN, defaults ? 1 : ini_flag("sound", "stereo_pan", 1));
-    fill(dialog, IDC_CHANNELS, channel_counts, listed(channel_counts, GET(f, "sound", "channels", "32"), "32"));
+    /* auto (BRRFIX.INI's default): the game's 8 on Windows 95, 98 and ME, where each sound playing
+     * costs a 1990s processor time (the director, 2026-11-22), and with Period defaults; else 32 */
+    fill(dialog, IDC_CHANNELS, channel_counts,
+         listed(channel_counts, GET(f, "sound", "channels", "auto"), period || (windows_9x && !defaults) ? "8" : "32"));
     fill(dialog, IDC_VOLUME, volumes, GET(f, "music", "volume", "100"));
     SetDlgItemTextA(dialog, IDC_FOLDER, GET(f, "music", "folder", "Music"));
     check(dialog, IDC_PAD, defaults ? 1 : ini_flag("controller", "enabled", 1));
@@ -973,14 +1021,23 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
             hide_for_good(dialog, IDC_ASPECT_LABEL);
             for (i = 0; i < sizeof pad_controls / sizeof pad_controls[0]; i++)
                 hide_for_good(dialog, pad_controls[i]);
-            /* menu navigation works with a 1996 joystick too: up where Vibration would be */
-            place(dialog, IDC_MENU_GROUP, 12, 112, 300, 30);
-            place(dialog, IDC_MENU_NAV, 18, 125, 200, 10);
+            /* Modern defaults are for what this Windows can't run (the director, 2026-11-22) */
+            hide_for_good(dialog, IDC_MODERN);
+            hide_for_good(dialog, IDC_MODERN_TEXT);
+            SetDlgItemTextA(dialog, IDC_DEFAULTS_NOTE, "It sets every setting; press Save or Play to keep them.");
+            place(dialog, IDC_DEFAULTS_NOTE, 18, 128, 288, 8);
+            place(dialog, IDC_DEFAULTS_GROUP, 12, 94, 300, 48);
+            /* the note in a group of two rows; menu navigation works with a 1996 joystick too,
+             * so its group goes under it */
+            place(dialog, IDC_PAD_GROUP, 12, 24, 300, 44);
+            place(dialog, IDC_MENU_GROUP, 12, 72, 300, 30);
+            place(dialog, IDC_MENU_NAV, 18, 84, 200, 10);
         } else
             hide_for_good(dialog, IDC_PAD_NOTE);
         /* under Proton, Steam Input sets up controllers */
         if (GetEnvironmentVariableA("STEAM_COMPAT_DATA_PATH", steam, sizeof steam))
             hide_for_good(dialog, IDC_JOYCPL);
+        fit_window(dialog);
         add_tabs(dialog);
         /* the tabs have the focus, so the arrow keys change tab and Return still plays */
         SetFocus(GetDlgItem(dialog, IDC_TABS));
@@ -1101,6 +1158,14 @@ static int file_contains(const char *path, const char *needle)
     return found;
 }
 
+/* Wine (and Proton), whichever Windows version it reports: ntdll exports wine_get_version.
+ * Real Windows 95, 98 and ME have no ntdll of that kind. */
+static int under_wine(void)
+{
+    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+    return ntdll && GetProcAddress(ntdll, "wine_get_version") != NULL;
+}
+
 static int checks_pass(void)
 {
     char path[MAX_PATH], setting[MAX_PATH], message[MAX_PATH + 300];
@@ -1121,9 +1186,13 @@ static int checks_pass(void)
                                        "Big Red Launcher will leave the game unchanged.\n\nStart anyway?"))
         return 0;
     /* the copy the game runs as: the game's own files stay as they are */
-    /* cnc-ddraw: used when it's here; Windows 95-ME can do without it */
+    /* cnc-ddraw: used when it's here, but never on Windows 95, 98 or ME, which can't load it:
+     * its header asks for Windows XP (5.1), so WINRACEP.EXE wouldn't start ("CNCDD.DLL expects
+     * a newer version of Windows", the director's Windows ME, 2026-11-17); their own DirectDraw
+     * does full screen. Wine reporting Windows 95-ME loads it all the same, and needs it, as
+     * Wine's own DirectDraw can't change the display mode. */
     wsprintfA(path, "%s\\" CNC_DDRAW_DLL, folder);
-    cnc_ddraw = GetFileAttributesA(path) != 0xFFFFFFFFu;
+    cnc_ddraw = GetFileAttributesA(path) != 0xFFFFFFFFu && (!windows_9x || under_wine());
     if (!cnc_ddraw && !windows_9x
         && !ask("cnc-ddraw (" CNC_DDRAW_DLL ") isn't next to Big Red Racing.exe. On modern Windows and Proton "
                 "the game needs it to fill the screen.\n\nStart anyway?"))

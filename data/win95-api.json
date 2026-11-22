@@ -133,6 +133,7 @@
    "GetDlgItemTextA",
    "GetSystemMetrics",
    "GetWindow",
+   "GetWindowRect",
    "GetWindowThreadProcessId",
    "IsDlgButtonChecked",
    "IsWindowVisible",

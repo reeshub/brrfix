@@ -25,7 +25,8 @@ Windows and on Linux/Steam Deck through Proton, and makes it run smoothly:
 - The physics is left exactly as it was: the same game, bit for bit.
 - The game's sharper 640x480 mode by default (it was only reachable from its
   window's menu or keypad +), and its language chosen in the launcher.
-- The window's Full screen switch (and Tab), which broke the window, removed.
+- The window's Full screen switch (and Tab), which broke cnc-ddraw's window,
+  removed (kept on Windows 95, 98 and ME, where it works).
 - The colour animation of four levels (CHOPPER3, CITY4, MOON2, RIG4), lost in
   the Windows version, restored as in DOS.
 - The main menu says V2.25, the official update you installed (the game
@@ -63,7 +64,7 @@ What's in this zip
                       network play on to a real DirectPlay if there is one
 - BRRFIX.INI          its settings (each one explained in the file)
 - CNCDD.DLL, Shaders  cnc-ddraw, the open-source DirectDraw (MIT licence), for
-                      modern Windows, Wine and Proton (its ddraw.dll, renamed
+                      Windows XP to 11, Wine and Proton (its ddraw.dll, renamed
                       so that no other DirectDraw can take its place)
 - ddraw.ini           our cnc-ddraw settings, with scaling presets
 - Install Game Files.bat  makes the Game and Music folders from the game's
@@ -87,6 +88,8 @@ called Game inside it and the CD music in a folder called Music:
    from this zip into it.
    On Windows 95, 98 and ME you can leave out CNCDD.DLL, ddraw.ini, Shaders and
    DPLAY.DLL: their own DirectX draws the game properly and has DirectPlay.
+   cnc-ddraw needs Windows XP or later, so there the launcher doesn't use it
+   even if it's in the folder.
 2. The game, the easy way (Windows 10 and 11): put the game's two zips (see
    You need) in the same folder and double-click "Install Game Files.bat".
    It checks the zips, installs the game into a folder called Game and patches
@@ -111,8 +114,10 @@ called Game inside it and the CD music in a folder called Music:
    the 1996 linker wrote them carelessly and Windows 10 and 11 refuse to start
    the original; the copy works on every version of Windows. It uses our
    PATCH.DLL where the game used its own TIMER.DLL, and, if CNCDD.DLL is
-   there, cnc-ddraw where it used Windows' DirectDraw. The launcher starts it
-   in the Game folder. Nothing in the Game folder is changed.
+   there (not on Windows 95, 98 or ME), cnc-ddraw where it used Windows'
+   DirectDraw. The launcher starts it in the Game folder, where the game's
+   KEY.DLL is, so always start the game with Big Red Racing.exe, not
+   WINRACEP.EXE. Nothing in the Game folder is changed.
 To remove it: delete the folder (the Game folder in it is your copy of the
 game, so keep that if you need it).
 
@@ -171,7 +176,9 @@ number:
 track02.flac, Track02.ogg, 02.wav, "02 - Title.flac" and so on (FLAC, Ogg
 Vorbis or 16-bit WAV). "Install Game Files.bat" makes them from the game's disc
 image (see Install), or rip your own CD. The game's own CD volume option works.
-With no tracks there, the game plays a real CD if there is one.
+With no tracks there, the game plays a real CD if there is one. On a 1990s PC,
+WAV is the lightest on the processor (no decoding, twice FLAC's size) and Ogg
+Vorbis the heaviest; FLAC and WAV are read from the disk as they play.
 
 Sound effects
 -------------
@@ -185,7 +192,8 @@ The stereo works too: the game panned a truck only a little off centre almost
 entirely into one speaker; it now moves smoothly between them ("Natural
 stereo"; [sound] stereo_pan). And it has 32 sound channels instead of 8 (or 16,
 or the game's 8: "Sound channels"), with every truck's engine heard instead of
-3 ([sound] channels).
+3 ([sound] channels). On Windows 95, 98 and ME it keeps the game's 8 unless you
+choose more: there each sound playing at once costs a 1990s PC some speed.
 
 Display and scaling
 -------------------
@@ -236,10 +244,12 @@ switch between 640x480 and 320x200 as in 1996; the draw distance is the
 in-game sliders'.
 
 Both: the game's switch between a window and full screen (Tab, and the Modes
-menu's Full screen item) broke the window and is removed: choose the mode in
-the launcher. The colour cycling of four levels (CHOPPER3, CITY4 Italy, MOON2,
-RIG4), which the DOS version has and the Windows version lost, runs again
-("Colour animation", [display] colour_animation).
+menu's Full screen item) broke cnc-ddraw's window and is removed: choose the
+mode in the launcher. On Windows 95, 98 and ME, without cnc-ddraw, it works and
+stays, as in 1996: started in a window, Tab goes full screen and back. The
+colour cycling of four levels (CHOPPER3, CITY4 Italy, MOON2, RIG4), which the
+DOS version has and the Windows version lost, runs again ("Colour animation",
+[display] colour_animation).
 
 Controllers
 -----------
@@ -271,10 +281,18 @@ Troubleshooting
 - The picture is tiny in a corner of a black screen: cnc-ddraw isn't being
   used. Check CNCDD.DLL is next to Big Red Racing.exe, and start the game
   with Big Red Racing.exe.
+- "A required .DLL file, KEY.DLL, was not found": WINRACEP.EXE was started by
+  itself. Start Big Red Racing.exe instead: it starts WINRACEP.EXE in the
+  Game folder, where KEY.DLL is.
+- "CNCDD.DLL expects a newer version of Windows" (Windows 95, 98 or ME): an
+  older Big Red Launcher used cnc-ddraw there. Update the launcher; it makes
+  WINRACEP.EXE again without cnc-ddraw.
 - "This program requires 256 colour mode to run windowed": BRRFIX.INI has
   [display] mode=ask; set it to windowed or fullscreen.
 - No music: check the Music folder's file names (the launcher counts the
-  tracks it finds) and the game's CD volume option.
+  tracks it finds) and the game's CD volume option. On Windows 95, 98 and ME,
+  launchers before 0.1.1 never played the tracks (with Log ticked, BRRFIX.LOG
+  said "couldn't start the player thread"): update the launcher.
 - The pad does nothing: choose the joystick in the game's controls menu, and
   check [controller] enabled=1.
 
