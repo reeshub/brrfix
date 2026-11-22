@@ -77,7 +77,10 @@ Choices marked **(1996)** are the game's own, as it was in 1996.
 
 To switch between a window and full screen otherwise, quit and choose the
 other mode here: the game's own switch (the Modes menu's Full screen item, and
-Tab) broke its window, so it's removed.
+Tab) broke cnc-ddraw's window, so it's removed. On Windows 95, 98 and ME,
+which use Windows' own DirectDraw, it works and stays, as in 1996: started in
+a window, Tab goes full screen and back (started full screen, the game stays
+full screen, as it always did).
 
 **Resolution**
 

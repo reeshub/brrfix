@@ -108,7 +108,8 @@ static LRESULT CALLBACK mouse_filter(int code, WPARAM removed, LPARAM lparam)
 }
 
 /* Site set_menu_call: WndProc's SetMenu, after it loads the menu for the language. Without
- * the switches between window and full screen, which break the window (director, 2026-11-10). */
+ * the switches between window and full screen, which break cnc-ddraw's window (director,
+ * 2026-11-10; the site is the mode_switch fix's, so only with cnc-ddraw: patch.c). */
 BOOL WINAPI brr_set_menu(HWND window, HMENU menu)
 {
     if (brr_renderer_active) {  /* the Modern renderer's game is always full screen: no menu bar */

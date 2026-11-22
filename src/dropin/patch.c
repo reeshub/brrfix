@@ -178,7 +178,10 @@ static int enabled(const char *fix)
         return cfg.fine_angles;
     if (!strcmp(fix, "music")) return cfg.music;
     if (!strcmp(fix, "camera")) return cfg.fix_camera;
-    if (!strcmp(fix, "mode_switch")) return cfg.fix_mode_switch;
+    /* The game's switch between a window and full screen broke cnc-ddraw's window (director,
+     * 2026-11-10); with Windows' own DirectDraw (Windows 95, 98 and ME) it works, so it stays
+     * there, as in 1996 (director, 2026-11-22) */
+    if (!strcmp(fix, "mode_switch")) return cfg.fix_mode_switch && brr_is_cnc_ddraw(brr_ddraw_module());
     if (!strcmp(fix, "language")) return cfg.language >= 1 && cfg.language <= 7;
     if (!strcmp(fix, "resolution")) return cfg.resolution_high;
     if (!strcmp(fix, "credits")) return 1;
@@ -713,6 +716,10 @@ void brr_patch_all(void)
     else if (cfg.sound_channels == 8)
         brr_log("sound: the game's own 8 channels%s",
                 (GetVersion() & 0x80000000u) ? " (the default on Windows 95, 98 and ME)" : "");
+    if (cfg.fix_mode_switch && !enabled("mode_switch"))
+        brr_log("display: the game's switch between a window and full screen (Tab, the Modes menu's Full screen) "
+                "kept, as with Windows' own DirectDraw it works; a game started full screen stays full screen, "
+                "as in 1996");
     if (cfg.fix_vga) {
         /* Windows XP onwards, so looked up at run time: on Windows 95/98/ME the game's
          * port reads work natively, and the safety net isn't needed */

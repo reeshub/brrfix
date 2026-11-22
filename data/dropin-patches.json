@@ -219,7 +219,7 @@
    "fix": "mode_switch",
    "address": "0x40213D",
    "length": 4,
-   "patch": "WndProc's WM_COMMAND dispatch, command 0x66 (from full screen to a window; Tab in full screen): JBE 0x40235D -> JBE 0x402619 (DefWindowProcA, as for an unknown command). The switch breaks the window (director, 2026-11-10)",
+   "patch": "WndProc's WM_COMMAND dispatch, command 0x66 (from a window to full screen; Tab in a window, or the Modes menu's Full screen): JBE 0x40235D -> JBE 0x402619 (DefWindowProcA, as for an unknown command). The switch breaks cnc-ddraw's window (director, 2026-11-10); only with cnc-ddraw (director, 2026-11-22)",
    "sha256": "dce000bd6e88dda1780751b26e5c44aef51f5ddaf93a687ca5ba9fb5207eb585"
   },
   {
@@ -227,7 +227,7 @@
    "fix": "mode_switch",
    "address": "0x402147",
    "length": 4,
-   "patch": "WndProc's WM_COMMAND dispatch, command 0x67 (from a window to full screen; Tab in a window, or the Modes menu's Full screen): JBE 0x4023B6 -> JBE 0x402619 (DefWindowProcA)",
+   "patch": "WndProc's WM_COMMAND dispatch, command 0x67 (from full screen to a window; Tab in full screen, refused by the game when it started full screen, flag 0x52D734): JBE 0x4023B6 -> JBE 0x402619 (DefWindowProcA)",
    "sha256": "c8e6237a9731074e99e511b7822004c06b0fbec1301e11b628dabc0e626847ec"
   },
   {

@@ -25,7 +25,8 @@ Windows and on Linux/Steam Deck through Proton, and makes it run smoothly:
 - The physics is left exactly as it was: the same game, bit for bit.
 - The game's sharper 640x480 mode by default (it was only reachable from its
   window's menu or keypad +), and its language chosen in the launcher.
-- The window's Full screen switch (and Tab), which broke the window, removed.
+- The window's Full screen switch (and Tab), which broke cnc-ddraw's window,
+  removed (kept on Windows 95, 98 and ME, where it works).
 - The colour animation of four levels (CHOPPER3, CITY4, MOON2, RIG4), lost in
   the Windows version, restored as in DOS.
 - The main menu says V2.25, the official update you installed (the game
@@ -243,10 +244,12 @@ switch between 640x480 and 320x200 as in 1996; the draw distance is the
 in-game sliders'.
 
 Both: the game's switch between a window and full screen (Tab, and the Modes
-menu's Full screen item) broke the window and is removed: choose the mode in
-the launcher. The colour cycling of four levels (CHOPPER3, CITY4 Italy, MOON2,
-RIG4), which the DOS version has and the Windows version lost, runs again
-("Colour animation", [display] colour_animation).
+menu's Full screen item) broke cnc-ddraw's window and is removed: choose the
+mode in the launcher. On Windows 95, 98 and ME, without cnc-ddraw, it works and
+stays, as in 1996: started in a window, Tab goes full screen and back. The
+colour cycling of four levels (CHOPPER3, CITY4 Italy, MOON2, RIG4), which the
+DOS version has and the Windows version lost, runs again ("Colour animation",
+[display] colour_animation).
 
 Controllers
 -----------
