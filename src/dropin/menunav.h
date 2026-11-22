@@ -30,7 +30,9 @@ void nav_install_click(void);               /* SAMPLES\JOYCLICK.WAV, if it isn't
 void nav_play_click(void);                  /* the game's sound_play_sample("JOYCLICK") */
 int nav_name_load(char *name, int size);    /* the last name accepted (BRRNAME.TXT), its length */
 void nav_name_save(const char *name);
+#ifndef nav_note
 void nav_note(const char *what, int value); /* the log (Windows' BRRFIX.LOG; nothing on DOS) */
+#endif
 #ifndef nav_pointer
 void nav_pointer(int shown);                /* the system's pointer (Windows, in a window) */
 #endif

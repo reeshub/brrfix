@@ -59,12 +59,6 @@ void nav_name_save(const char *name)
     dos_close(handle);
 }
 
-void nav_note(const char *what, int value)
-{
-    if (OPTION(OPT_LOG))  /* the logging build: BRRLOG.TXT */
-        log_note(what, value);
-}
-
 /* The end of menu_mouse_update: the game has added the mouse's movement to the menu's
  * position and read its buttons (if a mouse driver answered) */
 void brr_dos_menu_mouse(void)

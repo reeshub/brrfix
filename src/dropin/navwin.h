@@ -23,6 +23,8 @@
 #define NAV_CREDITS_TICK (*(volatile int *)0x44BCE4)               /* credits_last_tick: tick_count at the ticker's last line */
 #define NAV_SOUND_STEP   (*(volatile short *)0x44AEC0)             /* sound_options_anim: the sound screen's buttons' step */
 #define NAV_SOUND_CD     0                                         /* sound_options_draw draws no CD volume */
+#define NAV_GLOBE_TRACK  (*(volatile short *)0x44A984)             /* globe_cursor's track: -1 until one is picked */
+#define NAV_GLOBE_RACES  (*(volatile int *)0x4524CC)               /* series_races: the races chosen on the globe */
 #define NAV_ENABLED      (cfg.menu_navigation)
 
 #endif

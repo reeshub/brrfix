@@ -17,7 +17,9 @@
  *   in reading order (a row's left to right, then the next row's), stopping at the ends, with
  *   a click (JOYCLICK, played as the game plays its BEEPs); left and right move to the
  *   nearest item that way in the same row. On the globe, logo and car screens, left and
- *   right are the screen's own.
+ *   right are the screen's own. The globe has no items: button 1 is its OK, as Return, so the
+ *   first press chooses the track the globe shows and the second goes on; the track screen
+ *   after it starts on Race, which Return chooses there (the director, 2026-11-22).
  * - Button 1 is the left mouse button, at the selection: the game itself does the rest (a
  *   choice, a slider's - or +, a tick box), with its own sounds; the scripts' own button-1
  *   keys are hidden meanwhile, so they don't choose something else. Button 2 is Esc, as
@@ -56,6 +58,9 @@
 #define KEY_UP        0x79
 #define KEY_DOWN      0x7A
 #define LAST_KEYBOARD 0x72    /* key-table indices up to here are the keyboard's */
+#define SCREEN_GLOBE  0x00    /* the level select */
+#define SCREEN_TRACK  0x01    /* the track: car, view, race */
+#define ACTION_RACE   3       /* the track screen's Race (Return's choice there) */
 #define SCREEN_MAIN   0x08
 #define SCREEN_SOUND  0x0B
 #define SCREEN_KEYS   0x0E
@@ -77,6 +82,7 @@ enum { SAVED_FONT = 1, SAVED_FRAME, SAVED_TYPE };
 
 static int started, joy, screen, ticks_on_screen, selected, have_target, press_button, hid_b1;
 static int pending_action, manual_type, full_name, owners_screen, owners_count, drawn_any, input_seen;
+static int globe_again;
 static int saved_index, saved_value, saved_what, still_set, still_step;
 static unsigned char hid_value, held_over[2], hid_over[2];  /* buttons 1 and 2 */
 static short target_x, target_y;
@@ -213,13 +219,14 @@ static int arrow_key(int action)
     return 0;
 }
 
-/* Boxes that aren't items: the slider bars between the - and + buttons (and the sound
- * screen's eight steps each), the sound screen's CD volume - and + where the game doesn't
- * draw them (Windows: sound_options_draw draws only the effects volume), and the arrows
- * where the stick's left and right already do what they do */
+/* Boxes that aren't items: all of the globe's (its button 1 is its own OK key: see
+ * nav_before_tick), the slider bars between the - and + buttons (and the sound screen's eight
+ * steps each), the sound screen's CD volume - and + where the game doesn't draw them
+ * (Windows: sound_options_draw draws only the effects volume), and the arrows where the
+ * stick's left and right already do what they do */
 static int left_out(int action)
 {
-    if (arrow_key(action))
+    if (screen == SCREEN_GLOBE || arrow_key(action))
         return 1;
     if (screen == SCREEN_SOUND)
         return (action >= 10 && action <= 27) || (!NAV_SOUND_CD && action <= 1);
@@ -277,6 +284,18 @@ static int next_in_order(int from, int forward)
             best = m;
     }
     return best;
+}
+
+/* The item a screen starts with: the top one, or on the track screen Race, which Return
+ * chooses there (the director: as Enter, unless the player moves left) */
+static int first_item(void)
+{
+    int n = count(), m;
+    if (screen == SCREEN_TRACK)
+        for (m = 0; m < n; m++)
+            if (HS(m)[MB_ACTION] == ACTION_RACE && navigable(m))
+                return m;
+    return next_in_order(-1, 1);
 }
 
 /* Left or right: the nearest item that way in the same row (the boxes level with each other),
@@ -367,14 +386,13 @@ static void aim(int m)
     have_target = 1;
 }
 
-static void take(const char *why, int s)
+static void take(void)
 {
     joy = 1;
     nav_pointer(0);
-    nav_note(why, s);
 }
 
-static void leave(const char *why)
+static void leave(void)
 {
     int d;
     joy = 0;
@@ -383,7 +401,6 @@ static void leave(const char *why)
     for (d = 0; d < MAX_HOTSPOTS; d++)
         frozen[d] = -1;
     nav_pointer(1);
-    nav_note(why, NAV_SCREEN);
 }
 
 static void changed_screen(int s)
@@ -423,8 +440,10 @@ static void name_screen(const unsigned char *pressed)
     }
     if (pressed[B1]) {           /* take the name (Y to "CREATE NEW FILE?") */
         pending_action = NAV_NAME_ASK ? 2 : 0;
-        if (!joy)
-            take("joystick on: the name screen's button 1", SCREEN_NAME);
+        if (!joy) {
+            take();
+            nav_note("joystick on: the name screen's button 1", SCREEN_NAME);
+        }
     } else if (pressed[B2] && NAV_NAME_ASK)
         pending_action = 3;      /* N (not Esc's quit) */
 }
@@ -475,13 +494,25 @@ void nav_before_tick(void)
      * the hotspots: race_keys_tick, track_preview_tick) */
     if (pressed[B2] && ((s == SCREEN_RACE && NAV_GAME_MODE == MODE_DEMO) || s == SCREEN_VIEW))
         pending_action = ACTION_ESC;
+    /* The globe: button 1 is its own OK key (the script's key 0,&73; the globe has no items
+     * for the joystick, so it isn't hidden). OK with no race chosen chooses the track under
+     * the globe's cursor, but there is none on arrival (globe_enter), so that first press only
+     * picks one: OK is pressed again on the next tick, so one press chooses the track and the
+     * next goes on (the director) */
+    if (globe_again && s == SCREEN_GLOBE)
+        pending_action = 0;
+    globe_again = s == SCREEN_GLOBE && pressed[B1] && NAV_GLOBE_TRACK == -1 && NAV_GLOBE_RACES < 1;
     if (s == SCREEN_RACE) {
-        if (joy)
-            leave("joystick off: a race");
+        if (joy) {
+            leave();
+            nav_note("joystick off: a race", s);
+        }
         return;
     }
-    if (keyboard && joy)
-        leave("joystick off: a key");
+    if (keyboard && joy) {
+        leave();
+        nav_note("joystick off: a key", s);
+    }
     if (s == SCREEN_NAME) {
         name_screen(pressed);
         return;
@@ -490,7 +521,8 @@ void nav_before_tick(void)
         return;
     own = arrow_key(-1);
     if (!joy && (pressed[UP] || pressed[DOWN] || (!own && (pressed[LEFT] || pressed[RIGHT])))) {
-        take("joystick on, screen", s);
+        take();
+        nav_note("joystick on, screen", s);
         selected = -1;
         chose = 1;  /* the push that starts it selects the top item */
     }
@@ -506,7 +538,7 @@ void nav_before_tick(void)
         if (!drawn_any && ticks_on_screen < 10)  /* the screen's first picture first */
             selected = -1;
         else
-            select_item(next_in_order(-1, 1), chose);  /* the first in reading order: the top item */
+            select_item(first_item(), chose);  /* the top item (or the track screen's Race) */
         chose = 1;
     }
     if (!chose && selected >= 0) {
@@ -568,8 +600,10 @@ void nav_mouse(int moved, int buttons, short *x, short *y, short *buttons_now)
 {
     if (!NAV_ENABLED || !started || NAV_SCREEN == SCREEN_RACE)
         return;
-    if (joy && (moved || buttons) && ticks_on_screen > MOUSE_GRACE)
-        leave("joystick off: the mouse");
+    if (joy && (moved || buttons) && ticks_on_screen > MOUSE_GRACE) {
+        leave();
+        nav_note("joystick off: the mouse", NAV_SCREEN);
+    }
     if (!joy || !have_target)
         return;
     *x = target_x;

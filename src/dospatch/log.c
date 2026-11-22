@@ -88,18 +88,6 @@ void log_line(void)
     commit(&log_file);
 }
 
-static void open_files(void);
-
-/* The joystick menu navigation's notes (navdos.c), in the logging build */
-void log_note(const char *what, s32 value)
-{
-    open_files();
-    put(&log_file, what);
-    put(&log_file, " ");
-    put_hex(&log_file, (u32)value);
-    log_line();
-}
-
 static void open_files(void)
 {
     if (files_open)

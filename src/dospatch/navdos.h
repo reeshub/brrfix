@@ -22,6 +22,8 @@ extern volatile s16 game_mouse_present;       /* a mouse driver answered */
 extern volatile s16 game_game_mode;           /* 2 the attract demo */
 extern volatile s32 game_credits_last_tick;   /* tick_count at the credits ticker's last line */
 extern volatile s16 game_sound_options_anim;  /* the sound screen's buttons' step */
+extern volatile s16 game_globe_track;         /* the globe cursor's track: -1 until one is picked */
+extern volatile s32 game_series_races;        /* the races chosen on the globe */
 extern void game_sound_play_sample(const char *name);       /* SAMPLES\<name>.WAV, once */
 
 #define NAV_HOTSPOTS  game_menu_hotspots
@@ -43,8 +45,11 @@ extern void game_sound_play_sample(const char *name);       /* SAMPLES\<name>.WA
 #define NAV_CREDITS_TICK game_credits_last_tick
 #define NAV_SOUND_STEP game_sound_options_anim
 #define NAV_SOUND_CD  1               /* sound_options_draw draws the CD volume too */
+#define NAV_GLOBE_TRACK game_globe_track
+#define NAV_GLOBE_RACES game_series_races
 #define NAV_ENABLED   (OPTION(OPT_MENU_PAD))
 #define nav_pointer(shown)            /* no system pointer: the game's own is the only one */
+#define nav_note(what, value)         /* no notes: their text doesn't fit before object 2 (Windows logs them) */
 
 /* DOS's own file calls, for the click and the last name (DOS/4GW passes them on) */
 s32 dos_open_read(const char *name);

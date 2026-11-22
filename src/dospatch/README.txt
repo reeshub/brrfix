@@ -27,12 +27,14 @@ What it fixes
   chooses (and ticks or unticks a box) and button 2 goes back, as Esc (where
   Esc quits, it quits; it also ends the attract demo and the track's View). On
   the race, logo and car screens left and right still change them, as the
-  arrow keys. The name screen starts with the last name entered (kept in
-  BRRNAME.TXT): button 1 takes it, and answers Y to "Create new file?"
-  (button 2 is N). Using the joystick in the menus sets player 1's controls
-  to JS1, unless you change them in Options, Joysticks. The mouse or a key
-  hands the menus back. Any input on the main menu (mouse, keyboard or
-  joystick) holds back its attract demo for another 15 seconds.
+  arrow keys. On the globe button 1 works as Return (the first press chooses
+  the track, the second goes on), and the next screen starts on Race. The name
+  screen starts with the last name entered (kept in BRRNAME.TXT): button 1
+  takes it, and answers Y to "Create new file?" (button 2 is N). Using the
+  joystick in the menus sets player 1's controls to JS1, unless you change
+  them in Options, Joysticks. The mouse or a key hands the menus back. Any
+  input on the main menu (mouse, keyboard or joystick) holds back its attract
+  demo for another 15 seconds.
 - The physics is left exactly as it was: the same game, bit for bit.
 
 "Fast machine" means one that draws a frame in 3 ticks (3/70 s) or less, on

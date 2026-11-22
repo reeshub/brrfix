@@ -35,14 +35,15 @@ RELEASE = WORK / "release"
 
 def shares_game_bytes(code, game, run=16):
     """(code, text): offsets in our code where 16 bytes in a row also appear in the game
-    file. Filler is skipped: runs where all but at most one byte are the same value (zeroed
-    variables, padding, 0xCC, an 8-bit sound's silence), which carry no content. Matches
+    file. Filler is skipped: runs where all but at most two bytes are the same value (zeroed
+    variables after a short constant such as "\\r\\n", padding, 0xCC, an 8-bit sound's silence),
+    which carry no content. Matches
     that are plain text (our own messages, which can coincide with common phrases such as
     "not enough memory") are listed separately and allowed."""
     windows = {game[i:i + run] for i in range(0, len(game) - run + 1)}
 
     def filler(window):
-        return max(window.count(b) for b in set(window)) >= run - 1
+        return max(window.count(b) for b in set(window)) >= run - 2
 
     found = [i for i in range(0, len(code) - run + 1) if code[i:i + run] in windows
              and not filler(code[i:i + run])]

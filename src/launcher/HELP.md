@@ -525,10 +525,13 @@ the bottom; left and right move along a row, such as from a slider's - to its
 as Esc does (on the first screens, as with Esc, it quits the game), and also
 ends the attract demo and track select's View. Where the arrow keys change the
 race, the logo or the car, left and right still do that, and the arrow buttons
-themselves are skipped. With this ticked, any input on the main menu (the
-mouse, a key or the joystick) holds back the attract demo for another 15
-seconds, as if the menu had just appeared (in 1996 it started 15 seconds after
-the menu appeared, however busy you were).
+themselves are skipped. On the globe (level select), button 1 works as Return:
+the first press chooses the track the globe is showing and the second goes on;
+the next screen starts with Race selected (move left for View or Car). With
+this ticked, any input on the main menu (the mouse, a key or the joystick)
+holds back the attract demo for another 15 seconds, as if the menu had just
+appeared (in 1996 it started 15 seconds after the menu appeared, however busy
+you were).
 
 The name screen starts with the last name you entered, so button 1 accepts
 it; if the game asks "Create new file?", button 1 is Y and button 2 is N.

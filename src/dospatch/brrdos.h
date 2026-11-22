@@ -134,7 +134,6 @@ void log_race_leave(void);
 void log_text(const char *text);
 void log_number(s32 value);
 void log_line(void);
-void log_note(const char *what, s32 value);  /* opens the log first */
 void prove_fine_angles(void);
 
 #endif
