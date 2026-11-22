@@ -29,7 +29,9 @@ Usage:
   python3 dos_patch.py --verify BRRFIX.EXE [--original RACING.EXE]
 Options:
   --no-camera --no-interpolation --no-fine-angles --no-roll-fix --no-retrace
-  --no-menu-pad       no joystick menu navigation (the stick and buttons in the menus)
+  --no-menu-pad       no menu navigation (the joystick and the arrow keys in the menus)
+  --menu-inverted     the menus' animations inverted: only the selected item animates
+                     (default: original-ish, the selected item stops)
   --cap N            catch-up cap in ticks, 1-35 (default 8; 35 is the original)
   --force            overwrite an existing output file
 Testing only (the "logging build"; never for players):
@@ -312,6 +314,8 @@ def parse_options(spec, args):
         values["retrace"] = 0
     if args.no_menu_pad:
         values["menu_pad"] = 0
+    if args.menu_inverted:
+        values["menu_anim"] = 1
     if args.cap is not None:
         if not 1 <= args.cap <= 35:
             raise PatchError("--cap must be between 1 and 35")
@@ -548,6 +552,7 @@ def parse_args(argv):
     parser.add_argument("--original")
     for name in ("camera", "interpolation", "fine-angles", "roll-fix", "retrace", "menu-pad"):
         parser.add_argument(f"--no-{name}", action="store_true")
+    parser.add_argument("--menu-inverted", action="store_true")
     parser.add_argument("--cap", type=int)
     parser.add_argument("--log", action="store_true")
     parser.add_argument("--input", dest="input_spec")

@@ -117,6 +117,7 @@ static const struct choice deadzones[] = {
 static const struct choice sensitivities[] = {
     {"50%", "50"}, {"75%", "75"}, {"100%", "100"}, {"125%", "125"}, {"150%", "150"}, {"200%", "200"}, {0, 0}};
 static const struct choice layouts[] = {{"Triggers", "triggers"}, {"Stick", "stick"}, {0, 0}};
+static const struct choice menu_animations[] = {{"Original-ish", "original"}, {"Inverted", "inverted"}, {0, 0}};
 static const struct choice rates[] = {{"70.0 (DOS original)", "70.0"}, {"71.43 (Windows original)", "71.43"}, {0, 0}};
 static const struct choice caps[] = {{"8 ticks", "8"}, {"35 (original)", "35"}, {0, 0}};
 
@@ -564,6 +565,8 @@ static void update_enabled(HWND dialog)
         enable(dialog, IDC_INTENSITY_LABEL, shaking);
         enable(dialog, IDC_INTENSITY, shaking);
     }
+    enable(dialog, IDC_MENU_ANIM_LABEL, checked(dialog, IDC_MENU_NAV));
+    enable(dialog, IDC_MENU_ANIM, checked(dialog, IDC_MENU_NAV));
 }
 
 /* One line on each setting, shown when the mouse rests on it */
@@ -627,8 +630,9 @@ static const struct { int id; const char *text; } tips[] = {
     {IDC_VIBRATION, "A brief buzz from the pad when player one's vehicle is damaged (with the game's damage option on)."},
     {IDC_NITRO_RUMBLE, "A steady rumble from the pad while player one's nitro flames show."},
     {IDC_INTENSITY, "How strong the damage buzz is; the nitro rumble is half as strong."},
-    {IDC_MENU_NAV, "Run the menus with a joystick or pad: up and down step through the items (the pointer hides), "
-                   "button 1 (A) chooses, button 2 (B) goes back. Using it also sets player one to the joystick (JS1)."},
+    {IDC_MENU_NAV, "Run the menus with a joystick, a pad or the arrow keys: up and down step through the items (the "
+                   "pointer hides), button 1 (A) or Return chooses, button 2 (B) goes back. The joystick also sets player one to JS1."},
+    {IDC_MENU_ANIM, "Original-ish: the selected item stops animating. Inverted: everything else stops, and the selected item animates."},
     {IDC_RATE, "Game ticks a second: 70.0 as the DOS version (real time), or 71.43 as the 1996 Windows version ran (2% fast)."},
     {IDC_CAP, "After a pause, how much missed game time is caught up at once: 8 ticks, or 35 as the original (see Help)."},
     {IDC_LOG, "Writes BRRFIX.LOG next to the launcher: what was fixed, for bug reports."},
@@ -783,6 +787,7 @@ static void load(HWND dialog, int defaults)
     check(dialog, IDC_VIBRATION, defaults ? 1 : ini_flag("controller", "vibration", 1));
     check(dialog, IDC_NITRO_RUMBLE, defaults ? 1 : ini_flag("controller", "nitro_rumble", 1));
     check(dialog, IDC_MENU_NAV, defaults ? 1 : ini_flag("controller", "menu_navigation", 1));
+    fill(dialog, IDC_MENU_ANIM, menu_animations, GET(f, "controller", "menu_animations", "original"));
     fill(dialog, IDC_INTENSITY, intensities, GET(f, "controller", "vibration_intensity", "80"));
     fill(dialog, IDC_RATE, rates, GET(f, "clock", "tick_rate", "70.0"));
     fill(dialog, IDC_CAP, caps, GET(f, "clock", "catch_up_cap", "8"));
@@ -852,6 +857,7 @@ static void save(HWND dialog)
     ini_set(brrfix_ini, "controller", "vibration", checked(dialog, IDC_VIBRATION) ? "1" : "0");
     ini_set(brrfix_ini, "controller", "nitro_rumble", checked(dialog, IDC_NITRO_RUMBLE) ? "1" : "0");
     ini_set(brrfix_ini, "controller", "menu_navigation", checked(dialog, IDC_MENU_NAV) ? "1" : "0");
+    ini_set(brrfix_ini, "controller", "menu_animations", chosen(dialog, IDC_MENU_ANIM, menu_animations));
     ini_set(brrfix_ini, "controller", "vibration_intensity", chosen(dialog, IDC_INTENSITY, intensities));
     ini_set(brrfix_ini, "log", "log", checked(dialog, IDC_LOG) ? "1" : "0");
     ini_set(brrfix_ini, "display", "max_draw_distance", chosen(dialog, IDC_DRAWDIST, distances));
@@ -988,7 +994,7 @@ static void patch_dos(HWND dialog)
     }
     cursor = SetCursor(LoadCursorA(NULL, IDC_WAIT));
     result = state == BRR_DOS_PATCHED ? brr_dos_restore(dos_folder, message, sizeof message)
-                                      : brr_dos_patch(dos_folder, message, sizeof message);
+                                      : brr_dos_patch(dos_folder, NULL, message, sizeof message);
     SetCursor(cursor);
     if (result == 0 && state != BRR_DOS_PATCHED)
         lstrcatA(message, "\n\nStart the DOS version as usual, with RACING. To undo, press this button again.");
@@ -1030,8 +1036,10 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
             /* the note in a group of two rows; menu navigation works with a 1996 joystick too,
              * so its group goes under it */
             place(dialog, IDC_PAD_GROUP, 12, 24, 300, 44);
-            place(dialog, IDC_MENU_GROUP, 12, 72, 300, 30);
+            place(dialog, IDC_MENU_GROUP, 12, 72, 300, 44);
             place(dialog, IDC_MENU_NAV, 18, 84, 200, 10);
+            place(dialog, IDC_MENU_ANIM_LABEL, 18, 100, 60, 8);
+            place(dialog, IDC_MENU_ANIM, 80, 98, 70, 60);
         } else
             hide_for_good(dialog, IDC_PAD_NOTE);
         /* under Proton, Steam Input sets up controllers */
@@ -1087,6 +1095,7 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
         case IDC_CLOSE_GAPS:
         case IDC_VIBRATION:
         case IDC_NITRO_RUMBLE:
+        case IDC_MENU_NAV:
             update_enabled(dialog);
             return TRUE;
         case IDC_HELPFILE:

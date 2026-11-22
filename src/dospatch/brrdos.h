@@ -75,6 +75,7 @@ enum {
     OPT_CAPTURE_TICK,
     OPT_PROVE,
     OPT_MENU_PAD,
+    OPT_MENU_ANIM,     /* the menus' animations: 0 original-ish (the selection still), 1 inverted */
     OPT_COUNT
 };
 extern const volatile u32 brr_options[OPT_COUNT];

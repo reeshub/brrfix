@@ -1,4 +1,4 @@
-/* Joystick menu navigation (the director, 2026-11-22), the shared core: PATCH.DLL's
+/* Joystick (and arrow-key) menu navigation (the director, 2026-11-22), the shared core: PATCH.DLL's
  * [controller] menu_navigation and the DOS patch's menu_pad (both on by default) run this
  * same file on their own game's addresses (menunav.h).
  *
@@ -28,11 +28,19 @@
  *   seconds before the attract demo again, as if the screen had just appeared (the 1996 game
  *   counts from the screen's start, whatever the mouse or keyboard do; the director: every
  *   input should hold it back).
+ * - The keyboard's arrow keys (and the keypad's) do what the stick does, and start it the same
+ *   way; Return and keypad Enter click the selection, as button 1 (with nothing selected, as
+ *   on the globe, they're the scripts' own, as in 1996). Esc stays the scripts' back.
+ * - Menu animations (the director, 2026-11-22; [controller] menu_animations, DOS option
+ *   menu_anim): original-ish, as above, the selection still; or inverted: every other item
+ *   is held still (as it looked when it stopped being the selection, or when first drawn)
+ *   and only the selection animates. Headings and the screens' other pictures animate as ever.
  * - It carries on through every screen (the top item of each new one is selected), until a
- *   race starts, or the mouse is moved or clicked, or a key pressed: then the menus are the
- *   mouse's and keyboard's again.
- * - While it has the menus, player 1's controls are JS1 if they were Keys, until the player
- *   changes them by hand on the joysticks screen (then they're left alone).
+ *   race starts, or the mouse is moved or clicked, or another key pressed: then the menus are
+ *   the mouse's and keyboard's again.
+ * - While the joystick has been used for it, player 1's controls are JS1 if they were Keys
+ *   (not for the arrow keys alone), until the player changes them by hand on the joysticks
+ *   screen (then they're left alone).
  * - The name screen starts with the last name accepted (BRRNAME.TXT); button 1 takes it, and
  *   "CREATE NEW FILE?" takes button 1 as Y and button 2 as N. Not on the keys screen or the
  *   recording name screen (button 2 still goes back).
@@ -46,6 +54,8 @@
  * belongs to the box its position is in (texts: the "@Xx,y" that starts them), the smallest
  * if several, or one whose corner is within 12 pixels. */
 #include "menunav.h"
+#define JOYCLICK_DATA
+#include "joyclick.h"
 
 #define HOTSPOT_SIZE  0x24
 #define MAX_HOTSPOTS  100
@@ -79,17 +89,32 @@
 
 enum { B1, B2, LEFT = 4, RIGHT, UP, DOWN, JOY_KEYS };  /* 0x73 + n */
 enum { SAVED_FONT = 1, SAVED_FRAME, SAVED_TYPE };
+#define KEY_ESC       0x01
+#define KEY_RETURN    0x1C
+#define KEY_PAD_ENTER 0x70
 
-static int started, joy, screen, ticks_on_screen, selected, have_target, press_button, hid_b1;
+/* The keyboard's navigation keys (key-table indices, the same on Windows and DOS:
+ * key_char_table): the arrows and the keypad's, as the stick's directions, then Return and
+ * keypad Enter, which click the selection as button 1 does */
+#define KEYBOARD_ARROWS 8
+static const unsigned char keyboard_nav[] = { 0x4B, 0x6B, 0x4D, 0x6D, 0x48, 0x68, 0x50, 0x64,
+                                              KEY_RETURN, KEY_PAD_ENTER };
+#define KEYBOARD_NAV  (sizeof keyboard_nav)
+/* Held from the screen before: hidden until let go (button 1, button 2, Return, keypad Enter) */
+static const unsigned char held_keys[] = { KEY_B1, KEY_B2, KEY_RETURN, KEY_PAD_ENTER };
+#define HELD_KEYS     (sizeof held_keys)
+
+static int started, joy, screen, ticks_on_screen, selected, have_target, press_button, hid_clicks;
 static int pending_action, manual_type, full_name, owners_screen, owners_count, drawn_any, input_seen;
-static int globe_again;
+static int globe_again, stick_used;
 static int saved_index, saved_value, saved_what, still_set, still_step;
-static unsigned char hid_value, held_over[2], hid_over[2];  /* buttons 1 and 2 */
+static unsigned char hid_click[3], held_over[HELD_KEYS], hid_over[HELD_KEYS];
 static short target_x, target_y;
 static unsigned long tick_serial;
 static unsigned char joy_prev[JOY_KEYS], key_prev[LAST_KEYBOARD + 1];
 static short owner[MAX_HOTSPOTS], anchor_x[MAX_HOTSPOTS], anchor_y[MAX_HOTSPOTS];
 static short text_end[MAX_HOTSPOTS], frozen[MAX_HOTSPOTS];
+static unsigned char item[MAX_HOTSPOTS];  /* a box that can be an item (find_owners) */
 static unsigned long drawn_at[MAX_HOTSPOTS];
 
 /* A hotspot's fields, as shorts (the game changes them only between our calls: one thread):
@@ -117,14 +142,32 @@ static void forget_screen(void)
         drawn_at[i] = 0;
     }
     selected = -1;
-    have_target = press_button = drawn_any = full_name = 0;
+    have_target = press_button = drawn_any = full_name = still_set = 0;
     pending_action = -1;
     owners_screen = -1;
+}
+
+unsigned char nav_click_wav[JOYCLICK_WAV_SIZE];
+
+/* JOYCLICK.WAV from its header and half-rate samples (joyclick.h): each stored sample, then
+ * the mean of it and the next one (sound-convert's rebuild) */
+static void build_click(void)
+{
+    unsigned char *out = nav_click_wav + JOYCLICK_HEADER;
+    int i;
+    for (i = 0; i < JOYCLICK_HEADER; i++)
+        nav_click_wav[i] = joyclick_header[i];
+    for (i = 0; i < JOYCLICK_HALF; i++) {
+        *out++ = joyclick_half[i];
+        *out++ = i + 1 < JOYCLICK_HALF ? (unsigned char)((joyclick_half[i] + joyclick_half[i + 1] + 1) / 2)
+                                       : joyclick_half[i];
+    }
 }
 
 static void start(void)
 {
     started = 1;
+    build_click();
     screen = -1;
     saved_index = -1;
     forget_screen();
@@ -164,6 +207,8 @@ static int distance(int a, int b)
 /* Each text, sprite and animated sprite: its box (the smallest it's in, else one whose
  * corner is close). Kept while only hotspots are added (the main menu's credits ticker
  * takes the next one now and then). */
+static int left_out(int action);
+
 static void find_owners(void)
 {
     int n = count(), d, m;
@@ -204,6 +249,11 @@ static void find_owners(void)
     }
     owners_screen = screen;
     owners_count = n;
+    for (m = 0; m < n; m++) {
+        short *b = HS(m);
+        item[m] = b[TYPE] == 5 && b[MB_W] >= MIN_ITEM && b[MB_H] >= MIN_ITEM && !(b[MB_W] >= 300 && b[MB_H] >= 190)
+                  && !left_out(b[MB_ACTION]);
+    }
 }
 
 /* A key hotspot for the stick's left or right with this action (any, with -1): the twins of
@@ -238,12 +288,7 @@ static int left_out(int action)
 static int navigable(int m)
 {
     int n = count(), d, owned = 0;
-    short *b;
-    if (m < 0 || m >= n)
-        return 0;
-    b = HS(m);
-    if (b[TYPE] != 5 || b[MB_W] < MIN_ITEM || b[MB_H] < MIN_ITEM || (b[MB_W] >= 300 && b[MB_H] >= 190)
-        || left_out(b[MB_ACTION]))
+    if (m < 0 || m >= n || !item[m])
         return 0;
     for (d = 0; d < n; d++)
         if (owner[d] == m) {
@@ -328,26 +373,34 @@ static int next_item(int from, int way)
     return best;
 }
 
+/* What a text (its font) or an animated sprite (its animation's step) shows now; -1 for
+ * anything else */
+static int shown_now(int d)
+{
+    short *h = HS(d);
+    if (h[TYPE] == 2)
+        return h[TX_FONT];
+    if (h[TYPE] == 8 && h[AS_ANIM] >= 0 && h[AS_ANIM] < MAX_ANIMS)
+        return NAV_ANIMS[h[AS_ANIM] * ANIM_SIZE + 7];
+    return -1;
+}
+
+/* Original-ish: the selection keeps what it shows as it's selected. Inverted: the others are
+ * held as they're first drawn unselected (nav_before_draw), and the sound screen's buttons
+ * keep the step they first had */
 static void select_item(int m, int click)
 {
     int n = count(), d;
     if (m == selected)
         return;
-    for (d = 0; d < MAX_HOTSPOTS; d++)
-        frozen[d] = -1;
-    still_set = 0;
     selected = m;
+    if (!NAV_INVERTED) {
+        still_set = 0;
+        for (d = 0; d < MAX_HOTSPOTS; d++)
+            frozen[d] = d < n && m >= 0 && owner[d] == m ? (short)shown_now(d) : -1;
+    }
     if (m < 0)
         return;
-    for (d = 0; d < n; d++) {  /* what it shows now, it keeps */
-        short *h = HS(d);
-        if (owner[d] != m)
-            continue;
-        if (h[TYPE] == 2)
-            frozen[d] = h[TX_FONT];
-        else if (h[TYPE] == 8 && h[AS_ANIM] >= 0 && h[AS_ANIM] < MAX_ANIMS)
-            frozen[d] = NAV_ANIMS[h[AS_ANIM] * ANIM_SIZE + 7];
-    }
     NAV_IDLE = 0;
     if (click)
         nav_play_click();
@@ -389,6 +442,7 @@ static void aim(int m)
 static void take(void)
 {
     joy = 1;
+    stick_used = 0;
     nav_pointer(0);
 }
 
@@ -397,7 +451,7 @@ static void leave(void)
     int d;
     joy = 0;
     selected = -1;
-    have_target = press_button = 0;
+    have_target = press_button = still_set = 0;
     for (d = 0; d < MAX_HOTSPOTS; d++)
         frozen[d] = -1;
     nav_pointer(1);
@@ -442,7 +496,8 @@ static void name_screen(const unsigned char *pressed)
         pending_action = NAV_NAME_ASK ? 2 : 0;
         if (!joy) {
             take();
-            nav_note("joystick on: the name screen's button 1", SCREEN_NAME);
+            stick_used = 1;
+            nav_note("on: the name screen's button 1", SCREEN_NAME);
         }
     } else if (pressed[B2] && NAV_NAME_ASK)
         pending_action = 3;      /* N (not Esc's quit) */
@@ -451,9 +506,10 @@ static void name_screen(const unsigned char *pressed)
 void nav_before_tick(void)
 {
     volatile unsigned char *keys = NAV_KEYS;
-    unsigned char now[JOY_KEYS], pressed[JOY_KEYS];
-    int s, i, keyboard = 0, own, way = -1, chose = 0;
-    hid_b1 = input_seen = 0;
+    unsigned char now[JOY_KEYS], pressed[JOY_KEYS], stick[JOY_KEYS];
+    int s, i, keyboard = 0, own, way = -1, chose = 0, keyboard_nav_on, stick_pressed = 0;
+    unsigned j;
+    hid_clicks = input_seen = 0;
     if (!NAV_ENABLED || !keys)
         return;
     if (!started)
@@ -462,59 +518,72 @@ void nav_before_tick(void)
     s = NAV_SCREEN;
     for (i = 0; i < JOY_KEYS; i++) {
         now[i] = keys[KEY_B1 + i] != 0;
-        pressed[i] = now[i] && !joy_prev[i];
-        input_seen |= pressed[i];
+        stick[i] = pressed[i] = now[i] && !joy_prev[i];
+        stick_pressed |= pressed[i];
         joy_prev[i] = now[i];
     }
+    input_seen = stick_pressed;
+    /* The keyboard's navigation keys join the stick's (not where keys are typed or given to
+     * controls); any other key but Esc, newly down, hands the menus back */
+    keyboard_nav_on = s != SCREEN_KEYS && s != SCREEN_NAME && s != SCREEN_RNAME;
     for (i = 1; i <= LAST_KEYBOARD; i++) {
-        unsigned char down = keys[i] != 0;
-        if (down && !key_prev[i])
-            keyboard = input_seen = 1;
+        unsigned char down = keys[i] != 0, fresh = down && !key_prev[i], nav = 0;
         key_prev[i] = down;
+        input_seen |= fresh;
+        for (j = 0; keyboard_nav_on && j < KEYBOARD_NAV; j++)
+            if (keyboard_nav[j] == i) {
+                int c = j < KEYBOARD_ARROWS ? LEFT + (int)(j / 2) : B1;
+                nav = 1;
+                now[c] |= down;
+                pressed[c] |= fresh;
+            }
+        if (fresh && !nav && i != KEY_ESC)
+            keyboard = 1;
     }
     if (s != screen) {
         changed_screen(s);
-        held_over[B1] = now[B1];  /* pressed for the screen before */
-        held_over[B2] = now[B2];
+        for (j = 0; j < HELD_KEYS; j++)  /* pressed for the screen before (Return: as its click) */
+            held_over[j] = keys[held_keys[j]] != 0 && (j < 2 || joy);
     }
     ticks_on_screen++;
     /* A button still held from the screen before can't act here too (the new screen's first
      * tick would take it again: one press, two screens): hidden until it's let go. Keys.c does
      * the same for every key on Windows; the DOS menus had nothing. */
-    for (i = B1; i <= B2; i++) {
-        hid_over[i] = 0;
-        if (!now[i])
-            held_over[i] = 0;
-        else if (held_over[i] && s != SCREEN_RACE) {
-            hid_over[i] = keys[KEY_B1 + i];
-            keys[KEY_B1 + i] = 0;
+    for (j = 0; j < HELD_KEYS; j++) {
+        unsigned char k = held_keys[j];
+        hid_over[j] = 0;
+        if (!keys[k])
+            held_over[j] = 0;
+        else if (held_over[j] && s != SCREEN_RACE) {
+            hid_over[j] = keys[k];
+            keys[k] = 0;
         }
     }
     /* Button 2 ends the attract demo and the flyover as Esc does (both quit on action 10 after
      * the hotspots: race_keys_tick, track_preview_tick) */
-    if (pressed[B2] && ((s == SCREEN_RACE && NAV_GAME_MODE == MODE_DEMO) || s == SCREEN_VIEW))
+    if (stick[B2] && ((s == SCREEN_RACE && NAV_GAME_MODE == MODE_DEMO) || s == SCREEN_VIEW))
         pending_action = ACTION_ESC;
     /* The globe: button 1 is its own OK key (the script's key 0,&73; the globe has no items
      * for the joystick, so it isn't hidden). OK with no race chosen chooses the track under
      * the globe's cursor, but there is none on arrival (globe_enter), so that first press only
      * picks one: OK is pressed again on the next tick, so one press chooses the track and the
-     * next goes on (the director) */
+     * next goes on (the director; Return keeps its 1996 way: two presses) */
     if (globe_again && s == SCREEN_GLOBE)
         pending_action = 0;
-    globe_again = s == SCREEN_GLOBE && pressed[B1] && NAV_GLOBE_TRACK == -1 && NAV_GLOBE_RACES < 1;
+    globe_again = s == SCREEN_GLOBE && stick[B1] && NAV_GLOBE_TRACK == -1 && NAV_GLOBE_RACES < 1;
     if (s == SCREEN_RACE) {
         if (joy) {
             leave();
-            nav_note("joystick off: a race", s);
+            nav_note("off: a race", s);
         }
         return;
     }
     if (keyboard && joy) {
         leave();
-        nav_note("joystick off: a key", s);
+        nav_note("off: a key", s);
     }
     if (s == SCREEN_NAME) {
-        name_screen(pressed);
+        name_screen(stick);
         return;
     }
     if (s == SCREEN_KEYS || s == SCREEN_RNAME || s == SCREEN_VIEW || s >= SCREEN_QUIT || count() == 0)
@@ -522,13 +591,14 @@ void nav_before_tick(void)
     own = arrow_key(-1);
     if (!joy && (pressed[UP] || pressed[DOWN] || (!own && (pressed[LEFT] || pressed[RIGHT])))) {
         take();
-        nav_note("joystick on, screen", s);
+        nav_note("on, screen", s);
         selected = -1;
         chose = 1;  /* the push that starts it selects the top item */
     }
     if (!joy)
         return;
-    if (!manual_type && NAV_PLAYER1 == 0) {
+    stick_used |= stick_pressed;
+    if (stick_used && !manual_type && NAV_PLAYER1 == 0) {  /* the joystick's, not the arrow keys' */
         NAV_PLAYER1 = 1;
         nav_note("player 1 set to JS1, screen", s);
     }
@@ -552,10 +622,12 @@ void nav_before_tick(void)
     if (selected >= 0) {
         if (pressed[B1])
             press_button = 1;
-        if (now[B1]) {  /* the selection's click instead of the scripts' button-1 keys */
-            hid_value = keys[KEY_B1];
-            keys[KEY_B1] = 0;
-            hid_b1 = 1;
+        if (now[B1]) {  /* the selection's click instead of the scripts' button-1 and Return keys */
+            hid_click[0] = keys[KEY_B1];
+            hid_click[1] = keys[KEY_RETURN];
+            hid_click[2] = keys[KEY_PAD_ENTER];
+            keys[KEY_B1] = keys[KEY_RETURN] = keys[KEY_PAD_ENTER] = 0;
+            hid_clicks = 1;
         }
         aim(selected);
     } else
@@ -566,7 +638,7 @@ void nav_before_tick(void)
 
 void nav_after_tick(void)
 {
-    int i;
+    unsigned j;
     if (!NAV_ENABLED || !started)
         return;
     /* Any input on the main menu (a joystick press, a key, or the mouse moved or clicked: the
@@ -577,14 +649,16 @@ void nav_after_tick(void)
         NAV_CREDITS_TICK -= NAV_TICK_COUNT;
         NAV_TICK_COUNT = 0;
     }
-    if (hid_b1) {  /* put back in the reverse order: a held-over button 1 was hidden first */
-        NAV_KEYS[KEY_B1] = hid_value;
-        hid_b1 = 0;
+    if (hid_clicks) {  /* put back in the reverse order: a held-over key was hidden first */
+        NAV_KEYS[KEY_B1] = hid_click[0];
+        NAV_KEYS[KEY_RETURN] = hid_click[1];
+        NAV_KEYS[KEY_PAD_ENTER] = hid_click[2];
+        hid_clicks = 0;
     }
-    for (i = B1; i <= B2; i++)
-        if (hid_over[i]) {
-            NAV_KEYS[KEY_B1 + i] = hid_over[i];
-            hid_over[i] = 0;
+    for (j = 0; j < HELD_KEYS; j++)
+        if (hid_over[j]) {
+            NAV_KEYS[held_keys[j]] = hid_over[j];
+            hid_over[j] = 0;
         }
     if (pending_action >= 0) {
         NAV_ACTION = (short)pending_action;
@@ -602,7 +676,7 @@ void nav_mouse(int moved, int buttons, short *x, short *y, short *buttons_now)
         return;
     if (joy && (moved || buttons) && ticks_on_screen > MOUSE_GRACE) {
         leave();
-        nav_note("joystick off: the mouse", NAV_SCREEN);
+        nav_note("off: the mouse", NAV_SCREEN);
     }
     if (!joy || !have_target)
         return;
@@ -624,6 +698,13 @@ void nav_before_draw(int d)
     if (!joy)
         return;
     h = HS(d);
+    if (NAV_INVERTED && owners_screen == screen) {  /* every item but the selection held still */
+        int o = owner[d];
+        if (o < 0 || o == selected || !item[o])
+            frozen[d] = -1;
+        else if (frozen[d] < 0)
+            frozen[d] = (short)shown_now(d);
+    }
     saved_index = d;
     if (h[TYPE] == 4) {  /* the pointer isn't drawn while the joystick has the menus */
         saved_what = SAVED_TYPE;
@@ -663,16 +744,16 @@ void nav_after_draw(int d)
 
 /* The sound screen's own buttons (sound_options_draw's sprite_draw calls, through thunks.asm:
  * the volume - and +, OK and the commentary tick box), whose frames follow the screen's own
- * step (sound_options_anim, 0-4) by per_step frames a step: in the selection they keep the
- * step they showed when first drawn after it was selected (and the tick box its new state
- * when toggled) */
+ * step (sound_options_anim, 0-4) by per_step frames a step. Original-ish: the selection's
+ * keep the step they showed when first drawn after it was selected; inverted: the others keep
+ * the step they first had. The tick box still shows its new state when toggled. */
 int nav_sprite_frame(int frame, int x, int y, int per_step)
 {
     short *b;
     if (!NAV_ENABLED || !joy || selected < 0)
         return frame;
     b = HS(selected);
-    if (x < b[MB_X] || x >= b[MB_X] + b[MB_W] || y < b[MB_Y] || y >= b[MB_Y] + b[MB_H])
+    if ((x >= b[MB_X] && x < b[MB_X] + b[MB_W] && y >= b[MB_Y] && y < b[MB_Y] + b[MB_H]) == NAV_INVERTED)
         return frame;
     if (!still_set) {
         still_set = 1;

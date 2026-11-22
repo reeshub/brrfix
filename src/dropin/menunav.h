@@ -25,6 +25,9 @@ void nav_after_draw(int index);
 /* sound_options_draw's sprite_draw(frame, x, y) of a button: the frame to draw instead */
 int nav_sprite_frame(int frame, int x, int y, int per_step);
 
+/* JOYCLICK.WAV, built by the core before nav_install_click (JOYCLICK_WAV_SIZE bytes) */
+extern unsigned char nav_click_wav[];
+
 /* The platform: */
 void nav_install_click(void);               /* SAMPLES\JOYCLICK.WAV, if it isn't there */
 void nav_play_click(void);                  /* the game's sound_play_sample("JOYCLICK") */

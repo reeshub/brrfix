@@ -100,6 +100,8 @@
 #define IDC_INTENSITY    1515
 #define IDC_MENU_GROUP   1516
 #define IDC_MENU_NAV     1517
+#define IDC_MENU_ANIM_LABEL 1518
+#define IDC_MENU_ANIM    1519
 
 /* Advanced */
 #define IDC_PAGE_ADVANCED 1600

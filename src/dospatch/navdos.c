@@ -20,7 +20,7 @@ void nav_install_click(void)
     handle = dos_create(NAV_CLICK_FILE);
     if (handle < 0)
         return;
-    click_ready = dos_write(handle, joyclick_wav, JOYCLICK_WAV_SIZE) == JOYCLICK_WAV_SIZE;
+    click_ready = dos_write(handle, nav_click_wav, JOYCLICK_WAV_SIZE) == JOYCLICK_WAV_SIZE;
     dos_close(handle);
 }
 

@@ -6,7 +6,7 @@
 ; register convention: C functions end in "_", C variables start with "_".
 
         public  brr_hook_rotation_, brr_rotation_trampoline_, brr_call_rotation_original_
-        public  brr_cam4_, brr_cap_
+        public  brr_cam4_, brr_cap_, brr_approach_
         public  brr_menu_tick_, brr_hook_menu_mouse_, brr_hook_hotspot_draw_
         public  brr_sound_sprite_down_, brr_sound_sprite_up_, brr_sound_sprite_up2_
         extrn   nav_before_tick_ : near
@@ -28,7 +28,7 @@
 ; logging build (key, first tick, last tick), and the version text shown on the menu.
 ; Read-only at run time, after our code (the build places CONST straight after it).
 CONST   segment dword public use32 'DATA'
-_brr_options            dd      13 dup (0)
+_brr_options            dd      14 dup (0)
 _brr_input              dd      24 dup (0)
 _brr_input_count        dd      0
 _brr_tag                db      32 dup (0)
@@ -94,12 +94,28 @@ brr_call_rotation_original_:
 ; roll (worked out from the yaw's change per tick) is wrong on frames that ran no tick.
 ; Its three instructions become MOV word [ESI+24h],0 and a call here, which stores it
 ; only when a tick ran.
+; Without the camera fix (option camera, the first dword of _brr_options) it stores it
+; every frame, as the original.
 brr_cam4_:
         mov     ax, word ptr [esi + 10h]
+        cmp     dword ptr _brr_options, 0
+        je      cam4_store
         cmp     byte ptr _game_frame_ticks, 0
         je      cam4_done
+cam4_store:
         mov     word ptr [esi + 46h], ax
 cam4_done:
+        ret
+
+; approach_clamped (0x15862): MOV AL,[frame_ticks] becomes a call here. With the camera fix,
+; one step per tick (Phase 3a); without it, the frame's ticks, as the original. IMUL follows,
+; so the flags don't matter.
+brr_approach_:
+        mov     al, 1
+        cmp     dword ptr _brr_options, 0
+        jne     approach_done
+        mov     al, byte ptr _game_frame_ticks
+approach_done:
         ret
 
 ; run_screen (0x2C5BF): CMP AL,35; JBE; MOV byte [frame_ticks],35 (11 bytes) become a

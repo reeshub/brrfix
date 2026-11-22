@@ -164,6 +164,8 @@ static void load_config(void)
     cfg.object_detail = !lstrcmpiA(text, "original") ? 0 : !lstrcmpiA(text, "highest") ? 2 : 1;
     cfg.colour_animation = ini_int(path, "display", "colour_animation", 1);
     cfg.menu_navigation = ini_int(path, "controller", "menu_navigation", 1);
+    GetPrivateProfileStringA("controller", "menu_animations", "original", text, sizeof text, path);
+    cfg.menu_animations = !lstrcmpiA(text, "inverted");
     cfg.show_version = ini_int(path, "display", "show_version", 1);
     cfg.controller = ini_int(path, "controller", "enabled", 1);
     cfg.pad_deadzone = ini_int(path, "controller", "deadzone", 15);

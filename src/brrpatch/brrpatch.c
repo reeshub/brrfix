@@ -4,7 +4,12 @@
  * patched RACING.EXE from the player's own: copy N bytes from offset X of their file, or
  * write N bytes of ours. The input and the result are both checked by size and SHA-256.
  * The patched file is written as RACING.NEW first; only when it's exactly right is
- * RACING.EXE renamed to RACING.ORI and RACING.NEW to RACING.EXE. */
+ * RACING.EXE renamed to RACING.ORI and RACING.NEW to RACING.EXE.
+ *
+ * The player's choices (BRRPATCH's questions) are the patch's options: after the default
+ * file is rebuilt and checked, its options block and the main menu's tag ("F0.1 CIARV") get
+ * them, as dos-patch writes them. A patched file is recognised with those bytes taken as
+ * their defaults, so it's "patched" whatever was chosen. */
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
@@ -61,17 +66,92 @@ static int matches(struct brr_sha256_state *s, const char *expected)
     return !strcmp(hex, expected);
 }
 
+/* the bytes of a default patched file where the choices go, in a chunk read at file offset at */
+static void defaults_over(uint8_t *data, uint32_t at, size_t n, uint32_t from, const uint8_t *defaults, unsigned size)
+{
+    unsigned i;
+    for (i = 0; i < size; i++)
+        if (from + i >= at && from + i < at + n)
+            data[from + i - at] = defaults[i];
+}
+
+static uint32_t get_dword(const uint8_t *p)
+{
+    return p[0] | (uint32_t)p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24;
+}
+
+static void put_dword(uint8_t *p, uint32_t value)
+{
+    p[0] = (uint8_t)value;
+    p[1] = (uint8_t)(value >> 8);
+    p[2] = (uint8_t)(value >> 16);
+    p[3] = (uint8_t)(value >> 24);
+}
+
+/* The options block and the menu's tag for these choices (the defaults with NULL) */
+static void choice_bytes(const struct brr_dos_choices *c, uint8_t *block, char *tag)
+{
+    unsigned i, n;
+    memcpy(block, BRR_OPTIONS_DEFAULT, BRR_OPTIONS_SIZE);
+    memcpy(tag, BRR_TAG_DEFAULT, BRR_TAG_SIZE);
+    if (!c)
+        return;
+    put_dword(block + BRR_OPTION_FINE_ANGLES, c->stutter != 0);
+    put_dword(block + BRR_OPTION_ROLL_FIX, c->stutter != 0);
+    put_dword(block + BRR_OPTION_CAMERA, c->camera != 0);
+    put_dword(block + BRR_OPTION_INTERPOLATION, c->interpolation != 0);
+    put_dword(block + BRR_OPTION_RETRACE, c->retrace != 0);
+    put_dword(block + BRR_OPTION_CAP, c->short_catch_up ? BRR_CAP_DEFAULT : 35);
+    put_dword(block + BRR_OPTION_MENU_PAD, c->menu_navigation != 0);
+    put_dword(block + BRR_OPTION_MENU_ANIM, c->menu_navigation && c->menu_inverted);
+    /* "F0.1 " and a letter for each fix that's on, then the catch-up if it isn't the default
+     * (dos-patch's tag) */
+    strcpy(tag, BRR_TAG_PREFIX);
+    n = (unsigned)strlen(tag);
+    for (i = 0; i < BRR_TAG_LETTERS; i++)
+        if (get_dword(block + BRR_TAG_LETTER[i].option))
+            tag[n++] = BRR_TAG_LETTER[i].letter;
+    if (!c->short_catch_up) {
+        tag[n++] = '3';
+        tag[n++] = '5';
+    }
+    tag[n] = 0;
+}
+
+/* The choices into a patched file (its options block and tag); 1 if written */
+static int write_choices(const char *path, const struct brr_dos_choices *c)
+{
+    uint8_t block[BRR_OPTIONS_SIZE];
+    char tag[BRR_TAG_SIZE];
+    int ok;
+    FILE *f = fopen(path, "r+b");
+    if (!f)
+        return 0;
+    choice_bytes(c, block, tag);
+    ok = fseek(f, (long)BRR_OPTIONS_AT, SEEK_SET) == 0 && fwrite(block, 1, BRR_OPTIONS_SIZE, f) == BRR_OPTIONS_SIZE
+         && fseek(f, (long)BRR_TAG_AT, SEEK_SET) == 0 && fwrite(tag, 1, strlen(tag) + 1, f) == strlen(tag) + 1;
+    if (fclose(f) != 0)
+        ok = 0;
+    return ok;
+}
+
 static int file_state(const char *path)
 {
     struct brr_sha256_state s;
     uint32_t total = 0;
     size_t got;
-    int failed;
+    int failed, patched_size;
     FILE *f = path[0] ? fopen(path, "rb") : NULL;
     if (!f)
         return BRR_DOS_MISSING;
+    patched_size = fseek(f, 0, SEEK_END) == 0 && ftell(f) == (long)BRR_PATCHED_SIZE;
+    fseek(f, 0, SEEK_SET);
     brr_sha256_init(&s);
     while ((got = fread(buffer, 1, CHUNK, f)) > 0) {
+        if (patched_size) {  /* whatever was chosen */
+            defaults_over(buffer, total, got, BRR_OPTIONS_AT, BRR_OPTIONS_DEFAULT, BRR_OPTIONS_SIZE);
+            defaults_over(buffer, total, got, BRR_TAG_AT, BRR_TAG_DEFAULT, BRR_TAG_SIZE);
+        }
         brr_sha256_update(&s, buffer, got);
         total += (uint32_t)got;
         progress();
@@ -142,10 +222,12 @@ static int write_patched(const char *source, const char *target)
     return ok && written == BRR_PATCHED_SIZE && matches(&s, BRR_PATCHED_SHA256);
 }
 
-int brr_dos_patch(const char *folder, char *message, unsigned size)
+int brr_dos_patch(const char *folder, const struct brr_dos_choices *choices, char *message, unsigned size)
 {
-    char exe[PATH_SIZE], backup[PATH_SIZE], fresh[PATH_SIZE], text[600];
+    char exe[PATH_SIZE], backup[PATH_SIZE], fresh[PATH_SIZE], text[600], tag[BRR_TAG_SIZE];
+    uint8_t block[BRR_OPTIONS_SIZE];
     int state, kept;
+    choice_bytes(choices, block, tag);
     join(exe, folder, "RACING.EXE");
     join(backup, folder, "RACING.ORI");
     join(fresh, folder, "RACING.NEW");
@@ -156,9 +238,18 @@ int brr_dos_patch(const char *folder, char *message, unsigned size)
         say(message, size, text);
         return -1;
     }
-    if (state == BRR_DOS_PATCHED) {
+    if (state == BRR_DOS_PATCHED && !choices) {
         say(message, size, "RACING.EXE is already patched. Nothing was changed.");
         return 1;
+    }
+    if (state == BRR_DOS_PATCHED) {
+        if (!write_choices(exe, choices)) {
+            say(message, size, "Couldn't change RACING.EXE (is it read-only?). Nothing was changed.");
+            return -1;
+        }
+        sprintf(text, "RACING.EXE was already patched: it now has the fixes you chose (%s).", tag);
+        say(message, size, text);
+        return 0;
     }
     if (state == BRR_DOS_UNREADABLE) {
         say(message, size, "Couldn't read RACING.EXE. Nothing was changed.");
@@ -175,7 +266,7 @@ int brr_dos_patch(const char *folder, char *message, unsigned size)
             "or rename it, then try again. Nothing was changed.");
         return -1;
     }
-    if (!write_patched(exe, fresh)) {
+    if (!write_patched(exe, fresh) || (choices && !write_choices(fresh, choices))) {
         remove(fresh);
         say(message, size, "Couldn't write the patched file (RACING.NEW). Is the disk full or "
             "write-protected? The patch needs about 650 KB free. Nothing was changed.");
@@ -195,7 +286,7 @@ int brr_dos_patch(const char *folder, char *message, unsigned size)
             "back in place.");
         return -1;
     }
-    sprintf(text, "Patched RACING.EXE (%s). The original is saved as RACING.ORI.", BRR_PATCH_TAG);
+    sprintf(text, "Patched RACING.EXE (%s). The original is saved as RACING.ORI.", tag);
     say(message, size, text);
     return 0;
 }

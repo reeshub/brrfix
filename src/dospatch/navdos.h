@@ -48,6 +48,7 @@ extern void game_sound_play_sample(const char *name);       /* SAMPLES\<name>.WA
 #define NAV_GLOBE_TRACK game_globe_track
 #define NAV_GLOBE_RACES game_series_races
 #define NAV_ENABLED   (OPTION(OPT_MENU_PAD))
+#define NAV_INVERTED  (OPTION(OPT_MENU_ANIM) == 1)
 #define nav_pointer(shown)            /* no system pointer: the game's own is the only one */
 #define nav_note(what, value)         /* no notes: their text doesn't fit before object 2 (Windows logs them) */
 

@@ -515,16 +515,16 @@ default); the nitro rumble is half as strong.
 
 **Controller menu navigation** (on by default; both renderers, any joystick)
 
-A joystick or pad can run the menus. Until you use it, the menus work as
-usual. Push up or down (the stick or the D-pad) and the top item is selected:
-it stops shimmering (its text, and its button, border or tick box), and the
-mouse pointer is hidden. Up and down then step through every item in reading
-order (along a row, then the next row), with a click, stopping at the top and
-the bottom; left and right move along a row, such as from a slider's - to its
-+. Button 1 (A) chooses, and ticks or unticks a box; button 2 (B) goes back,
-as Esc does (on the first screens, as with Esc, it quits the game), and also
-ends the attract demo and track select's View. Where the arrow keys change the
-race, the logo or the car, left and right still do that, and the arrow buttons
+A joystick, a pad or the arrow keys can run the menus. Until you use them, the
+menus work as usual. Push up or down (the stick, the D-pad or an arrow key)
+and the top item is selected, and the mouse pointer is hidden. Up and down
+then step through every item in reading order (along a row, then the next
+row), with a click, stopping at the top and the bottom; left and right move
+along a row, such as from a slider's - to its +. Button 1 (A) or Return
+chooses, and ticks or unticks a box; button 2 (B) or Esc goes back (on the
+first screens, as with Esc, it quits the game), and button 2 also ends the
+attract demo and track select's View. Where the arrow keys change the race,
+the logo or the car, left and right still do that, and the arrow buttons
 themselves are skipped. On the globe (level select), button 1 works as Return:
 the first press chooses the track the globe is showing and the second goes on;
 the next screen starts with Race selected (move left for View or Car). With
@@ -533,17 +533,25 @@ holds back the attract demo for another 15 seconds, as if the menu had just
 appeared (in 1996 it started 15 seconds after the menu appeared, however busy
 you were).
 
-The name screen starts with the last name you entered, so button 1 accepts
-it; if the game asks "Create new file?", button 1 is Y and button 2 is N.
-Using the joystick in the menus also sets player one's controls to it (JS1 in
-Options, Joysticks), unless you change that setting yourself. Moving the
-mouse, clicking or pressing a key brings back the pointer and hands the menus
-back to the mouse and keyboard, and they start that way again after a race.
-The keys screen and the recording name are left to the keyboard (button 2
-still goes back).
+The name screen starts with the last name you entered, so button 1 accepts it;
+if the game asks "Create new file?", button 1 is Y and button 2 is N. Using
+the joystick in the menus also sets player one's controls to it (JS1 in
+Options, Joysticks), unless you change that setting yourself; the arrow keys
+alone don't. Moving the mouse, clicking or pressing another key brings back
+the pointer and hands the menus back to the mouse and keyboard, and they start
+that way again after a race. The keys screen and the recording name are left
+to the keyboard (button 2 still goes back).
 
-The last name is kept in BRRNAME.TXT in the Game folder, and the click
-("UI Click Deep" by SoundShelfStudio, from Pixabay) in Game\SAMPLES\JOYCLICK.WAV.
+**Menu animations** (with menu navigation; Original-ish by default)
+
+The menus' texts and buttons shimmer and wobble, as they always have.
+Original-ish: the selected item stops, so it stands out, while everything else
+carries on. Inverted: everything else stops, and only the selected item moves.
+Either way it covers the item's text, its button or tick box, and its border;
+the screens' headings and other pictures carry on as in 1996.
+
+The last name is kept in BRRNAME.TXT in the Game folder, and the click ("UI
+Click Deep" by SoundShelfStudio, from Pixabay) in Game\SAMPLES\JOYCLICK.WAV.
 
 ## Advanced
 

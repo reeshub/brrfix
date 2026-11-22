@@ -26,5 +26,6 @@
 #define NAV_GLOBE_TRACK  (*(volatile short *)0x44A984)             /* globe_cursor's track: -1 until one is picked */
 #define NAV_GLOBE_RACES  (*(volatile int *)0x4524CC)               /* series_races: the races chosen on the globe */
 #define NAV_ENABLED      (cfg.menu_navigation)
+#define NAV_INVERTED     (cfg.menu_animations == 1)                /* [controller] menu_animations=inverted */
 
 #endif

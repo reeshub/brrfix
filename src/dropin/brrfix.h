@@ -56,7 +56,8 @@ struct brr_config {
     int texture_distance;    /* [display] texture_distance with max_draw_distance: 0 the slider's, else squares */
     int object_detail;       /* [display] object_detail: 0 original, 1 matched to the resolution, 2 highest */
     int colour_animation;    /* [display] colour_animation: the levels' palette cycling, as in DOS (palanim.c) */
-    int menu_navigation;     /* [controller] menu_navigation: B, and the stick's left and right, in menus (keys.c) */
+    int menu_navigation;     /* [controller] menu_navigation: the joystick and arrow keys in menus (menunav.c) */
+    int menu_animations;     /* [controller] menu_animations: 0 original (the selection still), 1 inverted */
     int language;            /* [display] language: 1-7 (ENG, USA, FRE, GER, ITA, SPA, JAP) */
     int clock_original;      /* emulate the original 14 ms callback timer instead */
     uint32_t rate_milli;     /* ticks per 1000 s: 70000 = 70.0 Hz */

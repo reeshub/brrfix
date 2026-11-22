@@ -45,7 +45,7 @@ void nav_install_click(void)
                 (unsigned long)GetLastError());
         return;
     }
-    WriteFile(f, joyclick_wav, JOYCLICK_WAV_SIZE, &written, NULL);
+    WriteFile(f, nav_click_wav, JOYCLICK_WAV_SIZE, &written, NULL);
     CloseHandle(f);
     click_ready = written == JOYCLICK_WAV_SIZE;
     brr_log("menu nav: wrote %s, the selection's click (%lu bytes)", NAV_CLICK_FILE, (unsigned long)written);

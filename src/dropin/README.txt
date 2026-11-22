@@ -259,20 +259,23 @@ Controllers
 Xbox-style pads (XInput, including the Steam Deck's controls) work as the
 game's two joysticks: the first pad you use is joystick 1, the next one you
 use joystick 2 (two players). Left stick steers, right trigger accelerates,
-left trigger brakes and reverses, A and B are the joystick buttons. In a
-race, Start pauses (and carries on) and Back (View) ends it, as Pause and Esc
-do. In the menus a joystick or pad takes over when you push up or down: up and
-down step through the items (the pointer hides), A chooses, B goes back, as Esc
-(and ends the attract demo and the track's View), and left and right still
-change the race, logo or car ([controller] menu_navigation; the mouse or a key
-hands the menus back). The name screen starts with your last name, so A
-accepts it, and player 1's controls are set to the joystick (JS1) for you;
-otherwise choose the joystick (JS1 or JS2) in the game's Options, Joysticks. Deadzone, sensitivity, the response curve and the
-layout (triggers or stick) are in the launcher and in BRRFIX.INI. The pad
-buzzes when your vehicle takes damage and rumbles while its nitro flames show
-(the launcher's Vibration settings: either can be off, and an intensity).
-No-code alternative: Steam Input can map the pad to keyboard keys instead
-(steering is then on or off, as with the keyboard).
+left trigger brakes and reverses, A and B are the joystick buttons. In a race,
+Start pauses (and carries on) and Back (View) ends it, as Pause and Esc do. In
+the menus a joystick, a pad or the arrow keys take over when you push up or
+down: up and down step through the items (the pointer hides), A or Return
+chooses, B or Esc goes back (B also ends the attract demo and the track's
+View), and left and right still change the race, logo or car ([controller]
+menu_navigation; the mouse or another key hands the menus back). The selected
+item stops animating, or with [controller] menu_animations=inverted only it
+animates. The name screen starts with your last name, so A accepts it, and
+player 1's controls are set to the joystick (JS1) for you; otherwise choose
+the joystick (JS1 or JS2) in the game's Options, Joysticks. Deadzone,
+sensitivity, the response curve and the layout (triggers or stick) are in the
+launcher and in BRRFIX.INI. The pad buzzes when your vehicle takes damage and
+rumbles while its nitro flames show (the launcher's Vibration settings: either
+can be off, and an intensity). No-code alternative: Steam Input can map the
+pad to keyboard keys instead (steering is then on or off, as with the
+keyboard).
 Not on Windows 95/98/ME (they have no XInput): use a joystick as in 1996.
 
 Settings: BRRFIX.INI

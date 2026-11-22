@@ -567,7 +567,7 @@ void brr_scn_commit(void)
     const u8 *h;
     s32 key, twin;
     game_menu_hotspot_commit();
-    if (game_menu_hotspot_count != before + 1 || before < 0 || before >= HOTSPOT_MAX
+    if (!OPTION(OPT_MENU_PAD) || game_menu_hotspot_count != before + 1 || before < 0 || before >= HOTSPOT_MAX
         || twin_count == TWINS_MAX)
         return;
     h = game_menu_hotspots + before * HOTSPOT_SIZE;
