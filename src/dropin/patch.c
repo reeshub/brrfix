@@ -710,6 +710,9 @@ void brr_patch_all(void)
     if (sound_sites)
         brr_log("patched %d sites of the sound channel layer (sound_channels): %d channels, %d requests, "
                 "every vehicle's engine", sound_sites, cfg.sound_channels, cfg.sound_channels);
+    else if (cfg.sound_channels == 8)
+        brr_log("sound: the game's own 8 channels%s",
+                (GetVersion() & 0x80000000u) ? " (the default on Windows 95, 98 and ME)" : "");
     if (cfg.fix_vga) {
         /* Windows XP onwards, so looked up at run time: on Windows 95/98/ME the game's
          * port reads work natively, and the safety net isn't needed */
