@@ -92,6 +92,7 @@ static void CALLBACK original_tick(UINT id, UINT msg, DWORD_PTR user, DWORD_PTR 
 
 void brr_clock_start(void)
 {
+    DWORD thread_id;
     start_qpc = qpc_raw();
     stats_since = brr_qpc();
     running = 1;
@@ -100,9 +101,12 @@ void brr_clock_start(void)
         return;
     }
     timeBeginPeriod(1);
-    thread = CreateThread(NULL, 0, updater, NULL, 0, NULL);
+    thread = CreateThread(NULL, 0, updater, NULL, 0, &thread_id);  /* 9x needs somewhere for the ID */
     if (thread)
         SetThreadPriority(thread, THREAD_PRIORITY_TIME_CRITICAL);
+    else
+        brr_log("clock: the timer thread didn't start (error %lu); the count moves once a frame",
+                (unsigned long)GetLastError());
 }
 
 void brr_clock_stop(void)

@@ -16,7 +16,9 @@
  * The game's own volume never reached Windows: cd_audio_fade_tick lowers a level at
  * 0x44AE84 (from 0x44AE88 = CD volume 0-7 x 255 / 7) for fades. Here it's the gain, times
  * [music] volume. Played through waveOut on a thread of our own (started with the
- * runtime's _beginthreadex, as the decoders use malloc). */
+ * runtime's _beginthreadex, as the decoders use malloc). FLAC and WAV tracks are read from
+ * the disk as they play (12 to 45 MB a track would be a lot of a 1990s PC's memory); Ogg
+ * Vorbis tracks, a few MB, are read whole, as stb_vorbis decodes from memory. */
 #include "brrfix.h"
 #include <mmsystem.h>
 #include <process.h>
@@ -52,11 +54,11 @@ static int find_track(int track, char *path) { return brr_find_track(folder, tra
 /* ---- decoding ---- */
 struct decoder {
     int kind;  /* 0 none, 1 FLAC, 2 Ogg Vorbis, 3 WAV */
-    uint8_t *file;
+    HANDLE handle;  /* the open track (FLAC and WAV are read as they play) */
     DWORD size;
+    uint8_t *file;  /* Ogg Vorbis: the whole track */
     drflac *flac;
     stb_vorbis *vorbis;
-    const uint8_t *wav;
     DWORD wav_left;
     int channels, rate;
 };
@@ -66,60 +68,96 @@ static void decoder_close(struct decoder *d)
     if (d->flac) drflac_close(d->flac);
     if (d->vorbis) stb_vorbis_close(d->vorbis);
     if (d->file) HeapFree(GetProcessHeap(), 0, d->file);
+    if (d->handle) CloseHandle(d->handle);
     memset(d, 0, sizeof *d);
 }
 
 static uint32_t le32(const uint8_t *p) { return p[0] | p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24; }
 
+static DWORD file_read(struct decoder *d, void *out, DWORD bytes)
+{
+    DWORD got = 0;
+    return ReadFile(d->handle, out, bytes, &got, NULL) ? got : 0;
+}
+
+static DWORD file_at(struct decoder *d) { return SetFilePointer(d->handle, 0, NULL, FILE_CURRENT); }
+
+/* moves to a place in the track; not past its end, as dr_flac asks */
+static int file_seek(struct decoder *d, DWORD offset, DWORD from)
+{
+    DWORD base = from == FILE_BEGIN ? 0 : from == FILE_END ? d->size : file_at(d);
+    if (base == 0xFFFFFFFFu || offset > d->size - base)
+        return 0;
+    return SetFilePointer(d->handle, (LONG)(base + offset), NULL, FILE_BEGIN) != 0xFFFFFFFFu;
+}
+
+static size_t flac_read(void *user, void *out, size_t bytes) { return file_read((struct decoder *)user, out, (DWORD)bytes); }
+
+static drflac_bool32 flac_seek(void *user, int offset, drflac_seek_origin origin)
+{
+    return offset >= 0 && file_seek((struct decoder *)user, (DWORD)offset,
+                                    origin == DRFLAC_SEEK_CUR ? FILE_CURRENT : origin == DRFLAC_SEEK_END ? FILE_END : FILE_BEGIN);
+}
+
+static drflac_bool32 flac_tell(void *user, drflac_int64 *cursor)
+{
+    DWORD at = file_at((struct decoder *)user);
+    *cursor = at;
+    return at != 0xFFFFFFFFu;
+}
+
+/* The decoder keeps a pointer to d (the player thread's own, for as long as it runs) */
 static int decoder_open(struct decoder *d, const char *path)
 {
-    HANDLE f = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
-    DWORD got = 0;
+    HANDLE f = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+    uint8_t head[12];
     memset(d, 0, sizeof *d);
     if (f == INVALID_HANDLE_VALUE)
         return 0;
+    d->handle = f;
     d->size = GetFileSize(f, NULL);
-    d->file = d->size != 0xFFFFFFFFu ? (uint8_t *)HeapAlloc(GetProcessHeap(), 0, d->size) : NULL;
-    if (d->file && (!ReadFile(f, d->file, d->size, &got, NULL) || got != d->size)) {
-        HeapFree(GetProcessHeap(), 0, d->file);
-        d->file = NULL;
-    }
-    CloseHandle(f);
-    if (!d->file)
+    if (d->size == 0xFFFFFFFFu || d->size < 12 || file_read(d, head, 12) != 12) {
+        decoder_close(d);
         return 0;
-    if (d->size > 4 && !memcmp(d->file, "fLaC", 4)) {
-        d->flac = drflac_open_memory(d->file, d->size, NULL);
+    }
+    if (!memcmp(head, "fLaC", 4)) {
+        SetFilePointer(f, 0, NULL, FILE_BEGIN);
+        d->flac = drflac_open(flac_read, flac_seek, flac_tell, d, NULL);
         if (d->flac) {
             d->kind = 1;
             d->channels = d->flac->channels;
             d->rate = (int)d->flac->sampleRate;
         }
-    } else if (d->size > 4 && !memcmp(d->file, "OggS", 4)) {
+    } else if (!memcmp(head, "OggS", 4)) {
         int error = 0;
-        d->vorbis = stb_vorbis_open_memory(d->file, (int)d->size, &error, NULL);
+        d->file = (uint8_t *)HeapAlloc(GetProcessHeap(), 0, d->size);
+        SetFilePointer(f, 0, NULL, FILE_BEGIN);
+        if (d->file && file_read(d, d->file, d->size) == d->size)
+            d->vorbis = stb_vorbis_open_memory(d->file, (int)d->size, &error, NULL);
         if (d->vorbis) {
             stb_vorbis_info info = stb_vorbis_get_info(d->vorbis);
             d->kind = 2;
             d->channels = info.channels;
             d->rate = (int)info.sample_rate;
         }
-    } else if (d->size > 44 && !memcmp(d->file, "RIFF", 4) && !memcmp(d->file + 8, "WAVE", 4)) {
-        DWORD at = 12;
-        while (at + 8 <= d->size) {  /* walk the chunks: fmt (16-bit PCM only), then data */
-            DWORD length = le32(d->file + at + 4);
-            if (!memcmp(d->file + at, "fmt ", 4) && length >= 16) {
-                const uint8_t *fmt = d->file + at + 8;
-                if ((fmt[0] | fmt[1] << 8) != 1 || (fmt[14] | fmt[15] << 8) != 16)
+    } else if (!memcmp(head, "RIFF", 4) && !memcmp(head + 8, "WAVE", 4)) {
+        uint8_t chunk[8], fmt[16];
+        while (file_read(d, chunk, 8) == 8) {  /* walk the chunks: fmt (16-bit PCM only), then data */
+            DWORD length = le32(chunk + 4), skip = length + (length & 1);
+            if (!memcmp(chunk, "fmt ", 4) && length >= 16) {
+                if (file_read(d, fmt, 16) != 16 || (fmt[0] | fmt[1] << 8) != 1 || (fmt[14] | fmt[15] << 8) != 16)
                     break;
                 d->channels = fmt[2] | fmt[3] << 8;
                 d->rate = (int)le32(fmt + 4);
-            } else if (!memcmp(d->file + at, "data", 4) && d->channels) {
-                d->wav = d->file + at + 8;
-                d->wav_left = length < d->size - at - 8 ? length : d->size - at - 8;
+                skip -= 16;
+            } else if (!memcmp(chunk, "data", 4) && d->channels) {
+                DWORD left = d->size - file_at(d);
+                d->wav_left = length < left ? length : left;
                 d->kind = 3;
                 break;
             }
-            at += 8 + length + (length & 1);
+            if (!file_seek(d, skip, FILE_CURRENT))
+                break;
         }
     }
     if (!d->kind || d->channels < 1 || d->channels > 2 || d->rate < 8000) {
@@ -137,13 +175,13 @@ static int decoder_read(struct decoder *d, short *out, int frames)
     if (d->kind == 2)
         return stb_vorbis_get_samples_short_interleaved(d->vorbis, d->channels, out, frames * d->channels);
     if (d->kind == 3) {
-        DWORD bytes = (DWORD)frames * (DWORD)d->channels * 2;
+        DWORD frame = (DWORD)d->channels * 2, bytes = (DWORD)frames * frame;
         if (bytes > d->wav_left)
-            bytes = d->wav_left - d->wav_left % ((DWORD)d->channels * 2);
-        memcpy(out, d->wav, bytes);
-        d->wav += bytes;
+            bytes = d->wav_left - d->wav_left % frame;
+        bytes = bytes ? file_read(d, out, bytes) : 0;
+        bytes -= bytes % frame;
         d->wav_left -= bytes;
-        return (int)(bytes / ((DWORD)d->channels * 2));
+        return (int)(bytes / frame);
     }
     return 0;
 }
@@ -399,7 +437,9 @@ void __cdecl brr_music_reassert(void)
 void brr_music_start(void)
 {
     char base[MAX_PATH], *slash;
-    DWORD old;
+    DWORD old, error = 0;
+    unsigned thread_id;
+    int found;
     if (!cfg.music)
         return;
     if (cfg.music_folder[0] && (cfg.music_folder[1] == ':' || cfg.music_folder[0] == '\\'))
@@ -411,12 +451,14 @@ void brr_music_start(void)
             *slash = 0;
         wsprintfA(folder, "%s\\%s", base, cfg.music_folder[0] ? cfg.music_folder : "Music");
     }
-    tracks_found = brr_count_tracks(folder);
+    found = tracks_found = brr_count_tracks(folder);
     real_mci = (mci_fn)*MCI_SLOT;
     InitializeCriticalSection(&lock);
     wake = CreateEventA(NULL, FALSE, FALSE, NULL);
-    if (tracks_found && _beginthreadex(NULL, 65536, player, NULL, 0, NULL) == 0) {
-        brr_log("music: couldn't start the player thread; CD audio goes to Windows");
+    /* Windows 95, 98 and ME start no thread without somewhere to put its ID (the runtime
+     * passes it to CreateThread) */
+    if (tracks_found && _beginthreadex(NULL, 65536, player, NULL, 0, &thread_id) == 0) {
+        error = GetLastError();
         tracks_found = 0;
     }
     VirtualProtect(MCI_SLOT, 4, PAGE_READWRITE, &old);
@@ -426,6 +468,9 @@ void brr_music_start(void)
     if (tracks_found)
         brr_log("music: %d tracks in %s; the game's CD audio plays them (volume %d%%%s)", tracks_found, folder,
                 cfg.music_volume, cfg.music_follow_game ? " x the game's CD volume" : "");
+    else if (found)
+        brr_log("music: %d tracks in %s, but the player thread didn't start (error %lu); CD audio goes to Windows",
+                found, folder, (unsigned long)error);
     else
         brr_log("music: no tracks in %s (trackNN.flac, .ogg or .wav); CD audio goes to Windows (a real CD)", folder);
 }
