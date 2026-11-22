@@ -46,7 +46,7 @@ Both fixes only support the v2.25 patched version of the game, the last (and onl
 - **"Original" vs. "Modern" renderer:** In addition to the above, there's a new "Modern" renderer option. OK, so it's still the game's original 1996 DirectPlay renderer wrapped in cnc-ddraw, but it does add a whole host of tweaks, like native widescreen support, full colour with improved gradients and shading, hugely improved draw distance, level geometry fixes (WIP), and a lot more. Again, the golden rule of development was to retain the original feel of the game even with this major overhaul, and I feel that I've succeeded in this.
 - **CD music:** Supports ripped tracks (FLAC, Ogg Vorbis or WAV). This is (optionally) supported in both the Original and Modern renderers, with the help of the included open source [dr_flac](https://github.com/mackron/dr_libs) and [stb_vorbis](https://github.com/nothings/stb) libraries. Or you can stick your original CD in the drive and listen to that - or indeed any audio CD of your choice, just like back in the day. Scripts are included to rip and convert these tracks from the myabandonware.com disc image.
 - **Other in-game audio improvements:** The DOS build of the game used the Miles Audio engine, which supported panning (ie, competitor vehicle audio moves left to right depending on their position relative to the player), and varying volume levels depending on their distance. It turns out that both were broken in the 1996 Windows DirectSound implementation - in fact, audio was pretty broken overall in Windows. There are now (optional) fixes for these issues and more. The game's 8 sound channels can also optionally be expanded to 16 or 32 for a more immersive experience.
-- **Modern controllers** (XInput), with remapped triggers for accelerate / brake, vibration, and menu navigation support (WIP).
+- **Modern controllers** (XInput), with remapped triggers for accelerate / brake, vibration, and menu navigation support.
 - **A comprehensive settings window**, with "Period" and "Modern" defaults, and detailed help for every single setting.
 
 Did I mention that all tweaks can be toggled on or off depending on how you'd like to experience the game? Big Red Launcher is also designed to support all versions of Windows from 95 onwards, and supports resolutions as low as 640x480. It also works in Wine and Proton.
@@ -77,9 +77,9 @@ Note that some Big Red Launcher tweaks rely on modern Windows - or would run ext
 
 ## BRRPATCH.EXE (DOS 6+, DOSBox on modern systems)
 
-This patcher fixes the camera's infamous stutter by applying the same high fidelity camera fix as the Windows version, as well as increasing the draw rate (70 FPS instead of 35), and shortens the camera catch-up after a hiccup. It also adds joystick menu navigation (WIP). A 486 runs exactly as fast as the original release, and crucially the in-game physics is unchanged, preserving the original feel of the game.
+This patcher fixes the camera's infamous stutter by applying the same high fidelity camera fix as the Windows version, as well as increasing the draw rate (70 FPS instead of 35), and shortens the camera catch-up after a hiccup. It also adds joystick and keyboard menu navigation. A 486 runs exactly as fast as the original release, and crucially the in-game physics is unchanged, preserving the original feel of the game.
 
-Copy `BRRPATCH.EXE` into the game's folder and run it there: it patches `RACING.EXE`, keeping the original as `RACING.ORI`; `BRRPATCH /U` puts the original back. On modern Windows, Big Red Launcher's "Patch the DOS version" button does the same, and the zip also includes a Python version for Linux and macOS DOSBox users.
+Copy `BRRPATCH.EXE` into the game's folder and run it there: it asks which fixes you'd like, patches `RACING.EXE` (keeping the original as `RACING.ORI`) and starts the game. Run it again to change your choices; `BRRPATCH /U` puts the original back. On modern Windows, Big Red Launcher's "Patch the DOS version" button does the same, and the zip also includes a Python version for Linux and macOS DOSBox users.
 
 ## Building from source
 
@@ -107,3 +107,4 @@ Big Red Launcher, BRRPATCH and the rest of this repository's own code are free s
 - [cnc-ddraw](https://github.com/FunkyFr3sh/cnc-ddraw) by FunkyFr3sh, which draws the game on modern Windows, Wine and Proton.
 - [dr_flac](https://github.com/mackron/dr_libs) by David Reid and [stb_vorbis](https://github.com/nothings/stb) by Sean Barrett, which play the music.
 - [FLAC](https://xiph.org/flac/) (Xiph.Org) and [FFmpeg](https://ffmpeg.org) (builds by [gyan.dev](https://www.gyan.dev/ffmpeg/builds/)), which `Install Game Files.bat` can download to convert the music.
+- The menu navigation click, "UI Click Deep": Sound Effect by <a href="https://pixabay.com/users/soundshelfstudio-46480698/?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=512213">SoundShelfStudio</a> from <a href="https://pixabay.com/sound-effects//?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=512213">Pixabay</a>.
