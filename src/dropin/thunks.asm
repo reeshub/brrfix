@@ -58,6 +58,13 @@
         extrn   _brr_before_menu_hotspots:near
         extrn   _brr_after_menu_hotspots:near
         extrn   _brr_orig_menu_hotspots:dword
+        extrn   _brr_orig_hotspot_draw:dword
+        extrn   _brr_orig_sprite_draw:dword
+        extrn   _nav_sprite_frame:near
+        public  _brr_sound_sprite_down, _brr_sound_sprite_up, _brr_sound_sprite_up2
+        extrn   _nav_before_draw:near
+        extrn   _nav_after_draw:near
+        public  _brr_hook_hotspot_draw, _brr_call_play_sample
         extrn   _brr_present_gdi:near
         extrn   _brr_gdi_present:dword
         extrn   _brr_present_continue:dword
@@ -451,6 +458,64 @@ _brr_hook_menu_mouse:
         mov     ecx, eax
         shr     eax, 16
         mov     ebx, eax
+        ret
+
+; Site hotspot_draw_call: menu_draw_group's CALL menu_hotspot_draw (0x427C7C, the hotspot's
+; index in AX, which keeps EBX, ECX and EDX): the joystick menu navigation's notes either
+; side of it (menunav.c: what was drawn, the selected item's font or frame, where its text
+; ends). Every register is kept.
+_brr_hook_hotspot_draw:
+        push    eax
+        pushad
+        movsx   eax, ax
+        push    eax
+        call    _nav_before_draw
+        add     esp, 4
+        popad
+        call    dword ptr [_brr_orig_hotspot_draw]
+        pushad
+        movsx   eax, word ptr [esp + 32]
+        push    eax
+        call    _nav_after_draw
+        add     esp, 4
+        popad
+        add     esp, 4
+        ret
+
+; sound_options_draw's CALL sprite_draw (0x426D48) of a button (EDX its frame, EBX x, ECX y;
+; sites sound_button_*): the frame nav_sprite_frame gives (its step of the screen's animation
+; kept in the joystick's selection, menunav.c), then sprite_draw. Each entry is how the
+; button's frame follows the step.
+_brr_sound_sprite_down:
+        push    -1
+        jmp     short sound_sprite
+_brr_sound_sprite_up:
+        push    1
+        jmp     short sound_sprite
+_brr_sound_sprite_up2:
+        push    2
+sound_sprite:
+        pushad
+        push    dword ptr [esp + 32]
+        push    ecx
+        push    ebx
+        movsx   edx, dx
+        push    edx
+        call    _nav_sprite_frame
+        add     esp, 16
+        mov     [esp + 20], eax
+        popad
+        add     esp, 4
+        jmp     dword ptr [_brr_orig_sprite_draw]
+
+; brr_call_play_sample(name), cdecl: the game's sound_play_sample (0x415A28; EAX the
+; sample's name, played from SAMPLES\<name>.WAV once; it keeps EBX, ECX and EDX)
+_brr_call_play_sample:
+        push    ebx
+        mov     eax, [esp + 8]
+        mov     ebx, 415A28h
+        call    ebx
+        pop     ebx
         ret
 
 ; run_screen_frame's call to joystick_to_keys (0x428D1D): the pad's state goes into

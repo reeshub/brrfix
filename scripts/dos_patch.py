@@ -29,7 +29,7 @@ Usage:
   python3 dos_patch.py --verify BRRFIX.EXE [--original RACING.EXE]
 Options:
   --no-camera --no-interpolation --no-fine-angles --no-roll-fix --no-retrace
-  --no-menu-pad       no joystick menu navigation (button 2 back, the stick left/right)
+  --no-menu-pad       no joystick menu navigation (the stick and buttons in the menus)
   --cap N            catch-up cap in ticks, 1-35 (default 8; 35 is the original)
   --force            overwrite an existing output file
 Testing only (the "logging build"; never for players):

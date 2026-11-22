@@ -627,8 +627,8 @@ static const struct { int id; const char *text; } tips[] = {
     {IDC_VIBRATION, "A brief buzz from the pad when player one's vehicle is damaged (with the game's damage option on)."},
     {IDC_NITRO_RUMBLE, "A steady rumble from the pad while player one's nitro flames show."},
     {IDC_INTENSITY, "How strong the damage buzz is; the nitro rumble is half as strong."},
-    {IDC_MENU_NAV, "In the menus, B (joystick button 2) goes back, as Esc, and left and right change the race, "
-                   "logo or car, as the arrow keys. A already chooses, as in 1996."},
+    {IDC_MENU_NAV, "Run the menus with a joystick or pad: up and down step through the items (the pointer hides), "
+                   "button 1 (A) chooses, button 2 (B) goes back. Using it also sets player one to the joystick (JS1)."},
     {IDC_RATE, "Game ticks a second: 70.0 as the DOS version (real time), or 71.43 as the 1996 Windows version ran (2% fast)."},
     {IDC_CAP, "After a pause, how much missed game time is caught up at once: 8 ticks, or 35 as the original (see Help)."},
     {IDC_LOG, "Writes BRRFIX.LOG next to the launcher: what was fixed, for bug reports."},

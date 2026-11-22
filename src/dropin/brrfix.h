@@ -297,6 +297,14 @@ void __cdecl brr_before_menu_hotspots(void);
 void __cdecl brr_after_menu_hotspots(void);
 void brr_hook_menu_hotspots(void);
 
+/* navwin.c, thunks.asm: the joystick menu navigation (the core: menunav.h) */
+extern uint32_t brr_orig_hotspot_draw, brr_orig_sprite_draw;
+void brr_hook_hotspot_draw(void);              /* site hotspot_draw_call */
+void brr_sound_sprite_down(void);              /* sites sound_button_*: frame base - step */
+void brr_sound_sprite_up(void);                /* base + step */
+void brr_sound_sprite_up2(void);               /* base + 2 x step */
+void __cdecl brr_call_play_sample(const char *name);  /* the game's sound_play_sample */
+
 /* music.c */
 int brr_music_check(void);
 void brr_music_start(void);

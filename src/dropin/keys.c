@@ -33,6 +33,7 @@
  * and on each tick the key table's changes, _KEY_down, any hotspot action and each
  * screen's key hotspots. Diagnostics only. */
 #include "brrfix.h"
+#include "menunav.h"
 #include <string.h>
 
 #define KEY_GENERATE_IMPORT 0x56C640u  /* WINRACE.EXE's import slots for KEY.DLL's data */
@@ -169,6 +170,7 @@ void __cdecl brr_before_menu_hotspots(void)
 {
     uint8_t *keys = *(uint8_t **)KEY_PRESSED_IMPORT;
     int k, latch;
+    nav_before_tick();  /* the joystick menu navigation first, as the key table really is */
     if (!hook && !hook_failed) {
         /* after KEY_Init_ (WinMain), so ours is called first */
         hook = SetWindowsHookExA(WH_KEYBOARD, keys_hook, NULL, GetCurrentThreadId());
@@ -226,6 +228,7 @@ void __cdecl brr_after_menu_hotspots(void)
     if (cfg.debug_log_keys && *HOTSPOT_ACTION != -1)
         brr_log("keys: tick %ld fired action %d (latch 0x%02X)", (long)*GAME_TICK_COUNT, *HOTSPOT_ACTION,
                 (unsigned)(uint16_t)latch);
+    nav_after_tick();  /* the joystick menu navigation's answers, before the screen's tick reads them */
 }
 
 /* ---- Controller menu navigation ([controller] menu_navigation; both renderers) ----
@@ -235,9 +238,11 @@ void __cdecl brr_after_menu_hotspots(void)
  * OK lists 0x73 beside Return, so A (button 1) already chooses. Here every key hotspot a
  * script adds for Esc (0x01) gets a twin for button 2 (B: back, or quit where Esc quits),
  * and every one for the cursor or keypad left and right keys (0x4B, 0x6B; 0x4D, 0x6D) a
- * twin for the stick (left and right on the race, logo and car screens). Not on the keys
- * screen (0x0E), where the joystick's buttons and directions can be given to a control,
- * nor on the joystick screen (0x17), whose script lists no joystick key at all.
+ * twin for the stick (left and right on the race, logo and car screens). Also on the keys
+ * screen (0x0E) and the joystick screen (0x17) since 2026-11-22 (the director: button 2
+ * backs out of the keys screen too; giving a control joystick 1's button 2 there now goes
+ * back instead). The selection itself (up and down, the pointer, button 1 as the left
+ * button) is menunav.c's.
  * Site scn_commit_call (scn_load's CALL menu_hotspot_commit) notes the twins; they're
  * added at the script's end (site scn_end_call), after its own hotspots, as scripts refer
  * to their hotspots by number (stext chains). */
@@ -262,8 +267,7 @@ void __cdecl brr_menu_pad_commit(int before)
 {
     const uint8_t *h;
     int twin;
-    if (*HOTSPOT_COUNT != before + 1 || before < 0 || before >= HOTSPOT_MAX || twin_count == TWINS_MAX
-        || *SCREEN == 0x0E || *SCREEN == 0x17)
+    if (*HOTSPOT_COUNT != before + 1 || before < 0 || before >= HOTSPOT_MAX || twin_count == TWINS_MAX)
         return;
     h = (const uint8_t *)HOTSPOTS + before * HOTSPOT_SIZE;
     if (*(const int16_t *)(h + 2) != 6 || !(twin = twin_key(*(const int16_t *)(h + 4))))

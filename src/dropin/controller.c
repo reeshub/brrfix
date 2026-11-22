@@ -66,7 +66,9 @@
 #define REFRESH_MS    500    /* Wine and Proton end each rumble after 1 s (winebus cutoff_time_ms) */
 #define SLOTS         4
 #define JOYSTICKS     2
-#define PAD_LEFT      0x0004  /* the D-pad */
+#define PAD_UP        0x0001  /* the D-pad */
+#define PAD_DOWN      0x0002
+#define PAD_LEFT      0x0004
 #define PAD_RIGHT     0x0008
 #define PAD_START     0x0010
 #define PAD_BACK      0x0020
@@ -446,6 +448,16 @@ static void drive_joystick(int j, const pad_state *pad)
         pedal = ((float)pad->left_trigger - (float)pad->right_trigger) / 255.0f;  /* up = accelerate */
     else
         pedal = -shape((float)pad->left_y / 32767.0f, cfg.pad_deadzone, 100, 100);
+    /* menus: up and down are the stick's (or the D-pad's), whichever the layout, for the
+     * joystick menu navigation (menunav.c), which reads them as the game's joystick keys */
+    if (cfg.menu_navigation && *SCREEN != 0x80) {
+        if (pad->buttons & PAD_UP)
+            pedal = -1.0f;
+        else if (pad->buttons & PAD_DOWN)
+            pedal = 1.0f;
+        else
+            pedal = -shape((float)pad->left_y / 32767.0f, cfg.pad_deadzone, 100, 100);
+    }
     *JOY_X(j) = to_axis(steer);
     *JOY_Y(j) = to_axis(pedal);
     JOY_BUTTONS[j] = (uint8_t)((pad->buttons & 0x1000 ? 1 : 0) | (pad->buttons & 0x2000 ? 2 : 0));

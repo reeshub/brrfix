@@ -21,9 +21,18 @@ What it fixes
 - A shorter catch-up after a hiccup on fast machines: at most 8 ticks (about a
   tenth of a second) of game time in one frame, instead of 35.
 - Two camera calculations that depended on the frame rate.
-- Joystick menu navigation (partial): button 1 already chose in the menus, as
-  Return; now button 2 goes back, as Esc (where Esc quits, it quits), and the
-  stick's left and right change the race, logo or car, as the arrow keys.
+- Joystick menu navigation: push the stick up or down in a menu and its top
+  item is selected (it stops shimmering, and the pointer is hidden); the stick
+  then steps through the items in reading order, with a click, button 1
+  chooses (and ticks or unticks a box) and button 2 goes back, as Esc (where
+  Esc quits, it quits; it also ends the attract demo and the track's View). On
+  the race, logo and car screens left and right still change them, as the
+  arrow keys. The name screen starts with the last name entered (kept in
+  BRRNAME.TXT): button 1 takes it, and answers Y to "Create new file?"
+  (button 2 is N). Using the joystick in the menus sets player 1's controls
+  to JS1, unless you change them in Options, Joysticks. The mouse or a key
+  hands the menus back. Any input on the main menu (mouse, keyboard or
+  joystick) holds back its attract demo for another 15 seconds.
 - The physics is left exactly as it was: the same game, bit for bit.
 
 "Fast machine" means one that draws a frame in 3 ticks (3/70 s) or less, on
@@ -112,3 +121,8 @@ they will be useful, but WITHOUT ANY WARRANTY; without even the implied
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See
 LICENSE.TXT for the details. Big Red Racing itself is not included, and not
 covered by this licence.
+
+The joystick menus' click (SAMPLES\JOYCLICK.WAV, which the patched game
+writes) is "UI Click Deep": Sound Effect by SoundShelfStudio from Pixabay
+(https://pixabay.com/users/soundshelfstudio-46480698/,
+https://pixabay.com/sound-effects/), under the Pixabay Content License.

@@ -35,6 +35,7 @@
  * Windows NT family only (Wine, Proton, Windows 2000 onwards): on Windows 95/98/ME the
  * original renderer stays. Docs: KNOWLEDGE "The renderer (Phase 3c)". */
 #include "brrfix.h"
+#include "menunav.h"
 #include <string.h>
 
 #define VIEW_W         (*(volatile int16_t *)0x44BE60)
@@ -1183,37 +1184,59 @@ static int pointer_extent(int *x0, int *y0, int *x1, int *y1)
 /* Site menu_mouse (in 0x4274FC, only when the race view isn't set): the menu's mouse
  * position from the pointer's position in the final picture, the inverse of the layout
  * above (the original mapped only at 640x480, to its doubled picture: x / 2, (y - 40) / 2).
+ * With the Original renderer (the site is there for the joystick menu navigation) the
+ * original's own mapping, exactly. Then the navigation (menunav.c) has its say: while the
+ * joystick has the menus, the pointer is at the selection and button 1 is the left button.
  * Returns x | y << 16. */
+#define BUTTONS_NOW (*(volatile int16_t *)0x4B13B2)  /* mouse_buttons_now, just read from 0x4988B0 */
 uint32_t __cdecl brr_menu_mouse(void)
 {
-    int x = MOUSE_X, y = MOUSE_Y;
-    if (final_w > 0 && final_h > 0) {
-        struct layout l;
-        fit(MENU_W, MENU_H, final_w, final_h, &l);
-        x = x >= l.x ? (x - l.x) / l.sx : -1;
-        y = y >= l.y ? (y - l.y) / l.sy : -1;
-    }
-    if (x < 0) x = 0;
-    if (x > MENU_W - 1) x = MENU_W - 1;
-    if (y < 0) y = 0;
-    if (y > MENU_H - 1) y = MENU_H - 1;
-    /* with the widescreen backgrounds, the menu's left and right edges are no longer the
-     * picture's: the pointer stops where it would start to be cut off (the director,
-     * 2026-11-16). The menu is as tall as the picture, so its top and bottom are the screen's
-     * edges, as in 1996 (and stopping 23 rows short would leave bottom buttons out of reach). */
-    if (brr_widescreen && cfg.widescreen_menus) {
-        int x0, y0, x1, y1;
-        if (pointer_extent(&x0, &y0, &x1, &y1)) {
-            if (x < -x0) x = -x0;
-            if (x > MENU_W - 1 - x1) x = MENU_W - 1 - x1;
+    static int last_x = -32768, last_y;
+    int x = MOUSE_X, y = MOUSE_Y, moved;
+    short menu_x, menu_y, buttons = BUTTONS_NOW;
+    if (!brr_renderer_active) {
+        if (DISPLAY_W == 640 && DISPLAY_H == 480) {
+            x = (int16_t)x >> 1;
+            if (y < 40) y = 40;
+            if (y > 440) y = 440;
+            y = (int16_t)(y - 40) >> 1;
+        }
+    } else {
+        if (final_w > 0 && final_h > 0) {
+            struct layout l;
+            fit(MENU_W, MENU_H, final_w, final_h, &l);
+            x = x >= l.x ? (x - l.x) / l.sx : -1;
+            y = y >= l.y ? (y - l.y) / l.sy : -1;
+        }
+        if (x < 0) x = 0;
+        if (x > MENU_W - 1) x = MENU_W - 1;
+        if (y < 0) y = 0;
+        if (y > MENU_H - 1) y = MENU_H - 1;
+        /* with the widescreen backgrounds, the menu's left and right edges are no longer the
+         * picture's: the pointer stops where it would start to be cut off (the director,
+         * 2026-11-16). The menu is as tall as the picture, so its top and bottom are the screen's
+         * edges, as in 1996 (and stopping 23 rows short would leave bottom buttons out of reach). */
+        if (brr_widescreen && cfg.widescreen_menus) {
+            int x0, y0, x1, y1;
+            if (pointer_extent(&x0, &y0, &x1, &y1)) {
+                if (x < -x0) x = -x0;
+                if (x > MENU_W - 1 - x1) x = MENU_W - 1 - x1;
+            }
         }
     }
     if (cfg.debug_log_mouse) {  /* each new position (the same one is asked for every tick) */
-        static int logged, last_x = -1, last_y = -1;
-        if ((MOUSE_X != last_x || MOUSE_Y != last_y) && logged++ < 40)
+        static int logged, last_logged_x = -1, last_logged_y = -1;
+        if ((MOUSE_X != last_logged_x || MOUSE_Y != last_logged_y) && logged++ < 40)
             brr_log("mouse: pointer %d,%d in the %dx%d picture -> menu %d,%d", MOUSE_X, MOUSE_Y, final_w, final_h, x, y);
-        last_x = MOUSE_X;
-        last_y = MOUSE_Y;
+        last_logged_x = MOUSE_X;
+        last_logged_y = MOUSE_Y;
     }
-    return (uint32_t)(uint16_t)x | (uint32_t)(uint16_t)y << 16;
+    moved = last_x != -32768 && (MOUSE_X != last_x || MOUSE_Y != last_y);
+    last_x = MOUSE_X;
+    last_y = MOUSE_Y;
+    menu_x = (short)x;
+    menu_y = (short)y;
+    nav_mouse(moved, buttons, &menu_x, &menu_y, &buttons);
+    BUTTONS_NOW = buttons;
+    return (uint32_t)(uint16_t)menu_x | (uint32_t)(uint16_t)menu_y << 16;
 }

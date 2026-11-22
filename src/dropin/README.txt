@@ -70,7 +70,8 @@ What's in this zip
 - Install Game Files.bat  makes the Game and Music folders from the game's
                       two zips (Windows 10 and 11; see Install)
 - LICENSE.txt         Big Red Launcher's licence: the GNU GPL, version 3
-- THIRD-PARTY.txt     the open-source parts and their licences
+- THIRD-PARTY.txt     the parts by others (code, and the menus' joystick click)
+                      and their licences
 
 Install (Windows 95 to 11)
 --------------------------
@@ -260,9 +261,13 @@ game's two joysticks: the first pad you use is joystick 1, the next one you
 use joystick 2 (two players). Left stick steers, right trigger accelerates,
 left trigger brakes and reverses, A and B are the joystick buttons. In a
 race, Start pauses (and carries on) and Back (View) ends it, as Pause and Esc
-do. In the menus A chooses (the 1996 game's own joystick
-support), B goes back, as Esc, and left and right (stick or D-pad) change the
-race, logo or car ([controller] menu_navigation). In the game's controls menu, choose the joystick (JS1 or JS2). Deadzone, sensitivity, the response curve and the
+do. In the menus a joystick or pad takes over when you push up or down: up and
+down step through the items (the pointer hides), A chooses, B goes back, as Esc
+(and ends the attract demo and the track's View), and left and right still
+change the race, logo or car ([controller] menu_navigation; the mouse or a key
+hands the menus back). The name screen starts with your last name, so A
+accepts it, and player 1's controls are set to the joystick (JS1) for you;
+otherwise choose the joystick (JS1 or JS2) in the game's Options, Joysticks. Deadzone, sensitivity, the response curve and the
 layout (triggers or stick) are in the launcher and in BRRFIX.INI. The pad
 buzzes when your vehicle takes damage and rumbles while its nitro flames show
 (the launcher's Vibration settings: either can be off, and an intensity).
@@ -309,4 +314,5 @@ later version. It is distributed in the hope that it will be useful, but
 WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE. See LICENSE.txt for the details. Big Red
 Racing itself is not included, and not covered by this licence. The parts by
-others keep their own licences (THIRD-PARTY.txt).
+others keep their own licences (THIRD-PARTY.txt), including the menus'
+joystick click: Sound Effect by SoundShelfStudio from Pixabay.

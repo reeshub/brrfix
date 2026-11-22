@@ -1,5 +1,5 @@
-Third-party code in Big Red Launcher
-====================================
+Third-party code and sound in Big Red Launcher
+==============================================
 Everything else in this package is the project's own code: free software under the
 GNU General Public License, version 3 or (at your option) any later version
 (LICENSE.txt). Each part below is pinned to a release or commit and checked by
@@ -168,6 +168,14 @@ AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
 ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ------------------------------------------------------------------------------
+
+The menus' joystick click (JOYCLICK.WAV, built into PATCH.DLL, which writes it into the
+game's SAMPLES folder): "UI Click Deep"
+  Sound Effect by SoundShelfStudio from Pixabay
+  https://pixabay.com/users/soundshelfstudio-46480698/
+  https://pixabay.com/sound-effects/
+  Under the Pixabay Content License; converted to the game's own sample format
+  (11,025 Hz, 8-bit, mono) and trimmed to the click.
 
 Downloaded by Install Game Files.bat, only if you choose that music format
 (not in this package; each from its own source, checked by SHA-256):

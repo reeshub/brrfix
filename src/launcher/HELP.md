@@ -515,13 +515,32 @@ default); the nitro rumble is half as strong.
 
 **Controller menu navigation** (on by default; both renderers, any joystick)
 
-The 1996 game already lets joystick button 1 (A on a pad) choose in its menus,
-as Return does. With this ticked, button 2 (B) goes back, as Esc does (on the
-first screens, as with Esc, it quits the game), and the stick's left and right
-(and a pad's D-pad) change the choice where the menus have arrows, as the arrow
-keys do: the race, the logo, the car. Not on the keys screen, where a
-joystick's buttons and directions can be given to controls, nor the joystick
-screen. Moving up and down through a menu's options is still to come.
+A joystick or pad can run the menus. Until you use it, the menus work as
+usual. Push up or down (the stick or the D-pad) and the top item is selected:
+it stops shimmering (its text, and its button, border or tick box), and the
+mouse pointer is hidden. Up and down then step through every item in reading
+order (along a row, then the next row), with a click, stopping at the top and
+the bottom; left and right move along a row, such as from a slider's - to its
++. Button 1 (A) chooses, and ticks or unticks a box; button 2 (B) goes back,
+as Esc does (on the first screens, as with Esc, it quits the game), and also
+ends the attract demo and track select's View. Where the arrow keys change the
+race, the logo or the car, left and right still do that, and the arrow buttons
+themselves are skipped. With this ticked, any input on the main menu (the
+mouse, a key or the joystick) holds back the attract demo for another 15
+seconds, as if the menu had just appeared (in 1996 it started 15 seconds after
+the menu appeared, however busy you were).
+
+The name screen starts with the last name you entered, so button 1 accepts
+it; if the game asks "Create new file?", button 1 is Y and button 2 is N.
+Using the joystick in the menus also sets player one's controls to it (JS1 in
+Options, Joysticks), unless you change that setting yourself. Moving the
+mouse, clicking or pressing a key brings back the pointer and hands the menus
+back to the mouse and keyboard, and they start that way again after a race.
+The keys screen and the recording name are left to the keyboard (button 2
+still goes back).
+
+The last name is kept in BRRNAME.TXT in the Game folder, and the click
+("UI Click Deep" by SoundShelfStudio, from Pixabay) in Game\SAMPLES\JOYCLICK.WAV.
 
 ## Advanced
 

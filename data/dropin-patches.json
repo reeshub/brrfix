@@ -183,6 +183,46 @@
    "sha256": "6a84de3713796a461511080ab62ea92d569f03b91098ea5b3f396b59a3553049"
   },
   {
+   "name": "hotspot_draw_call",
+   "fix": "menu_nav",
+   "address": "0x427DFB",
+   "length": 5,
+   "patch": "menu_draw_group's CALL menu_hotspot_draw (0x427C7C, the hotspot's index in AX) -> CALL brr_hook_hotspot_draw: the joystick menu navigation notes what was drawn (another mode's buttons aren't), gives the selected item's texts their font and its animated sprites their frame of the moment it was selected (they stop shimmering), leaves out the pointer while the joystick has the menus, and notes where each text ends (the pointer goes 3/4 along; menunav.c)",
+   "sha256": "fafb867bb66d82d6d5b76aefc9f8742be82d7df983ca08031dfc0710c8d437a0"
+  },
+  {
+   "name": "sound_button_fx_minus",
+   "fix": "menu_nav",
+   "address": "0x40AEA1",
+   "length": 5,
+   "patch": "sound_options_draw's CALL sprite_draw (0x426D48) of the effects volume's - (frame 9 - step) -> CALL brr_sound_sprite_down: in the joystick's selection the button keeps its step of the screen's animation (sound_options_anim 0x44AEC0; menunav.c)",
+   "sha256": "da138779b753f444b15f85d0c458b53544b529b2f998812491704517e369eff8"
+  },
+  {
+   "name": "sound_button_fx_plus",
+   "fix": "menu_nav",
+   "address": "0x40AEC6",
+   "length": 5,
+   "patch": "sound_options_draw's CALL sprite_draw (0x426D48) of the effects volume's + (frame 4 - step) -> CALL brr_sound_sprite_down: in the joystick's selection the button keeps its step of the screen's animation (sound_options_anim 0x44AEC0; menunav.c)",
+   "sha256": "6a49153d7389038840b47431ac7afcc10d881d5a61ce5aebcdfa4ef4c976dd1d"
+  },
+  {
+   "name": "sound_button_ok",
+   "fix": "menu_nav",
+   "address": "0x40AEE8",
+   "length": 5,
+   "patch": "sound_options_draw's CALL sprite_draw (0x426D48) of OK (frame step + 10) -> CALL brr_sound_sprite_up: in the joystick's selection the button keeps its step of the screen's animation (sound_options_anim 0x44AEC0; menunav.c)",
+   "sha256": "ef5f4798627ed235a0a4e0bdf264968d590aa4ec1da075a4f13bcfd73299b3dd"
+  },
+  {
+   "name": "sound_button_commentary",
+   "fix": "menu_nav",
+   "address": "0x40B016",
+   "length": 5,
+   "patch": "sound_options_draw's CALL sprite_draw (0x426D48) of the commentary tick box (frame 2 x step + 0x37, ticked 0x38) -> CALL brr_sound_sprite_up2: in the joystick's selection the button keeps its step of the screen's animation (sound_options_anim 0x44AEC0; menunav.c)",
+   "sha256": "ba2ef0158bdeff58ea36a02430e1dd5b478898bc03dc5377a11da36e1a50e623"
+  },
+  {
    "name": "version_date",
    "fix": "version",
    "address": "0x406365",
@@ -296,10 +336,10 @@
   },
   {
    "name": "menu_mouse",
-   "fix": "renderer",
+   "fix": "menu_mouse",
    "address": "0x42754E",
    "length": 56,
-   "patch": "0x4274FC's mapping of the mouse into the menu (only at exactly 640x480: x / 2, (y - 40) / 2) -> CALL brr_hook_menu_mouse (the inverse of the new renderer's layout: (x - left) / across, (y - top) / down) + JMP to its stores + NOPs",
+   "patch": "0x4274FC's mapping of the mouse into the menu (only at exactly 640x480: x / 2, (y - 40) / 2) -> CALL brr_hook_menu_mouse + JMP to its stores + NOPs: the Modern renderer's inverse of its layout ((x - left) / across, (y - top) / down), or with the Original renderer the original mapping exactly; then, while the joystick has the menus, the pointer at the selection and button 1 as the left button (menunav.c). With the Modern renderer or [controller] menu_navigation",
    "sha256": "cfc32948bb8eae0d3493b246eaeed977daa1bba9cefbefd4743d1da47c6173bb"
   },
   {

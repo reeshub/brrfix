@@ -7,6 +7,17 @@
 
         public  brr_hook_rotation_, brr_rotation_trampoline_, brr_call_rotation_original_
         public  brr_cam4_, brr_cap_
+        public  brr_menu_tick_, brr_hook_menu_mouse_, brr_hook_hotspot_draw_
+        public  brr_sound_sprite_down_, brr_sound_sprite_up_, brr_sound_sprite_up2_
+        extrn   nav_before_tick_ : near
+        extrn   nav_after_tick_ : near
+        extrn   nav_before_draw_ : near
+        extrn   nav_after_draw_ : near
+        extrn   nav_sprite_frame_ : near
+        extrn   brr_dos_menu_mouse_ : near
+        extrn   game_menu_hotspots_tick_ : near
+        extrn   game_menu_hotspot_draw_ : near
+        extrn   game_sprite_draw_ : near
         extrn   brr_frame_start_ : near
         public  _brr_options, _brr_input, _brr_input_count, _brr_tag
         extrn   brr_rotation_fine_ : near
@@ -17,7 +28,7 @@
 ; logging build (key, first tick, last tick), and the version text shown on the menu.
 ; Read-only at run time, after our code (the build places CONST straight after it).
 CONST   segment dword public use32 'DATA'
-_brr_options            dd      12 dup (0)
+_brr_options            dd      13 dup (0)
 _brr_input              dd      24 dup (0)
 _brr_input_count        dd      0
 _brr_tag                db      32 dup (0)
@@ -99,5 +110,67 @@ brr_cap_:
         call    brr_frame_start_
         pop     eax
         ret
+
+; The joystick menu navigation (../dropin/menunav.c, navdos.c; option menu_pad).
+; run_screen's per-tick CALL menu_hotspots_tick (0x2C64C): the navigation before and after
+; it. DL is run_screen's tick counter: every register is kept.
+brr_menu_tick_:
+        pushad
+        call    nav_before_tick_
+        popad
+        call    game_menu_hotspots_tick_
+        pushad
+        call    nav_after_tick_
+        popad
+        ret
+
+; menu_mouse_update's end (0x2517B: POP EDI; POP ECX; POP EBX; RET), reached by a JMP:
+; the navigation's say on the menu's pointer and buttons, then those instructions.
+brr_hook_menu_mouse_:
+        pushad
+        call    brr_dos_menu_mouse_
+        popad
+        pop     edi
+        pop     ecx
+        pop     ebx
+        ret
+
+; menu_draw_group's CALL menu_hotspot_draw (0x259BF), EAX the hotspot: the navigation's notes
+; either side of it. Every register is kept.
+brr_hook_hotspot_draw_:
+        push    eax
+        pushad
+        call    nav_before_draw_
+        popad
+        call    game_menu_hotspot_draw_
+        pushad
+        mov     eax, [esp + 32]
+        call    nav_after_draw_
+        popad
+        add     esp, 4
+        ret
+
+; sound_options_draw's CALL sprite_draw of a button (EDX its frame, EBX x, ECX y): the frame
+; nav_sprite_frame gives (its step of the screen's animation kept in the joystick's
+; selection), then sprite_draw. Each entry is how the button's frame follows the step.
+brr_sound_sprite_down_:
+        push    -1
+        jmp     short sound_sprite
+brr_sound_sprite_up_:
+        push    1
+        jmp     short sound_sprite
+brr_sound_sprite_up2_:
+        push    2
+sound_sprite:
+        pushad
+        movsx   eax, dx
+        mov     edx, ebx
+        mov     ebx, [esp + 24]
+        mov     ecx, [esp + 32]
+        call    nav_sprite_frame_
+        mov     [esp + 20], eax
+        popad
+        add     esp, 4
+        jmp     game_sprite_draw_
 
         end

@@ -162,8 +162,8 @@ static int enabled(const char *fix)
         return cfg.show_version;
     if (!strcmp(fix, "controller"))  /* also centres absent joysticks for the menu navigation */
         return cfg.controller || cfg.debug_pad_test || cfg.menu_navigation;
-    if (!strcmp(fix, "keys"))
-        return cfg.fix_menu_keys || cfg.debug_log_keys;
+    if (!strcmp(fix, "keys"))  /* the per-tick hook also carries the joystick menu navigation */
+        return cfg.fix_menu_keys || cfg.debug_log_keys || cfg.menu_navigation;
     if (!strcmp(fix, "display"))
         return cfg.display_mode != DISPLAY_ASK;
     if (!strcmp(fix, "present"))  /* our window drawing, and the new renderer */
@@ -208,6 +208,9 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "wide_menus"))
         return brr_widescreen && brr_renderer_active && cfg.render_max && cfg.widescreen_menus;
     if (!strcmp(fix, "menu_pad")) return cfg.menu_navigation;
+    if (!strcmp(fix, "menu_nav")) return cfg.menu_navigation;  /* the selection (menunav.c) */
+    /* the menu's mouse: the Modern renderer's mapping, or the joystick navigation's pointer */
+    if (!strcmp(fix, "menu_mouse")) return brr_renderer_active || cfg.menu_navigation;
     if (!strcmp(fix, "no_screenshot")) return brr_renderer_active;  /* ours is to come (the director) */
     if (!strcmp(fix, "draw_distance")) return cfg.max_draw_distance > 0;  /* experimental, off by default */
     /* beyond the near pass's grid; also at 25 in widescreen, where the grid can't hold the
@@ -301,6 +304,13 @@ static int replacement(const struct site_info *s, uint8_t *out)
     } else if (!strcmp(n, "scn_end_call") && s->length == 5) {
         out[0] = 0xE8;  /* CALL brr_hook_scn_end: the twins added, then menu_background_save */
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_scn_end);
+    } else if (!strcmp(n, "hotspot_draw_call") && s->length == 5) {
+        out[0] = 0xE8;  /* CALL brr_hook_hotspot_draw: the joystick menu navigation's notes either side */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_hotspot_draw);
+    } else if (!strncmp(n, "sound_button_", 13) && s->length == 5) {
+        out[0] = 0xE8;  /* CALL brr_sound_sprite_*: the button keeps its step in the joystick's selection */
+        put_rel32(out + 1, s->address + 5, !strcmp(n, "sound_button_commentary") ? (void *)brr_sound_sprite_up2
+                  : !strcmp(n, "sound_button_ok") ? (void *)brr_sound_sprite_up : (void *)brr_sound_sprite_down);
     } else if (!strcmp(n, "class_menu") && s->length == 1) {
         out[0] = 0x74;  /* MOV [ESP+0x24],ESI: the window class has no menu */
     } else if (!strcmp(n, "window_command_resolution") && s->length == 7) {
