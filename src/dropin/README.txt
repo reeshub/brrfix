@@ -101,7 +101,9 @@ called Game inside it and the CD music in a folder called Music:
    at any time to check the Game folder: it puts back any of the game's files
    that are missing or changed, and leaves everything else alone. Windows may
    warn that it came from the internet ("More info", then "Run anyway"): it's
-   a plain batch file, which you can read in Notepad.
+   a plain batch file, which you can read in Notepad. It needs Windows
+   PowerShell, so on Windows 95, 98 and ME (or XP) it only says so: run it on a
+   newer PC and copy the folders across, or install the game yourself (next).
    Or, with a copy you installed yourself: make a folder called Game inside it,
    and copy your installed game into it: everything in the game's folder (for
    example C:\BIGRED). Or leave the game where it is, and set [launcher] game=
