@@ -1007,11 +1007,45 @@ int32_t __cdecl brr_lod_scale(int32_t depth)
     return depth;
 }
 
+/* The drivers' heads (HEADnn.3DW in TEAMS.TEA) have a close-up version the game draws only within
+ * 80 units (0.156 squares) of the camera, so never in a race; the next smallest band of any model
+ * is a wheel's 0.78 squares. Team 4's (HEAD41) has a mouth drawn textured with no texture of its
+ * own (the only such version in the game's 130 models with versions), so it takes whatever
+ * texture was last used, and when that was a flat polygon's colour the engine reads the colour
+ * as an address: the attract demo's crash (2026-11-23). Matched and highest don't pick a version
+ * ending this near unless the game itself would. */
+#define CLOSE_UP_VERSION (128L << 16)  /* a quarter of a square, 16.16 */
+uint32_t brr_close_ups_skipped;
+
 void __cdecl brr_lod_select(const int32_t *table)
 {
+    int32_t depth = *(volatile int32_t *)0x54B488;
     if (cfg.debug_lod_log)
         lod_log(table);
-    brr_lod_depth = brr_lod_scale(*(volatile int32_t *)0x54B488);
+    brr_lod_depth = brr_lod_scale(depth);
+    if (table[0] != -1 && table[0] < CLOSE_UP_VERSION && table[2] != -1 && depth > table[0]
+        && brr_lod_depth <= table[0]) {
+        brr_lod_depth = table[0] + 1;  /* past the close-up: the next version, as the game */
+        brr_close_ups_skipped++;
+    }
+}
+
+/* The name the model cache (the .3DW cache, 0x542A90: a byte count at +4 and a list at +8 of
+ * entries of (their size, the data, the name)) keeps for a model's data, or "?" (crash reports) */
+const char *brr_model_name(const void *model)
+{
+    const uint8_t *entry = *(const uint8_t *const *)0x542A98;
+    int32_t left = *(const int32_t *)0x542A94;
+    while (entry && left > 0) {
+        uint32_t size = *(const uint32_t *)entry;
+        if (*(const void *const *)(entry + 4) == model)
+            return (const char *)(entry + 8);
+        if (size < 12)
+            break;
+        left -= (int32_t)size;
+        entry += size;
+    }
+    return "?";
 }
 
 /* Site shading_threshold: the distance in squares inside which display_list_draw lights objects
@@ -1053,6 +1087,10 @@ void brr_display_list_report(void)
     if (brr_count_unlit)
         brr_log("object lighting: %lu times the game would have left far objects unlit after an effect",
                 (unsigned long)brr_count_unlit);
+    if (brr_close_ups_skipped)
+        brr_log("object detail: %lu times a model's close-up version (the drivers' heads) left to the game's own "
+                "choice", (unsigned long)brr_close_ups_skipped);
+    brr_close_ups_skipped = 0;
     brr_count_project = brr_count_backface = brr_count_clip = brr_count_unlit = 0;
     if (list_frames) {
         uint32_t node_base, node_count, record_base, record_count;

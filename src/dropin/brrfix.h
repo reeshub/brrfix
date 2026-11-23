@@ -268,6 +268,8 @@ void brr_hook_lod(void);                   /* thunks.asm: site lod_select; rende
 void brr_hook_fit_depth(void);              /* thunks.asm: site fit_depth */
 int32_t __cdecl brr_lod_scale(int32_t depth);
 extern int32_t brr_lod_depth;
+extern uint32_t brr_close_ups_skipped;
+const char *brr_model_name(const void *model);
 void brr_hook_shading_threshold(void);
 int __cdecl brr_shading_threshold(void);
 extern uint32_t brr_count_unlit;

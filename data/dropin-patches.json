@@ -1851,7 +1851,7 @@
    "fix": "object_detail",
    "address": "0x4411BE",
    "length": 7,
-   "patch": "Modern renderer, [display] object_detail matched (the default) or highest. object_draw: CMP dword ptr [0x54B488],0 (the object's depth, 16.16, before the level-of-detail loop; ESI the model's table of (depth, offset) pairs ended by -1) -> CALL brr_hook_lod (thunks.asm) and 2 NOPs: brr_lod_select (render.c) sets brr_lod_depth (the depth x 512 / the horizontal scale: the depth the object would have in the game's 640-wide picture; or 0, the most detailed), then the same CMP for the JS after",
+   "patch": "Modern renderer, [display] object_detail matched (the default) or highest. object_draw: CMP dword ptr [0x54B488],0 (the object's depth, 16.16, before the level-of-detail loop; ESI the model's table of (depth, offset) pairs ended by -1) -> CALL brr_hook_lod (thunks.asm) and 2 NOPs: brr_lod_select (render.c) sets brr_lod_depth (the depth x 512 / the horizontal scale: the depth the object would have in the game's 640-wide picture; or 0, the most detailed), then the same CMP for the JS after; a model's first version ending within a quarter of a square (the drivers' close-up heads, which the game draws only within 80 units; team 4's HEAD41 draws its mouth textured with no texture, the attract-demo crash) is chosen only where the game would choose it",
    "sha256": "4cb0fc51182e46094ca99952b749a037f84642f5520b5c8cf9343c7513b55a5e"
   },
   {

@@ -607,15 +607,64 @@ static void write_code(uint32_t address, const uint8_t *bytes, uint32_t size)
     FlushInstructionCache(GetCurrentProcess(), (void *)address, size);
 }
 
+/* A crash report in BRRFIX.LOG (once): where, the registers, and the top of the stack, whose
+ * return addresses give the calls that led there. The crash then goes on as before (the
+ * game's own handler, "Application Error"). */
+static void report_crash(const EXCEPTION_RECORD *rec, const CONTEXT *ctx)
+{
+    const uint32_t *stack = (const uint32_t *)ctx->Esp;
+    char line[160];
+    int i, j, n;
+    brr_log("crash: exception 0x%08lX at 0x%08lX%s 0x%08lX", (unsigned long)rec->ExceptionCode,
+            (unsigned long)ctx->Eip, rec->NumberParameters >= 2 && rec->ExceptionInformation[0] ? ", writing" : ", reading",
+            rec->NumberParameters >= 2 ? (unsigned long)rec->ExceptionInformation[1] : 0ul);
+    brr_log("crash: eax %08lX ebx %08lX ecx %08lX edx %08lX esi %08lX edi %08lX ebp %08lX esp %08lX",
+            (unsigned long)ctx->Eax, (unsigned long)ctx->Ebx, (unsigned long)ctx->Ecx, (unsigned long)ctx->Edx,
+            (unsigned long)ctx->Esi, (unsigned long)ctx->Edi, (unsigned long)ctx->Ebp, (unsigned long)ctx->Esp);
+    if (!readable((uint32_t)stack, 128 * 4))
+        return;
+    for (i = 0; i < 128; i += 8) {
+        n = sprintf(line, "crash: stack +%03X", i * 4);
+        for (j = 0; j < 8; j++)
+            n += sprintf(line + n, " %08lX", (unsigned long)stack[i + j]);
+        brr_log("%s", line);
+    }
+    {   /* the 3D engine's object being drawn (object_draw: object_current 0x5430B8, its model at
+         * +0x18, the model's table of (depth, offset) versions at +0x20), and its depth */
+        const uint32_t *object = *(const uint32_t *const *)0x5430B8;
+        brr_log("crash: 3D object %08lX, model %s, depth %ld/512 squares (the version chosen by %ld)",
+                (unsigned long)object, object && readable((uint32_t)object, 0x20) ? brr_model_name((const void *)object[6]) : "?",
+                (long)(*(volatile int32_t *)0x54B488 >> 16), (long)(brr_lod_depth >> 16));
+        if (object && readable((uint32_t)object, 0x20)) {
+            const uint32_t *model = (const uint32_t *)object[6];
+            n = sprintf(line, "crash: object");
+            for (j = 0; j < 8; j++)
+                n += sprintf(line + n, " %08lX", (unsigned long)object[j]);
+            brr_log("%s", line);
+            if (model && readable((uint32_t)model, 0x60))
+                for (i = 0; i < 24; i += 8) {
+                    n = sprintf(line, "crash: model +%02X", i * 4);
+                    for (j = 0; j < 8; j++)
+                        n += sprintf(line + n, " %08lX", (unsigned long)model[i + j]);
+                    brr_log("%s", line);
+                }
+        }
+    }
+}
+
 /* ---- the safety net: skip any IN/OUT the patches missed (e.g. -TIMER's border
  * flashing), instead of the "privileged instruction" crash. IN from 0x3DA
  * alternates retrace bits so wait loops end. ---- */
 static LONG CALLBACK io_handler(EXCEPTION_POINTERS *info)
 {
     static uint32_t logged[32];
-    static int logged_count, toggle;
+    static int logged_count, toggle, crash_reported;
     EXCEPTION_RECORD *rec = info->ExceptionRecord;
     CONTEXT *ctx = info->ContextRecord;
+    if (rec->ExceptionCode == EXCEPTION_ACCESS_VIOLATION && !crash_reported) {
+        crash_reported = 1;
+        report_crash(rec, ctx);
+    }
     if (rec->ExceptionCode != EXCEPTION_PRIV_INSTRUCTION)
         return EXCEPTION_CONTINUE_SEARCH;
     const uint8_t *ip = (const uint8_t *)ctx->Eip;

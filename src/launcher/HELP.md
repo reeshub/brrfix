@@ -281,7 +281,11 @@ it at all beyond the last, usually 39 squares.
 
 - **Highest** (the default): always the most detailed version, at any
   distance. There's more to draw, though in our tests on Italy it made no
-  measurable difference to how long each picture took.
+  measurable difference to how long each picture took. The drivers' heads are
+  the exception: their most detailed version is a close-up the game only shows
+  within a sixth of a square, never in a race, so they keep the game's own
+  choice (one of them had a flaw that could crash the game when drawn further
+  away).
 - **Matched:** each version is picked by the object's size on screen, as the
   game picked it for its 640x480 picture. At today's sizes the changes happen
   further away, where they can't be seen, and objects reach the far draw
