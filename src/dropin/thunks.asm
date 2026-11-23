@@ -59,12 +59,14 @@
         extrn   _brr_after_menu_hotspots:near
         extrn   _brr_orig_menu_hotspots:dword
         extrn   _brr_orig_hotspot_draw:dword
+        extrn   _brr_orig_text_draw:dword
+        extrn   _nav_label_font:near
         extrn   _brr_orig_sprite_draw:dword
         extrn   _nav_sprite_frame:near
         public  _brr_sound_sprite_down, _brr_sound_sprite_up, _brr_sound_sprite_up2
         extrn   _nav_before_draw:near
         extrn   _nav_after_draw:near
-        public  _brr_hook_hotspot_draw, _brr_call_play_sample
+        public  _brr_hook_hotspot_draw, _brr_call_play_sample, _brr_hook_label_draw
         extrn   _brr_present_gdi:near
         extrn   _brr_gdi_present:dword
         extrn   _brr_present_continue:dword
@@ -481,6 +483,15 @@ _brr_hook_hotspot_draw:
         popad
         add     esp, 4
         ret
+
+; Site label_draw_call: joystick_options_draw_type's CALL text_draw (0x4124A0; EAX the text,
+; EDX 0, EBX 0x7FFF, text_x and text_y already set): nav_label_font gives the label its line's
+; font (menunav.c), then text_draw, returning to the game's caller. Every register is kept.
+_brr_hook_label_draw:
+        pushad
+        call    _nav_label_font
+        popad
+        jmp     dword ptr [_brr_orig_text_draw]
 
 ; sound_options_draw's CALL sprite_draw (0x426D48) of a button (EDX its frame, EBX x, ECX y;
 ; sites sound_button_*): the frame nav_sprite_frame gives (its step of the screen's animation

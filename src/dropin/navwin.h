@@ -13,6 +13,8 @@
 #define NAV_KEY_CHARS    ((const unsigned char *)0x44ADCE)         /* key_char_table */
 #define NAV_IDLE         (*(volatile short *)0x4B13B4)             /* menu_idle_ticks: 15 s on the main menu, the demo */
 #define NAV_TEXT_X       (*(volatile short *)0x452652)             /* text_x: text_draw's cursor */
+#define NAV_TEXT_Y       (*(volatile short *)0x452650)             /* text_y */
+#define NAV_TEXT_FONT    (*(volatile short *)0x44B34C)             /* text_font: text_draw's font */
 #define NAV_ANIMS        ((volatile unsigned char *)0x4B11C4)      /* anims: 0x31 bytes each, +7 the frame */
 #define NAV_NAME         ((unsigned char *)0x44AE68)               /* name_entry_text: up to 8 + NUL */
 #define NAV_NAME_LEN     (*(volatile short *)0x44AE76)             /* name_entry_length */

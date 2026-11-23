@@ -24,6 +24,8 @@ void nav_before_draw(int index);  /* around menu_draw_group's menu_hotspot_draw(
 void nav_after_draw(int index);
 /* sound_options_draw's sprite_draw(frame, x, y) of a button: the frame to draw instead */
 int nav_sprite_frame(int frame, int x, int y, int per_step);
+/* Before text_draw of a text the screen's own code places (text_x, text_y): its font */
+void nav_label_font(void);
 
 /* JOYCLICK.WAV, built by the core before nav_install_click (JOYCLICK_WAV_SIZE bytes) */
 extern unsigned char nav_click_wav[];

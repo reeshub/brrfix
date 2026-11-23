@@ -10,6 +10,8 @@ extern volatile u8 game_keyboard_last_key;    /* the last key typed (the name sc
 extern const u8 game_key_char_table[];
 extern volatile s16 game_menu_idle_ticks;
 extern volatile s16 game_text_x;              /* text_draw's cursor */
+extern volatile s16 game_text_y;
+extern volatile s16 game_text_font;           /* text_draw's font */
 extern volatile u8 game_anims[];              /* 0x31 bytes each, +7 the frame */
 extern u8 game_name_entry_text[];
 extern volatile s16 game_name_entry_length;
@@ -35,6 +37,8 @@ extern void game_sound_play_sample(const char *name);       /* SAMPLES\<name>.WA
 #define NAV_KEY_CHARS game_key_char_table
 #define NAV_IDLE      game_menu_idle_ticks
 #define NAV_TEXT_X    game_text_x
+#define NAV_TEXT_Y    game_text_y
+#define NAV_TEXT_FONT game_text_font
 #define NAV_ANIMS     game_anims
 #define NAV_NAME      game_name_entry_text
 #define NAV_NAME_LEN  game_name_entry_length

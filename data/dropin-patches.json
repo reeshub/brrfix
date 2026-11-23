@@ -191,6 +191,14 @@
    "sha256": "fafb867bb66d82d6d5b76aefc9f8742be82d7df983ca08031dfc0710c8d437a0"
   },
   {
+   "name": "label_draw_call",
+   "fix": "menu_nav",
+   "address": "0x40B4A4",
+   "length": 5,
+   "patch": "joystick_options_draw_type's CALL text_draw (0x4124A0) of a player's controls (\"Keys/Custom\", \"JS1\"...) -> CALL brr_hook_label_draw: while the joystick has the menus, the label takes the font of its line (\"Pl1:\" or \"Pl2:\") as drawn this frame, instead of whatever the last script text left (\"Pl2:\"'s), so it stops or animates with its line (menunav.c)",
+   "sha256": "d0ba03b48fd8d27821e0d0fa0f53f69241b0d6beb794d220b1155ede6d0ba845"
+  },
+  {
    "name": "sound_button_fx_minus",
    "fix": "menu_nav",
    "address": "0x40AEA1",

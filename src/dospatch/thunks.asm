@@ -7,13 +7,15 @@
 
         public  brr_hook_rotation_, brr_rotation_trampoline_, brr_call_rotation_original_
         public  brr_cam4_, brr_cap_, brr_approach_
-        public  brr_menu_tick_, brr_hook_menu_mouse_, brr_hook_hotspot_draw_
+        public  brr_menu_tick_, brr_hook_menu_mouse_, brr_hook_hotspot_draw_, brr_hook_label_draw_
         public  brr_sound_sprite_down_, brr_sound_sprite_up_, brr_sound_sprite_up2_
         extrn   nav_before_tick_ : near
         extrn   nav_after_tick_ : near
         extrn   nav_before_draw_ : near
         extrn   nav_after_draw_ : near
         extrn   nav_sprite_frame_ : near
+        extrn   nav_label_font_ : near
+        extrn   game_text_draw_ : near
         extrn   brr_dos_menu_mouse_ : near
         extrn   game_menu_hotspots_tick_ : near
         extrn   game_menu_hotspot_draw_ : near
@@ -165,6 +167,14 @@ brr_hook_hotspot_draw_:
         popad
         add     esp, 4
         ret
+
+; joystick_options_draw_type's CALL text_draw (0x32584; EAX the text, EDX 0, EBX 0x7FFF, text_x
+; and text_y set): the label's font from its line (nav_label_font), then text_draw.
+brr_hook_label_draw_:
+        pushad
+        call    nav_label_font_
+        popad
+        jmp     game_text_draw_
 
 ; sound_options_draw's CALL sprite_draw of a button (EDX its frame, EBX x, ECX y): the frame
 ; nav_sprite_frame gives (its step of the screen's animation kept in the joystick's

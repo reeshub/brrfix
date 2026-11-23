@@ -307,6 +307,9 @@ static int replacement(const struct site_info *s, uint8_t *out)
     } else if (!strcmp(n, "hotspot_draw_call") && s->length == 5) {
         out[0] = 0xE8;  /* CALL brr_hook_hotspot_draw: the joystick menu navigation's notes either side */
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_hotspot_draw);
+    } else if (!strcmp(n, "label_draw_call") && s->length == 5) {
+        out[0] = 0xE8;  /* CALL brr_hook_label_draw: the label's font from its line, then text_draw */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_label_draw);
     } else if (!strncmp(n, "sound_button_", 13) && s->length == 5) {
         out[0] = 0xE8;  /* CALL brr_sound_sprite_*: the button keeps its step in the joystick's selection */
         put_rel32(out + 1, s->address + 5, !strcmp(n, "sound_button_commentary") ? (void *)brr_sound_sprite_up2

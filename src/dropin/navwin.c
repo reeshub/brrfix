@@ -1,13 +1,14 @@
 /* Joystick menu navigation: Windows' side (the shared core is menunav.c). The hooks: keys.c's
  * calls either side of menu_hotspots_tick (site menu_hotspots_call), render.c's menu mouse
  * (site menu_mouse, both renderers with the navigation on), thunks.asm's
- * brr_hook_hotspot_draw (site hotspot_draw_call) and brr_sound_sprite_* (sites
- * sound_button_*). The game runs in its own folder (Game\),
+ * brr_hook_hotspot_draw (site hotspot_draw_call), brr_hook_label_draw (site label_draw_call)
+ * and brr_sound_sprite_* (sites sound_button_*). The game runs in its own folder (Game\),
  * so the click and the last name are files there, shared with the DOS version. */
 #include "menunav.h"
 #include "joyclick.h"
 
 uint32_t brr_orig_hotspot_draw = 0x427C7C;  /* menu_hotspot_draw */
+uint32_t brr_orig_text_draw = 0x4124A0;     /* text_draw */
 uint32_t brr_orig_sprite_draw = 0x426D48;   /* sprite_draw */
 static int click_ready, cursor_hidden;
 

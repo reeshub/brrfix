@@ -35,6 +35,13 @@
  *   menu_anim): original-ish, as above, the selection still; or inverted: every other item
  *   is held still (as it looked when it stopped being the selection, or when first drawn)
  *   and only the selection animates. Headings and the screens' other pictures animate as ever.
+ *   A new screen is held from its very first picture, drawn by its enter routine before its
+ *   first tick (no flash of animation as it appears; the director, 2026-11-23). An item's
+ *   labels go with it: a text in no box labels the row of items beside it, or just below it
+ *   (the damage screen's "PL1:" and "PL2:", the sound screen's "FX", the landscape screen's
+ *   slider names), and the joysticks screen's "Keys/Custom" or "JS1" take their line's font.
+ * - While the joystick or the arrow keys have the menus, the buttons only the mouse needs
+ *   aren't drawn: the globe's Select and car select's Next (the director, 2026-11-23).
  * - It carries on through every screen (the top item of each new one is selected), until a
  *   race starts, or the mouse is moved or clicked, or another key pressed: then the menus are
  *   the mouse's and keyboard's again.
@@ -70,6 +77,7 @@
 #define LAST_KEYBOARD 0x72    /* key-table indices up to here are the keyboard's */
 #define SCREEN_GLOBE  0x00    /* the level select */
 #define SCREEN_TRACK  0x01    /* the track: car, view, race */
+#define SCREEN_CAR    0x03    /* car select */
 #define ACTION_RACE   3       /* the track screen's Race (Return's choice there) */
 #define SCREEN_MAIN   0x08
 #define SCREEN_SOUND  0x0B
@@ -86,6 +94,8 @@
 #define DRAWN_TICKS   35      /* drawn within half a second: shown */
 #define CLOSE         12      /* pixels: a box corner this close to a sprite or text */
 #define MIN_ITEM      16
+#define TEXT_HIGH     16      /* the menu fonts */
+#define LABEL_REACH   110     /* pixels: from a label to the first item of its row */
 
 enum { B1, B2, LEFT = 4, RIGHT, UP, DOWN, JOY_KEYS };  /* 0x73 + n */
 enum { SAVED_FONT = 1, SAVED_FRAME, SAVED_TYPE };
@@ -106,7 +116,7 @@ static const unsigned char held_keys[] = { KEY_B1, KEY_B2, KEY_RETURN, KEY_PAD_E
 
 static int started, joy, screen, ticks_on_screen, selected, have_target, press_button, hid_clicks;
 static int pending_action, manual_type, full_name, owners_screen, owners_count, drawn_any, input_seen;
-static int globe_again, stick_used;
+static int globe_again, stick_used, arrived;
 static int saved_index, saved_value, saved_what, still_set, still_step;
 static unsigned char hid_click[3], held_over[HELD_KEYS], hid_over[HELD_KEYS];
 static short target_x, target_y;
@@ -114,6 +124,7 @@ static unsigned long tick_serial;
 static unsigned char joy_prev[JOY_KEYS], key_prev[LAST_KEYBOARD + 1];
 static short owner[MAX_HOTSPOTS], anchor_x[MAX_HOTSPOTS], anchor_y[MAX_HOTSPOTS];
 static short text_end[MAX_HOTSPOTS], frozen[MAX_HOTSPOTS];
+static short row_of[MAX_HOTSPOTS];        /* a label's row: one of its items (find_owners) */
 static unsigned char item[MAX_HOTSPOTS];  /* a box that can be an item (find_owners) */
 static unsigned long drawn_at[MAX_HOTSPOTS];
 
@@ -136,7 +147,7 @@ static void forget_screen(void)
 {
     int i;
     for (i = 0; i < MAX_HOTSPOTS; i++) {
-        owner[i] = -1;
+        owner[i] = row_of[i] = -1;
         text_end[i] = -1;
         frozen[i] = -1;
         drawn_at[i] = 0;
@@ -204,19 +215,27 @@ static int distance(int a, int b)
     return a > b ? a - b : b - a;
 }
 
-/* Each text, sprite and animated sprite: its box (the smallest it's in, else one whose
- * corner is close). Kept while only hotspots are added (the main menu's credits ticker
- * takes the next one now and then). */
+/* Each text, sprite and animated sprite: its box (the smallest it's in, a text by its middle
+ * line, else one whose corner is close). A text in no box is a label, of the row of items
+ * starting at most LABEL_REACH pixels to its right on its line, or just below it (a caption):
+ * the damage screen's "PL1:" and "PL2:", the sound screen's "FX", the landscape screen's slider
+ * names. Kept while only hotspots are added (the main menu's credits ticker takes the next one
+ * now and then). */
 static int left_out(int action);
 
 static void find_owners(void)
 {
     int n = count(), d, m;
+    for (m = 0; m < n; m++) {
+        short *b = HS(m);
+        item[m] = b[TYPE] == 5 && b[MB_W] >= MIN_ITEM && b[MB_H] >= MIN_ITEM && !(b[MB_W] >= 300 && b[MB_H] >= 190)
+                  && !left_out(b[MB_ACTION]);
+    }
     for (d = 0; d < n; d++) {
-        short *h = HS(d), x, y;
+        short *h = HS(d), x, y, middle;
         int best = -1;
         long best_score = 0;
-        owner[d] = -1;
+        owner[d] = row_of[d] = -1;
         if (h[TYPE] == 1) {
             x = h[SP_X];
             y = h[SP_Y];
@@ -225,12 +244,13 @@ static void find_owners(void)
             y = h[AS_Y];
         } else if (h[TYPE] != 2 || !text_anchor(*(const unsigned char **)(h + 2), &x, &y))
             continue;
+        middle = h[TYPE] == 2 ? y + TEXT_HIGH / 2 : y;
         for (m = 0; m < n; m++) {
             short *b = HS(m);
             long score;
             if (b[TYPE] != 5 || b[MB_W] <= 2 || b[MB_H] <= 2)
                 continue;
-            if (x >= b[MB_X] && x < b[MB_X] + b[MB_W] && y >= b[MB_Y] && y < b[MB_Y] + b[MB_H])
+            if (x >= b[MB_X] && x < b[MB_X] + b[MB_W] && middle >= b[MB_Y] && middle < b[MB_Y] + b[MB_H])
                 score = (long)b[MB_W] * b[MB_H];
             else {
                 score = distance(x, b[MB_X]) + distance(y, b[MB_Y]);
@@ -246,14 +266,29 @@ static void find_owners(void)
         owner[d] = (short)best;
         anchor_x[d] = x;
         anchor_y[d] = y;
+        if (best >= 0 || h[TYPE] != 2)
+            continue;
+        for (m = 0; m < n; m++) {  /* a label: the nearest row, on its line first */
+            short *b = HS(m);
+            long score;
+            if (!item[m] || b[MB_X] <= x || b[MB_X] - x > LABEL_REACH)
+                continue;
+            if (b[MB_Y] < y + TEXT_HIGH && b[MB_Y] + b[MB_H] > y)
+                score = 0;
+            else if (b[MB_Y] >= y + TEXT_HIGH && b[MB_Y] - (y + TEXT_HIGH) <= CLOSE)
+                score = b[MB_Y] - (y + TEXT_HIGH);
+            else
+                continue;
+            score = score * 1000 + b[MB_X] - x;
+            if (best < 0 || score < best_score) {
+                best = m;
+                best_score = score;
+            }
+        }
+        row_of[d] = (short)best;
     }
     owners_screen = screen;
     owners_count = n;
-    for (m = 0; m < n; m++) {
-        short *b = HS(m);
-        item[m] = b[TYPE] == 5 && b[MB_W] >= MIN_ITEM && b[MB_H] >= MIN_ITEM && !(b[MB_W] >= 300 && b[MB_H] >= 190)
-                  && !left_out(b[MB_ACTION]);
-    }
 }
 
 /* A key hotspot for the stick's left or right with this action (any, with -1): the twins of
@@ -385,9 +420,43 @@ static int shown_now(int d)
     return -1;
 }
 
+/* Part of item m: its own texts and pictures, and the labels of its row */
+static int part_of(int d, int m)
+{
+    return m >= 0 && (owner[d] == m || (row_of[d] >= 0 && same_row(HS(row_of[d]), HS(m))));
+}
+
+/* What d is held at as it's drawn now, -1 if it animates. Inverted: every item's texts and
+ * pictures but the selection's, as they were when first drawn unselected (each held when it
+ * stops being the selection, or as the screen appears). Original-ish: the selection's,
+ * from select_item. */
+static int hold(int d)
+{
+    if (NAV_INVERTED) {
+        int o = owner[d];
+        if (part_of(d, selected) || (row_of[d] < 0 && (o < 0 || !item[o])))
+            frozen[d] = -1;
+        else if (frozen[d] < 0)
+            frozen[d] = (short)shown_now(d);
+    }
+    return frozen[d];
+}
+
+/* Buttons only the mouse needs, not drawn while the joystick or the arrow keys have the menus
+ * (the director, 2026-11-23): the globe's Select (button 1 and Return choose the track there)
+ * and car select's Next (left and right change the vehicle) */
+static int hidden(int m)
+{
+    int a;
+    if (m < 0)
+        return 0;
+    a = HS(m)[MB_ACTION];
+    return (screen == SCREEN_GLOBE && a == 4) || (screen == SCREEN_CAR && a == 0);
+}
+
 /* Original-ish: the selection keeps what it shows as it's selected. Inverted: the others are
- * held as they're first drawn unselected (nav_before_draw), and the sound screen's buttons
- * keep the step they first had */
+ * held as they're first drawn unselected (hold), and the sound screen's buttons keep the step
+ * they first had */
 static void select_item(int m, int click)
 {
     int n = count(), d;
@@ -397,7 +466,7 @@ static void select_item(int m, int click)
     if (!NAV_INVERTED) {
         still_set = 0;
         for (d = 0; d < MAX_HOTSPOTS; d++)
-            frozen[d] = d < n && m >= 0 && owner[d] == m ? (short)shown_now(d) : -1;
+            frozen[d] = d < n && part_of(d, m) ? (short)shown_now(d) : -1;
     }
     if (m < 0)
         return;
@@ -482,6 +551,18 @@ static void changed_screen(int s)
     }
 }
 
+/* A new screen, noticed by the first of the hooks to see it: its enter routine draws it (and
+ * fades it in) before its first tick, so the draw hooks look too, and that first picture
+ * already has only the selection animating, or only it still (the director, 2026-11-23: no
+ * flash of animation as a screen appears). The tick does the rest (arrived). */
+static void follow_screen(void)
+{
+    if (NAV_SCREEN != screen) {
+        changed_screen(NAV_SCREEN);
+        arrived = 1;
+    }
+}
+
 static void name_screen(const unsigned char *pressed)
 {
     if (full_name && NAV_KEY_DOWN) {
@@ -540,8 +621,9 @@ void nav_before_tick(void)
         if (fresh && !nav && i != KEY_ESC)
             keyboard = 1;
     }
-    if (s != screen) {
-        changed_screen(s);
+    follow_screen();
+    if (arrived) {
+        arrived = 0;
         for (j = 0; j < HELD_KEYS; j++)  /* pressed for the screen before (Return: as its click) */
             held_over[j] = keys[held_keys[j]] != 0 && (j < 2 || joy);
     }
@@ -693,23 +775,20 @@ void nav_before_draw(int d)
     saved_index = -1;
     if (!NAV_ENABLED || !started || d < 0 || d >= MAX_HOTSPOTS)
         return;
+    follow_screen();
     drawn_at[d] = tick_serial;
     drawn_any = 1;
     if (!joy)
         return;
+    if (owners_screen != screen || owners_count != count())
+        find_owners();
     h = HS(d);
-    if (NAV_INVERTED && owners_screen == screen) {  /* every item but the selection held still */
-        int o = owner[d];
-        if (o < 0 || o == selected || !item[o])
-            frozen[d] = -1;
-        else if (frozen[d] < 0)
-            frozen[d] = (short)shown_now(d);
-    }
     saved_index = d;
-    if (h[TYPE] == 4) {  /* the pointer isn't drawn while the joystick has the menus */
+    if (h[TYPE] == 4 || hidden(owner[d])) {  /* the pointer, Select and Next: not drawn */
         saved_what = SAVED_TYPE;
+        saved_value = h[TYPE];
         h[TYPE] = 0;
-    } else if (frozen[d] < 0)
+    } else if (hold(d) < 0)
         saved_index = -1;
     else if (h[TYPE] == 2) {
         saved_what = SAVED_FONT;
@@ -731,7 +810,7 @@ void nav_after_draw(int d)
     h = HS(d);
     if (saved_index == d) {
         if (saved_what == SAVED_TYPE)
-            h[TYPE] = 4;
+            h[TYPE] = (short)saved_value;
         else if (saved_what == SAVED_FONT)
             h[TX_FONT] = (short)saved_value;
         else
@@ -742,6 +821,29 @@ void nav_after_draw(int d)
         text_end[d] = NAV_TEXT_X;
 }
 
+/* A text the screen's own code draws (site label_draw_call: the joysticks screen's "Keys/Custom",
+ * "JS1" and so on beside "Pl1:" and "Pl2:"), which takes whatever font the last script text
+ * left, "Pl2:"'s: the font of the item it's in, as that item's own text shows this frame */
+void nav_label_font(void)
+{
+    int n, d, m;
+    short x = NAV_TEXT_X, y = NAV_TEXT_Y;
+    if (!NAV_ENABLED || !started || !joy || NAV_SCREEN != screen || owners_screen != screen)
+        return;
+    n = count();
+    for (m = 0; m < n; m++) {
+        short *b = HS(m);
+        if (!item[m] || x < b[MB_X] || x >= b[MB_X] + b[MB_W] || y < b[MB_Y] || y >= b[MB_Y] + b[MB_H])
+            continue;
+        for (d = 0; d < n; d++)
+            if (HS(d)[TYPE] == 2 && part_of(d, m)) {
+                int f = hold(d);
+                NAV_TEXT_FONT = (short)(f >= 0 ? f : HS(d)[TX_FONT]);
+                return;
+            }
+    }
+}
+
 /* The sound screen's own buttons (sound_options_draw's sprite_draw calls, through thunks.asm:
  * the volume - and +, OK and the commentary tick box), whose frames follow the screen's own
  * step (sound_options_anim, 0-4) by per_step frames a step. Original-ish: the selection's
@@ -750,10 +852,17 @@ void nav_after_draw(int d)
 int nav_sprite_frame(int frame, int x, int y, int per_step)
 {
     short *b;
-    if (!NAV_ENABLED || !joy || selected < 0)
+    int inside = 0;
+    if (!NAV_ENABLED || !started)
         return frame;
-    b = HS(selected);
-    if ((x >= b[MB_X] && x < b[MB_X] + b[MB_W] && y >= b[MB_Y] && y < b[MB_Y] + b[MB_H]) == NAV_INVERTED)
+    follow_screen();
+    if (!joy)
+        return frame;
+    if (selected >= 0) {
+        b = HS(selected);
+        inside = x >= b[MB_X] && x < b[MB_X] + b[MB_W] && y >= b[MB_Y] && y < b[MB_Y] + b[MB_H];
+    }
+    if (inside == NAV_INVERTED)
         return frame;
     if (!still_set) {
         still_set = 1;

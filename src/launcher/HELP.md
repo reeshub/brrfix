@@ -547,8 +547,12 @@ to the keyboard (button 2 still goes back).
 The menus' texts and buttons shimmer and wobble, as they always have.
 Original-ish: the selected item stops, so it stands out, while everything else
 carries on. Inverted: everything else stops, and only the selected item moves.
-Either way it covers the item's text, its button or tick box, and its border;
-the screens' headings and other pictures carry on as in 1996.
+Either way it covers the item's text, its button or tick box, its border and
+its label (such as "PL1:" beside a slider), from the moment a screen appears;
+the screens' headings and other pictures carry on as in 1996. While the
+joystick or the arrow keys have the menus, the buttons only the mouse needs
+are put away: the globe's Select (button 1 or Return chooses the track) and
+"next" on Choose Your Vehicle (left and right change the vehicle).
 
 The last name is kept in BRRNAME.TXT in the Game folder, and the click ("UI
 Click Deep" by SoundShelfStudio, from Pixabay) in Game\SAMPLES\JOYCLICK.WAV.
