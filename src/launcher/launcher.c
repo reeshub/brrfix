@@ -346,15 +346,18 @@ static int full_colour(HWND dialog)
 }
 
 /* The director's renderer split (2026-11-15): the Original renderer offers only what the 1996
- * game and cnc-ddraw did (mode, resolution, the full-screen scaling, smoothness); the Modern
- * one its own window size and shape, colour depth (and with full colour the smoother
- * gradients) and draw distance. The colour animation is for both. */
+ * game and cnc-ddraw did (mode, resolution, the full-screen scaling, smoothness, the game's 8
+ * sound channels); the Modern one its own window size and shape, colour depth (and with full
+ * colour the smoother gradients), draw distance and more sound channels. The colour animation
+ * is for both. */
 static int hidden_by_choice(HWND dialog, int id)
 {
     int fresh = new_renderer(dialog);
     switch (id) {
     case IDC_SCALE:
     case IDC_SCALE_LABEL:
+    case IDC_CHANNELS:
+    case IDC_CHANNELS_LABEL:
     case IDC_MAXLIMIT:
     case IDC_MAXLIMIT_LABEL:
     case IDC_WIDESCREEN:
@@ -615,9 +618,9 @@ static const struct { int id; const char *text; } tips[] = {
                        "played almost at full volume); also gives the game's effects volume its full range."},
     {IDC_STEREO_PAN, "Vehicles to the right sound more from the right speaker, smoothly; the game's own panning sent "
                      "anything a little off centre almost entirely to one side."},
-    {IDC_CHANNELS, "How many sounds play at once: the game's 8, or 16 or 32, with every truck's engine (the game "
-                   "allowed 3), so more of the field is heard at once. 8 on Windows 95, 98 and ME, where each "
-                   "costs a 1990s PC some speed."},
+    {IDC_CHANNELS, "How many sounds play at once (Modern renderer): the game's 8, or 16 or 32, with every truck's "
+                   "engine (the game allowed 3), so more of the field is heard at once. The Original renderer always "
+                   "has the game's 8."},
     {IDC_MUSIC, "Plays the CD music from ripped tracks (trackNN.flac, .ogg or .wav) instead of the CD."},
     {IDC_VOLUME, "Music volume, on top of the game's own CD volume option."},
     {IDC_FOLDER, "The folder with the ripped tracks: Music next to the launcher, or a full path."},
@@ -779,8 +782,9 @@ static void load(HWND dialog, int defaults)
     check(dialog, IDC_MUSIC, defaults ? 1 : ini_flag("music", "music", 1));
     check(dialog, IDC_DISTANCE_VOL, defaults ? 1 : ini_flag("sound", "distance_volume", 1));
     check(dialog, IDC_STEREO_PAN, defaults ? 1 : ini_flag("sound", "stereo_pan", 1));
-    /* auto (BRRFIX.INI's default): the game's 8 on Windows 95, 98 and ME, where each sound playing
-     * costs a 1990s processor time (the director, 2026-11-22), and with Period defaults; else 32 */
+    /* auto (BRRFIX.INI's default): 32; Period defaults 8. Shown only with the Modern renderer: the
+     * Original always has the game's 8 (the director, 2026-11-24), so on Windows 95, 98 and ME too,
+     * where each sound playing costs a 1990s processor time */
     fill(dialog, IDC_CHANNELS, channel_counts,
          listed(channel_counts, GET(f, "sound", "channels", "auto"), period || (windows_9x && !defaults) ? "8" : "32"));
     fill(dialog, IDC_VOLUME, volumes, GET(f, "music", "volume", "100"));

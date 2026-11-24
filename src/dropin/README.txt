@@ -193,15 +193,16 @@ Sound effects
 The game fades other vehicles' sounds with their distance from the camera, but
 on Windows it gave DirectSound its volumes in the wrong units, so every sound
 played within 1.1 dB of full volume. Big Red Launcher converts them properly
-("Distant vehicles quieter", on by default; [sound] distance_volume), as the
-DOS version plays them: far trucks are quieter, the game's effects volume
-option works, and the three engines heard at once are the nearest trucks'.
-The stereo works too: the game panned a truck only a little off centre almost
-entirely into one speaker; it now moves smoothly between them ("Natural
-stereo"; [sound] stereo_pan). And it has 32 sound channels instead of 8 (or 16,
-or the game's 8: "Sound channels"), with every truck's engine heard instead of
-3 ([sound] channels). On Windows 95, 98 and ME it keeps the game's 8 unless you
-choose more: there each sound playing at once costs a 1990s PC some speed.
+("Distant vehicles quieter (bugfix)", on by default; [sound] distance_volume),
+as the DOS version plays them: far trucks are quieter, the game's effects
+volume option works, and the three engines heard at once are the nearest
+trucks'. The stereo works too: the game panned a truck only a little off
+centre almost entirely into one speaker; it now moves smoothly between them
+("Stereo fix (bugfix)"; [sound] stereo_pan). And with the Modern renderer it
+has 32 sound channels instead of 8 (or 16, or the game's 8: "Sound channels"),
+with every truck's engine heard instead of 3 ([sound] channels). The Original
+renderer, and so Windows 95, 98 and ME, keeps the game's 8: there each sound
+playing at once costs a 1990s PC some speed.
 
 Display and scaling
 -------------------
@@ -220,7 +221,8 @@ smooth_sky, smooth_shading). The race dashboard (map, place, nitro, laps,
 damage, messages) is the game's 320x200 art, drawn by the game on layers of
 its own and enlarged by whole numbers into the race picture's corners
 ([display] hud=lowres; hud=game gives the game's own, as before; "4:3 HUD
-correction" gives its pixels the 1996 monitor's shape). With Max in full
+correction" gives its pixels the 1996 monitor's shape); while the race is
+paused, PAUSED shows in the middle, in the menus' shimmering letters. With Max in full
 screen on a wide screen, races are drawn at the screen's own shape ("Native
 widescreen", [display] widescreen; the menus stay 4:3 in the middle, their
 background pictures widened across the screen: "Widescreen menu backgrounds",
@@ -257,8 +259,8 @@ menu's Full screen item) broke cnc-ddraw's window and is removed: choose the
 mode in the launcher. On Windows 95, 98 and ME, without cnc-ddraw, it works and
 stays, as in 1996: started in a window, Tab goes full screen and back. The
 colour cycling of four levels (CHOPPER3, CITY4 Italy, MOON2, RIG4), which the
-DOS version has and the Windows version lost, runs again ("Colour animation",
-[display] colour_animation).
+DOS version has and the Windows version lost, runs again ("Colour animation
+(bugfix)", [display] colour_animation).
 
 Controllers
 -----------

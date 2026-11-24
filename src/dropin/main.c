@@ -148,8 +148,6 @@ static void load_config(void)
     cfg.hud_aspect43 = ini_int(path, "display", "hud_aspect43", 0);
     GetPrivateProfileStringA("display", "hud_size", "small", text, sizeof text, path);
     cfg.hud_large = !lstrcmpiA(text, "large");
-    GetPrivateProfileStringA("display", "hud_map", "large", text, sizeof text, path);
-    cfg.hud_map_large = lstrcmpiA(text, "small") != 0;
     cfg.widescreen = ini_int(path, "display", "widescreen", 1);
     cfg.widescreen_menus = ini_int(path, "display", "widescreen_menus", 1);
     cfg.splash_seconds = ini_int(path, "display", "splash_seconds", 5);
@@ -203,7 +201,8 @@ static void load_config(void)
     cfg.stereo_pan = ini_int(path, "sound", "stereo_pan", 1);
     cfg.cd_volume = ini_int(path, "sound", "cd_volume", 1);
     /* auto (the default, or anything else): 8, as the game, on Windows 95, 98 and ME, where
-     * DirectSound mixes each sound playing on a 1990s processor; 32 elsewhere */
+     * DirectSound mixes each sound playing on a 1990s processor; 32 elsewhere. The original
+     * renderer always has the game's 8 (patch.c, once the renderer is decided). */
     cfg.sound_channels = ini_int(path, "sound", "channels", 0);
     if (cfg.sound_channels != 8 && cfg.sound_channels != 16 && cfg.sound_channels != 32)
         cfg.sound_channels = (GetVersion() & 0x80000000u) ? 8 : 32;

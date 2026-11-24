@@ -20,8 +20,14 @@
  * nearest the 4:3 monitor's shape, pixels 1.2 times taller than wide), and placed by its box:
  * the map at the top left and the place at the top right, the same margin from each edge; the
  * nitro and the laps right-aligned with the place below it, evenly spaced; the messages and
- * the ticker centred at the top; the playback icon at the bottom left. The 3D view itself
- * never holds the HUD. */
+ * the ticker centred at the top; the playback icon at the bottom left. The map is the same
+ * scale as the rest (the director, 2026-11-24: twice the rest's, from 2026-11-16, was too big).
+ * The 3D view itself never holds the HUD.
+ *
+ * A prompt in the middle of the picture, on a layer of its own (the director, 2026-11-24):
+ * PAUSED while the race is paused, in the menus' shimmering letters (font slots 2-6,
+ * WIBS1-5.SPR, drawn by the game's own font_draw_sprite_char), typed out a letter a tick and
+ * changing font every 5 ticks, as the menus' texts do. It scales with the rest of the HUD. */
 #include "brrfix.h"
 #include <string.h>
 
@@ -31,14 +37,24 @@
 #define VIEW_TARGET   (*(uint8_t *volatile *)0x542030)  /* where the 2D routines draw */
 #define SPLIT_SCREEN  (*(volatile int32_t *)0x44BE74)
 #define SCREEN        (*(volatile uint16_t *)0x4B13C0)
+#define RACE_PAUSED   (*(volatile int32_t *)0x44B744)   /* race_paused: Break, or a pad's Start */
+#define FONTS         ((void *const volatile *)0x44B61C) /* fonts: 8 slots (fonts_load) */
+#define FONT_GLYPHS   ((const volatile uint8_t *)0x44B63C) /* character -> glyph + 0x20 */
 #define HUD_W 320
 #define HUD_H 200
 #define HUD_PIXELS (HUD_W * HUD_H)
 #define MARGIN 8                   /* HUD pixels from the picture's edges (to the art's light pixels) */
 #define GAP_PLACE 7                /* HUD pixels under the place, before the nitro */
 #define GAP 4                      /* HUD pixels between the nitro and the laps */
+/* The menus' texts: 'anim 5,5,7, 2,3,4,5,6' in every screen script (menu_animate_text 0x405114) */
+#define PROMPT_FONT 2              /* the first of the shimmering fonts, WIBS1.SPR */
+#define PROMPT_FONTS 5             /* WIBS1-5.SPR in slots 2-6 */
+#define PROMPT_FONT_TICKS 5        /* each for 5 ticks of the game's 70 a second */
+#define PROMPT_LINE 30             /* the glyphs are 29 rows (their line height, 16, overlaps) */
 
-enum { MAP, PLACE, NITRO, LAPS, MESSAGE, TICKER, ICON, OTHER, LAYERS };
+enum { MAP, PLACE, NITRO, LAPS, MESSAGE, TICKER, ICON, OTHER, PROMPT, LAYERS };  /* drawn in this order */
+
+int __cdecl brr_call_font_char(int ch, int font, int x, int y);  /* thunks.asm */
 
 struct box { int x0, y0, x1, y1; };  /* HUD pixels, x1 and y1 past the end; empty if x1 <= x0 */
 
@@ -51,6 +67,9 @@ static uint8_t *layers;
 static int touched[LAYERS];
 static struct box boxes[LAYERS];
 static int place_height;           /* the tallest place sprite, so the nitro and laps don't move */
+static int drawing_first;          /* inside hud_draw (not the playback icon's call) */
+static const char *prompt_shown;   /* the prompt being typed out, and the tick it started */
+static int32_t prompt_since;
 static int valid;                  /* the layers hold the HUD of the race picture below */
 static const uint8_t *for_picture; /* that picture: the view buffer, its size, the screen */
 static int for_w, for_h;
@@ -95,12 +114,72 @@ static uint8_t *layer_of(int element)
     return layers + (size_t)element * HUD_PIXELS;
 }
 
-/* Each element's enlargement, in the HUD's own: the map twice the rest ([display] hud_map=large,
- * the default; the director, 2026-11-16: the low-resolution art, as the game's 640x480 map was
- * badly scaled in places), so its 64x64 picture and 8x8 dots show as big as that map's 128x128 */
-static int layer_k(int element)
+/* The prompt for this frame, or NULL: PAUSED while the race is paused (race_enter clears the
+ * flag, so it can't outlive a race). Lines are split by '\n', each centred, for prompts to come
+ * (a quit confirmation, the director's plan). */
+static const char *prompt_text(void)
 {
-    return element == MAP && cfg.hud_map_large ? 2 : 1;
+    if (SCREEN == 0x80 && RACE_PAUSED)
+        return "PAUSED";
+    return NULL;
+}
+
+/* How far font_draw_sprite_char moves on after character ch of font slot font (sprite header
+ * +4, as sprite_read_header gives it); 0 for a character the font doesn't have */
+static int glyph_advance(int font, int ch)
+{
+    const uint8_t *bank = (const uint8_t *)FONTS[font];
+    int index = FONT_GLYPHS[(uint8_t)ch] - 0x20;
+    if (!bank || index < 0 || index >= *(const uint16_t *)bank)
+        return 0;
+    return *(const int16_t *)(bank + *(const int32_t *)(bank + 2 + index * 4) + 4);
+}
+
+/* Inside hud_draw's view (320x200, our layers): the prompt into its layer, drawn by the game,
+ * typed out a letter a tick from when it first shows (as menu_hotspots_tick reveals a screen's
+ * texts), in the font of the menus' animation for this tick (anim_advance_all, anim_frame) */
+static void prompt_draw(void)
+{
+    static int logged;
+    const char *text = prompt_text(), *p;
+    int32_t now = *GAME_TICK_COUNT;
+    int lines = 1, shown, font, y, i;
+    if (!text) {
+        prompt_shown = NULL;
+        return;
+    }
+    for (i = 0; i < PROMPT_FONTS; i++)
+        if (!FONTS[PROMPT_FONT + i])
+            return;
+    if (text != prompt_shown || now < prompt_since) {
+        prompt_shown = text;
+        prompt_since = now;
+        if (!logged) {
+            logged = 1;
+            brr_log("hud: %s in the middle of the race picture, in the menus' letters (fonts 2-6)", text);
+        }
+    }
+    shown = (int)(now - prompt_since) + 1;  /* letters so far; a line break counts as one, as in text_draw */
+    font = PROMPT_FONT + (int)((uint32_t)now / PROMPT_FONT_TICKS % PROMPT_FONTS);
+    for (p = text; *p; p++)
+        lines += *p == '\n';
+    y = (HUD_H - lines * PROMPT_LINE) / 2;
+    VIEW_TARGET = layer_of(PROMPT);
+    touched[PROMPT] = 1;
+    for (p = text; *p && shown > 0; y += PROMPT_LINE) {
+        const char *end;
+        int width = 0, x;
+        for (end = p; *end && *end != '\n'; end++)
+            width += glyph_advance(PROMPT_FONT, *end);  /* every font's advances are the same */
+        x = (HUD_W - width) / 2;
+        for (; p < end && shown > 0; p++, shown--)
+            if (glyph_advance(font, *p))
+                x += brr_call_font_char((uint8_t)*p, font, x, y);
+        if (*p == '\n') {
+            p++;
+            shown--;
+        }
+    }
 }
 
 /* Before hud_draw (first = 1, a new frame's HUD) or hud_draw_playback_icon (first = 0) in
@@ -115,6 +194,7 @@ void __cdecl brr_hud_begin(int first)
         valid = 0;
         return;
     }
+    drawing_first = first;
     if (first) {
         for (i = 0; i < LAYERS; i++) {
             if (touched[i]) {
@@ -148,6 +228,8 @@ void __cdecl brr_hud_end(void)
 {
     if (!brr_hud_drawing)
         return;
+    if (drawing_first)
+        prompt_draw();
     VIEW_W = saved_w;
     VIEW_H = saved_h;
     VIEW_HIRES = saved_hires;
@@ -287,13 +369,14 @@ static void layout(int w, int h, int kx, int ky, int *ox, int *oy)
     const struct box *b;
     int i, right_top;
     for (i = 0; i < LAYERS; i++) {  /* by default, where the game put it, the layer centred */
-        ox[i] = (w - HUD_W * kx * layer_k(i)) / 2;
+        ox[i] = (w - HUD_W * kx) / 2;
         oy[i] = 0;
     }
+    oy[PROMPT] = (h - HUD_H * ky) / 2;  /* the prompt in the middle */
     b = &boxes[MAP];
     if (b->x1 > b->x0) {
-        ox[MAP] = MARGIN * kx - b->x0 * kx * layer_k(MAP);
-        oy[MAP] = MARGIN * ky - b->y0 * ky * layer_k(MAP);
+        ox[MAP] = (MARGIN - b->x0) * kx;
+        oy[MAP] = (MARGIN - b->y0) * ky;
     }
     right_top = MARGIN;
     b = &boxes[PLACE];
@@ -343,19 +426,20 @@ int brr_hud_overlay(const uint8_t *origin, int w, int h, void *out, int out_w, i
     hud_scale(h, w, &kx, &ky);
     layout(w, h, kx, ky, ox, oy);
     if (w != logged_w || h != logged_h) {
-        static const char *const names[LAYERS] = {"map", "place", "nitro", "laps", "message", "ticker", "icon", "other"};
+        static const char *const names[LAYERS] = {"map", "place", "nitro", "laps", "message", "ticker", "icon", "other",
+                                                  "prompt"};
         logged_w = w;
         logged_h = h;
         brr_log("hud: on the %dx%d race picture: the 320x200 HUD's pixels %dx%d, laid out by element", w, h, kx, ky);
         for (i = 0; i < LAYERS; i++)
             if (boxes[i].x1 > boxes[i].x0)
                 brr_log("hud: %s: drawn at %d,%d-%d,%d in the game's layout; placed at %d,%d in the picture", names[i],
-                        boxes[i].x0, boxes[i].y0, boxes[i].x1, boxes[i].y1, ox[i] + boxes[i].x0 * kx * layer_k(i),
-                        oy[i] + boxes[i].y0 * ky * layer_k(i));
+                        boxes[i].x0, boxes[i].y0, boxes[i].x1, boxes[i].y1, ox[i] + boxes[i].x0 * kx,
+                        oy[i] + boxes[i].y0 * ky);
     }
     for (i = 0; i < LAYERS; i++) {
         const uint8_t *layer = layer_of(i);
-        int x, y, bx = kx * layer_k(i), by = ky * layer_k(i);
+        int x, y, bx = kx, by = ky;
         if (!touched[i])
             continue;
         for (y = 0; y < HUD_H; y++) {

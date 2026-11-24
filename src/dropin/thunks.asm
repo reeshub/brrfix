@@ -67,7 +67,7 @@
         extrn   _nav_sprite_frame:near
         public  _brr_sound_sprite_down, _brr_sound_sprite_up, _brr_sound_sprite_up2, _brr_knob_sprite
         extrn   _brr_sound_cd_draw:near
-        public  _brr_hook_sound_draw, _brr_call_sprite_draw
+        public  _brr_hook_sound_draw, _brr_call_sprite_draw, _brr_call_font_char
         extrn   _nav_before_draw:near
         extrn   _nav_after_draw:near
         public  _brr_hook_hotspot_draw, _brr_call_play_sample, _brr_hook_label_draw
@@ -555,6 +555,27 @@ _brr_call_sprite_draw:
         mov     ebx, [esp + 24]
         mov     ecx, [esp + 28]
         call    dword ptr [_brr_orig_sprite_draw]
+        pop     ebp
+        pop     edi
+        pop     esi
+        pop     ebx
+        ret
+
+; brr_call_font_char(ch, font, x, y), cdecl: the game's font_draw_sprite_char (0x412918; EAX
+; the character, EDX the font slot, EBX x, ECX y, into the view at 0x542030; it changes EBX,
+; ECX and EDX) for hud.c's prompt; returns the glyph's advance (AX, sign-extended)
+_brr_call_font_char:
+        push    ebx
+        push    esi
+        push    edi
+        push    ebp
+        mov     eax, [esp + 20]
+        mov     edx, [esp + 24]
+        mov     ebx, [esp + 28]
+        mov     ecx, [esp + 32]
+        mov     esi, 412918h
+        call    esi
+        movsx   eax, ax
         pop     ebp
         pop     edi
         pop     esi

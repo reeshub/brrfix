@@ -82,7 +82,7 @@ BEGIN
     LTEXT           "Ob&ject detail:", IDC_DETAIL_LABEL, 180, 100, 50, 8
     COMBOBOX        IDC_DETAIL, 232, 98, 74, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
     GROUPBOX        "Miscellaneous", IDC_MISC_GROUP, 12, 120, 300, 44
-    AUTOCHECKBOX    "Colour &animation (as in DOS)", IDC_COLOUR_ANIM, 18, 132, 144, 10, WS_TABSTOP
+    AUTOCHECKBOX    "Colour &animation (bugfix)", IDC_COLOUR_ANIM, 18, 132, 144, 10, WS_TABSTOP
     AUTOCHECKBOX    "4:3 H&UD correction", IDC_HUD43, 180, 132, 126, 10, WS_TABSTOP
     LTEXT           "HUD si&ze:", IDC_HUDSIZE_LABEL, 18, 148, 40, 8
     COMBOBOX        IDC_HUDSIZE, 62, 146, 100, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
@@ -103,8 +103,8 @@ BEGIN
     PUSHBUTTON      "&Browse...", IDC_BROWSE, 264, 63, 42, 14, WS_TABSTOP
     LTEXT           "", IDC_TRACKS, 62, 80, 244, 8
     GROUPBOX        "Sound effects", IDC_SFX_GROUP, 12, 100, 300, 44
-    AUTOCHECKBOX    "Distant vehicles &quieter", IDC_DISTANCE_VOL, 18, 112, 144, 10, WS_TABSTOP
-    AUTOCHECKBOX    "Natural &stereo", IDC_STEREO_PAN, 18, 126, 144, 10, WS_TABSTOP
+    AUTOCHECKBOX    "Distant vehicles &quieter (bugfix)", IDC_DISTANCE_VOL, 18, 112, 144, 10, WS_TABSTOP
+    AUTOCHECKBOX    "&Stereo fix (bugfix)", IDC_STEREO_PAN, 18, 126, 144, 10, WS_TABSTOP
     LTEXT           "Sound &channels:", IDC_CHANNELS_LABEL, 180, 114, 56, 8
     COMBOBOX        IDC_CHANNELS, 238, 112, 50, 60, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
 

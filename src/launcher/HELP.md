@@ -295,7 +295,7 @@ it at all beyond the last, usually 39 squares.
 
 ### Miscellaneous
 
-**Colour animation (as in DOS)** (on by default; both renderers)
+**Colour animation (bugfix)** (on by default; both renderers)
 
 Four levels cycle some of their colours: CHOPPER3, CITY4 (Italy), MOON2 and
 RIG4. The DOS version does it; the Windows version lost it, as the code that
@@ -319,13 +319,12 @@ it's square either way.
 - **Large (1996):** as big as the game's low resolution showed it (4 on the
   Steam Deck, 5 at 1080).
 
-The track map is enlarged twice as much as the rest (the same 320x200 art:
-the game's 640x480 map was scaled badly in places in 1996).
-
 Either way the dashboard is laid out afresh: the map at the top left and the
 place at the top right sit the same distance from their edges, the nitro and
 the lap counter line up under the place with even gaps, and the messages
-(DAMAGE, FINAL LAP, WRONG WAY) are centred.
+(DAMAGE, FINAL LAP, WRONG WAY) are centred. While the race is paused, PAUSED
+shows in the middle of the screen, in the menus' own shimmering letters, at
+the dashboard's size.
 
 **Widescreen menu backgrounds** (Modern renderer, with Max, Native widescreen
 and full screen; on by default)
@@ -414,7 +413,7 @@ default, or any folder you choose with Browse.
 
 ### Sound effects
 
-**Distant vehicles quieter** (on by default)
+**Distant vehicles quieter (bugfix)** (on by default)
 
 The game fades other vehicles' sounds with their distance from the camera:
 full volume within about a square and a half, nothing beyond 16 squares. On
@@ -426,7 +425,7 @@ options screen) to life, which barely changed anything before, and the game's
 three engine sounds go to the nearest trucks rather than the first three in
 its list. Unticked: as the 1996 Windows version.
 
-**Natural stereo** (on by default)
+**Stereo fix (bugfix)** (on by default)
 
 The game does play vehicles in stereo: a truck on your right is louder on the
 right. But the Windows version scaled its stereo position straight into
@@ -436,25 +435,28 @@ and only trucks straight ahead were heard from both. Ticked, a truck's sound
 moves smoothly between the speakers as it moves round you (half way to the
 side: the far speaker 6 dB quieter), as the DOS version did.
 
-**Sound channels** (32 by default; 8 on Windows 95, 98 and ME)
+**Sound channels** (Modern renderer; 32 by default)
 
 The game mixes its sound effects on 8 channels and gathers at most 8 sounds
 at a time, and played only 3 trucks' engines: one busy truck (its engine,
 skid, ground and nitro, and its knocks) could take every channel.
 
-- **8 (1996):** as the game. The default on Windows 95, 98 and ME, and with
-  Period defaults: DirectSound mixes every sound playing at once on the
-  processor, so on a 1990s PC more sounds cost speed.
+- **8 (1996):** as the game. The default with Period defaults.
 - **16:** twice as many, and every truck's engine.
-- **32** (the default elsewhere): room for every truck's engine, skids,
-  ground noise, nitro and knocks at once: the whole field's chaos.
+- **32** (the default): room for every truck's engine, skids, ground noise,
+  nitro and knocks at once: the whole field's chaos.
 
 With 16 or 32 the nearest trucks come first; far trucks are quiet anyway with
-"Distant vehicles quieter". The number is a limit, not a target: the game
-only plays what the race calls for (each truck's engine, skid and nitro, your
-own truck's ground noise, and knocks), and nothing from trucks more than
+"Distant vehicles quieter (bugfix)". The number is a limit, not a target: the
+game only plays what the race calls for (each truck's engine, skid and nitro,
+your own truck's ground noise, and knocks), and nothing from trucks more than
 about 16 squares away. With Log ticked (Advanced tab), BRRFIX.LOG notes each
 new most channels playing at once.
+
+The Original renderer always has the game's 8, as in 1996, so the setting
+isn't shown with it. That includes Windows 95, 98 and ME, which have only the
+Original renderer: there DirectSound mixes every sound playing at once on the
+processor, so on a 1990s PC more sounds would cost speed.
 
 ## Controller
 

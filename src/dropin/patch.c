@@ -760,8 +760,9 @@ void brr_patch_all(void)
         cfg.window_scale = 1;
         cfg.window_aspect43 = 0;
         cfg.render_max = 0;
+        cfg.sound_channels = 8;  /* the game's own 8 (the director, 2026-11-24) */
         brr_log("render: the original renderer draws as in 1996: a window at the game's own size, "
-                "the game's draw distance sliders");
+                "the game's draw distance sliders, the game's 8 sound channels");
     }
     brr_modern_window = brr_renderer_active && cfg.display_mode == DISPLAY_WINDOWED;
     cfg.window_aspect43 = 0;  /* the 4:3 shape is cnc-ddraw's scaling preset's now (Modern), or square (Original) */
@@ -795,7 +796,7 @@ void brr_patch_all(void)
                 "every vehicle's engine", sound_sites, cfg.sound_channels, cfg.sound_channels);
     else if (cfg.sound_channels == 8)
         brr_log("sound: the game's own 8 channels%s",
-                (GetVersion() & 0x80000000u) ? " (the default on Windows 95, 98 and ME)" : "");
+                brr_renderer_active ? "" : " (always, with the original renderer)");
     if (cfg.fix_mode_switch && !enabled("mode_switch"))
         brr_log("display: the game's switch between a window and full screen (Tab, the Modes menu's Full screen) "
                 "kept, as with Windows' own DirectDraw it works; a game started full screen stays full screen, "
