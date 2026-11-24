@@ -947,7 +947,7 @@ int nav_sprite_frame(int frame, int x, int y, int per_step)
         }
         return frame;
     }
-    inside = selected >= 0 && in_item(selected, x, y);
+    inside = selected >= 0 ? in_item(selected, x, y) : 0;  /* in_item is 0 or 1 (no 16 bytes in a row as RACING.EXE's) */
     if (inside == NAV_INVERTED)
         return frame;
     if (!still_set) {
