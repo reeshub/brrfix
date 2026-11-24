@@ -162,8 +162,10 @@ static int enabled(const char *fix)
         return cfg.show_version;
     if (!strcmp(fix, "controller"))  /* also centres absent joysticks for the menu navigation */
         return cfg.controller || cfg.debug_pad_test || cfg.menu_navigation;
-    if (!strcmp(fix, "keys"))
-        return cfg.fix_menu_keys || cfg.debug_log_keys;
+    if (!strcmp(fix, "keys"))  /* the per-tick hook also carries the menu navigation, the CD volume and the pause */
+        return cfg.fix_menu_keys || cfg.debug_log_keys || cfg.menu_navigation || cfg.cd_volume || cfg.fix_pause
+            || (cfg.quit_confirm && brr_hud_active);
+    if (!strcmp(fix, "cd_volume")) return cfg.cd_volume;
     if (!strcmp(fix, "display"))
         return cfg.display_mode != DISPLAY_ASK;
     if (!strcmp(fix, "present"))  /* our window drawing, and the new renderer */
@@ -207,7 +209,14 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "widescreen")) return brr_widescreen && brr_renderer_active && cfg.render_max;
     if (!strcmp(fix, "wide_menus"))
         return brr_widescreen && brr_renderer_active && cfg.render_max && cfg.widescreen_menus;
+    /* the start-up splash held (splash.c), and its widescreen version with the menus' (render.c) */
+    if (!strcmp(fix, "splash"))
+        return cfg.splash_seconds > 0
+            || (brr_widescreen && brr_renderer_active && cfg.render_max && cfg.widescreen_menus);
     if (!strcmp(fix, "menu_pad")) return cfg.menu_navigation;
+    if (!strcmp(fix, "menu_nav")) return cfg.menu_navigation;  /* the selection (menunav.c) */
+    /* the menu's mouse: the Modern renderer's mapping, or the joystick navigation's pointer */
+    if (!strcmp(fix, "menu_mouse")) return brr_renderer_active || cfg.menu_navigation;
     if (!strcmp(fix, "no_screenshot")) return brr_renderer_active;  /* ours is to come (the director) */
     if (!strcmp(fix, "draw_distance")) return cfg.max_draw_distance > 0;  /* experimental, off by default */
     /* beyond the near pass's grid; also at 25 in widescreen, where the grid can't hold the
@@ -301,6 +310,22 @@ static int replacement(const struct site_info *s, uint8_t *out)
     } else if (!strcmp(n, "scn_end_call") && s->length == 5) {
         out[0] = 0xE8;  /* CALL brr_hook_scn_end: the twins added, then menu_background_save */
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_scn_end);
+    } else if (!strcmp(n, "hotspot_draw_call") && s->length == 5) {
+        out[0] = 0xE8;  /* CALL brr_hook_hotspot_draw: the joystick menu navigation's notes either side */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_hotspot_draw);
+    } else if (!strcmp(n, "label_draw_call") && s->length == 5) {
+        out[0] = 0xE8;  /* CALL brr_hook_label_draw: the label's font from its line, then text_draw */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_label_draw);
+    } else if (!strcmp(n, "sound_cd_draw") && s->length == 5) {
+        out[0] = 0xE8;  /* CALL brr_hook_sound_draw: the CD volume, then groups 1 and 21 (music.c) */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_sound_draw);
+    } else if (!strncmp(n, "sound_button_", 13) && s->length == 5) {
+        out[0] = 0xE8;  /* CALL brr_sound_sprite_*: the button keeps its step in the joystick's selection */
+        put_rel32(out + 1, s->address + 5, !strcmp(n, "sound_button_commentary") ? (void *)brr_sound_sprite_up2
+                  : !strcmp(n, "sound_button_ok") ? (void *)brr_sound_sprite_up : (void *)brr_sound_sprite_down);
+    } else if (!strncmp(n, "slider_knob_", 12) && s->length == 5) {
+        out[0] = 0xE8;  /* CALL brr_knob_sprite: the knob stops and starts with its slider */
+        put_rel32(out + 1, s->address + 5, (void *)brr_knob_sprite);
     } else if (!strcmp(n, "class_menu") && s->length == 1) {
         out[0] = 0x74;  /* MOV [ESP+0x24],ESI: the window class has no menu */
     } else if (!strcmp(n, "window_command_resolution") && s->length == 7) {
@@ -437,6 +462,13 @@ static int replacement(const struct site_info *s, uint8_t *out)
     } else if (!strcmp(n, "raw_name_call") && s->length == 5) {
         out[0] = 0xE8;  /* CALL brr_hook_raw_name: which picture the screen loaded, then file_open */
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_raw_name);
+    } else if (!strcmp(n, "splash_present") && s->length == 5) {
+        out[0] = 0xE8;  /* CALL brr_hook_splash_present: the start-up splash noted (splash.c), then present_view */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_splash_present);
+    } else if (!strcmp(n, "frame_message") && s->length == 6) {
+        out[0] = 0x0F;  /* JZ brr_hook_frame_message: no frame while the splash is held (splash.c) */
+        out[1] = 0x84;
+        put_rel32(out + 2, s->address + 6, (void *)brr_hook_frame_message);
     } else if ((!strcmp(n, "hud_draw_call") || !strcmp(n, "hud_icon_call")) && s->length == 5) {
         out[0] = 0xE8;  /* CALL brr_hook_hud_draw / _icon: the HUD drawn into our layers (hud.c) */
         put_rel32(out + 1, s->address + 5,
@@ -594,15 +626,64 @@ static void write_code(uint32_t address, const uint8_t *bytes, uint32_t size)
     FlushInstructionCache(GetCurrentProcess(), (void *)address, size);
 }
 
+/* A crash report in BRRFIX.LOG (once): where, the registers, and the top of the stack, whose
+ * return addresses give the calls that led there. The crash then goes on as before (the
+ * game's own handler, "Application Error"). */
+static void report_crash(const EXCEPTION_RECORD *rec, const CONTEXT *ctx)
+{
+    const uint32_t *stack = (const uint32_t *)ctx->Esp;
+    char line[160];
+    int i, j, n;
+    brr_log("crash: exception 0x%08lX at 0x%08lX%s 0x%08lX", (unsigned long)rec->ExceptionCode,
+            (unsigned long)ctx->Eip, rec->NumberParameters >= 2 && rec->ExceptionInformation[0] ? ", writing" : ", reading",
+            rec->NumberParameters >= 2 ? (unsigned long)rec->ExceptionInformation[1] : 0ul);
+    brr_log("crash: eax %08lX ebx %08lX ecx %08lX edx %08lX esi %08lX edi %08lX ebp %08lX esp %08lX",
+            (unsigned long)ctx->Eax, (unsigned long)ctx->Ebx, (unsigned long)ctx->Ecx, (unsigned long)ctx->Edx,
+            (unsigned long)ctx->Esi, (unsigned long)ctx->Edi, (unsigned long)ctx->Ebp, (unsigned long)ctx->Esp);
+    if (!readable((uint32_t)stack, 128 * 4))
+        return;
+    for (i = 0; i < 128; i += 8) {
+        n = sprintf(line, "crash: stack +%03X", i * 4);
+        for (j = 0; j < 8; j++)
+            n += sprintf(line + n, " %08lX", (unsigned long)stack[i + j]);
+        brr_log("%s", line);
+    }
+    {   /* the 3D engine's object being drawn (object_draw: object_current 0x5430B8, its model at
+         * +0x18, the model's table of (depth, offset) versions at +0x20), and its depth */
+        const uint32_t *object = *(const uint32_t *const *)0x5430B8;
+        brr_log("crash: 3D object %08lX, model %s, depth %ld/512 squares (the version chosen by %ld)",
+                (unsigned long)object, object && readable((uint32_t)object, 0x20) ? brr_model_name((const void *)object[6]) : "?",
+                (long)(*(volatile int32_t *)0x54B488 >> 16), (long)(brr_lod_depth >> 16));
+        if (object && readable((uint32_t)object, 0x20)) {
+            const uint32_t *model = (const uint32_t *)object[6];
+            n = sprintf(line, "crash: object");
+            for (j = 0; j < 8; j++)
+                n += sprintf(line + n, " %08lX", (unsigned long)object[j]);
+            brr_log("%s", line);
+            if (model && readable((uint32_t)model, 0x60))
+                for (i = 0; i < 24; i += 8) {
+                    n = sprintf(line, "crash: model +%02X", i * 4);
+                    for (j = 0; j < 8; j++)
+                        n += sprintf(line + n, " %08lX", (unsigned long)model[i + j]);
+                    brr_log("%s", line);
+                }
+        }
+    }
+}
+
 /* ---- the safety net: skip any IN/OUT the patches missed (e.g. -TIMER's border
  * flashing), instead of the "privileged instruction" crash. IN from 0x3DA
  * alternates retrace bits so wait loops end. ---- */
 static LONG CALLBACK io_handler(EXCEPTION_POINTERS *info)
 {
     static uint32_t logged[32];
-    static int logged_count, toggle;
+    static int logged_count, toggle, crash_reported;
     EXCEPTION_RECORD *rec = info->ExceptionRecord;
     CONTEXT *ctx = info->ContextRecord;
+    if (rec->ExceptionCode == EXCEPTION_ACCESS_VIOLATION && !crash_reported) {
+        crash_reported = 1;
+        report_crash(rec, ctx);
+    }
     if (rec->ExceptionCode != EXCEPTION_PRIV_INSTRUCTION)
         return EXCEPTION_CONTINUE_SEARCH;
     const uint8_t *ip = (const uint8_t *)ctx->Eip;
@@ -680,8 +761,9 @@ void brr_patch_all(void)
         cfg.window_scale = 1;
         cfg.window_aspect43 = 0;
         cfg.render_max = 0;
+        cfg.sound_channels = 8;  /* the game's own 8 (the director, 2026-11-24) */
         brr_log("render: the original renderer draws as in 1996: a window at the game's own size, "
-                "the game's draw distance sliders");
+                "the game's draw distance sliders, the game's 8 sound channels");
     }
     brr_modern_window = brr_renderer_active && cfg.display_mode == DISPLAY_WINDOWED;
     cfg.window_aspect43 = 0;  /* the 4:3 shape is cnc-ddraw's scaling preset's now (Modern), or square (Original) */
@@ -715,7 +797,7 @@ void brr_patch_all(void)
                 "every vehicle's engine", sound_sites, cfg.sound_channels, cfg.sound_channels);
     else if (cfg.sound_channels == 8)
         brr_log("sound: the game's own 8 channels%s",
-                (GetVersion() & 0x80000000u) ? " (the default on Windows 95, 98 and ME)" : "");
+                brr_renderer_active ? "" : " (always, with the original renderer)");
     if (cfg.fix_mode_switch && !enabled("mode_switch"))
         brr_log("display: the game's switch between a window and full screen (Tab, the Modes menu's Full screen) "
                 "kept, as with Windows' own DirectDraw it works; a game started full screen stays full screen, "

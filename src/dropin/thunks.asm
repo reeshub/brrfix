@@ -33,6 +33,8 @@
         extrn   _brr_orig_hud_draw:dword
         extrn   _brr_orig_hud_icon:dword
         extrn   _brr_raw_loaded:near
+        extrn   _brr_splash_shown:near
+        extrn   _brr_splash_hold:near
         extrn   _brr_persp_setup:near
         extrn   _brr_persp_setup_original:dword
         extrn   _brr_horizon_cull:near
@@ -58,6 +60,17 @@
         extrn   _brr_before_menu_hotspots:near
         extrn   _brr_after_menu_hotspots:near
         extrn   _brr_orig_menu_hotspots:dword
+        extrn   _brr_orig_hotspot_draw:dword
+        extrn   _brr_orig_text_draw:dword
+        extrn   _nav_label_font:near
+        extrn   _brr_orig_sprite_draw:dword
+        extrn   _nav_sprite_frame:near
+        public  _brr_sound_sprite_down, _brr_sound_sprite_up, _brr_sound_sprite_up2, _brr_knob_sprite
+        extrn   _brr_sound_cd_draw:near
+        public  _brr_hook_sound_draw, _brr_call_sprite_draw, _brr_call_font_char
+        extrn   _nav_before_draw:near
+        extrn   _nav_after_draw:near
+        public  _brr_hook_hotspot_draw, _brr_call_play_sample, _brr_hook_label_draw
         extrn   _brr_present_gdi:near
         extrn   _brr_gdi_present:dword
         extrn   _brr_present_continue:dword
@@ -113,6 +126,7 @@
         public  _brr_hook_sprite_rows, _brr_hook_sprite_columns
         public  _brr_hook_hud_draw, _brr_hook_hud_icon, _brr_hook_sprite_scaled
         public  _brr_hook_raw_name, _brr_hook_persp_setup, _brr_hook_scenery_pos, _brr_hook_display_list
+        public  _brr_hook_splash_present, _brr_hook_frame_message
         public  _brr_hook_sound_nearest, _brr_hook_ds_pan
         public  _brr_hook_proj_scale, _brr_hook_landscape_width
         public  _brr_backface, _brr_clip_t_x, _brr_clip_t_y, _brr_cull_margin, _brr_shading_restore
@@ -451,6 +465,131 @@ _brr_hook_menu_mouse:
         mov     ecx, eax
         shr     eax, 16
         mov     ebx, eax
+        ret
+
+; Site hotspot_draw_call: menu_draw_group's CALL menu_hotspot_draw (0x427C7C, the hotspot's
+; index in AX, which keeps EBX, ECX and EDX): the joystick menu navigation's notes either
+; side of it (menunav.c: what was drawn, the selected item's font or frame, where its text
+; ends). Every register is kept.
+_brr_hook_hotspot_draw:
+        push    eax
+        pushad
+        movsx   eax, ax
+        push    eax
+        call    _nav_before_draw
+        add     esp, 4
+        popad
+        call    dword ptr [_brr_orig_hotspot_draw]
+        pushad
+        movsx   eax, word ptr [esp + 32]
+        push    eax
+        call    _nav_after_draw
+        add     esp, 4
+        popad
+        add     esp, 4
+        ret
+
+; Site label_draw_call: joystick_options_draw_type's CALL text_draw (0x4124A0; EAX the text,
+; EDX 0, EBX 0x7FFF, text_x and text_y already set): nav_label_font gives the label its line's
+; font (menunav.c), then text_draw, returning to the game's caller. Every register is kept.
+_brr_hook_label_draw:
+        pushad
+        call    _nav_label_font
+        popad
+        jmp     dword ptr [_brr_orig_text_draw]
+
+; sound_options_draw's CALL sprite_draw (0x426D48) of a button (EDX its frame, EBX x, ECX y;
+; sites sound_button_*): the frame nav_sprite_frame gives (its step of the screen's animation
+; kept in the joystick's selection, menunav.c), then sprite_draw. Each entry is how the
+; button's frame follows the step; _brr_knob_sprite (sites slider_knob_*: the display and
+; damage screens' knobs, drawn from animation 1's frame) passes 0.
+_brr_knob_sprite:
+        push    0
+        jmp     short sound_sprite
+_brr_sound_sprite_down:
+        push    -1
+        jmp     short sound_sprite
+_brr_sound_sprite_up:
+        push    1
+        jmp     short sound_sprite
+_brr_sound_sprite_up2:
+        push    2
+sound_sprite:
+        pushad
+        push    dword ptr [esp + 32]
+        push    ecx
+        push    ebx
+        movsx   edx, dx
+        push    edx
+        call    _nav_sprite_frame
+        add     esp, 16
+        mov     [esp + 20], eax
+        popad
+        add     esp, 4
+        jmp     dword ptr [_brr_orig_sprite_draw]
+
+; sound_options_draw's CALL menu_draw_group with EAX 1 (0x40B020; site sound_cd_draw): the CD
+; volume's -, + and level first (music.c), then groups 1 and 21 (the CD's name), as DOS's
+; sound_options_draw does. menu_draw_group (0x427DD8) takes the group in EAX; what follows the
+; site (present, then the pops) needs no register kept.
+_brr_hook_sound_draw:
+        pushad
+        call    _brr_sound_cd_draw
+        popad
+        mov     eax, 1
+        mov     edx, 427DD8h
+        call    edx
+        mov     eax, 15h
+        mov     edx, 427DD8h
+        jmp     edx
+
+; brr_call_sprite_draw(frame, x, y), cdecl: the game's sprite_draw (0x426D48) from the
+; screen's sprite bank (menu_sprites 0x44BF34): EAX the bank, EDX the frame, EBX x, ECX y
+_brr_call_sprite_draw:
+        push    ebx
+        push    esi
+        push    edi
+        push    ebp
+        mov     eax, dword ptr ds:[44BF34h]
+        mov     edx, [esp + 20]
+        mov     ebx, [esp + 24]
+        mov     ecx, [esp + 28]
+        call    dword ptr [_brr_orig_sprite_draw]
+        pop     ebp
+        pop     edi
+        pop     esi
+        pop     ebx
+        ret
+
+; brr_call_font_char(ch, font, x, y), cdecl: the game's font_draw_sprite_char (0x412918; EAX
+; the character, EDX the font slot, EBX x, ECX y, into the view at 0x542030; it changes EBX,
+; ECX and EDX) for hud.c's prompt; returns the glyph's advance (AX, sign-extended)
+_brr_call_font_char:
+        push    ebx
+        push    esi
+        push    edi
+        push    ebp
+        mov     eax, [esp + 20]
+        mov     edx, [esp + 24]
+        mov     ebx, [esp + 28]
+        mov     ecx, [esp + 32]
+        mov     esi, 412918h
+        call    esi
+        movsx   eax, ax
+        pop     ebp
+        pop     edi
+        pop     esi
+        pop     ebx
+        ret
+
+; brr_call_play_sample(name), cdecl: the game's sound_play_sample (0x415A28; EAX the
+; sample's name, played from SAMPLES\<name>.WAV once; it keeps EBX, ECX and EDX)
+_brr_call_play_sample:
+        push    ebx
+        mov     eax, [esp + 8]
+        mov     ebx, 415A28h
+        call    ebx
+        pop     ebx
         ret
 
 ; run_screen_frame's call to joystick_to_keys (0x428D1D): the pad's state goes into
@@ -847,6 +986,32 @@ _brr_hook_raw_name:
         popad
         mov     edx, 411B78h
         jmp     edx
+
+; Site splash_present (game_init 0x4240D4: CALL present_view, just after BRS2.RAW is loaded) ->
+; CALL here: brr_splash_shown notes the start-up splash (splash.c), then present_view (0x426360),
+; which returns to game_init. Every register kept (game_init has set ESI).
+_brr_hook_splash_present:
+        pushad
+        call    _brr_splash_shown
+        popad
+        push    426360h
+        ret
+
+; Site frame_message (WndProc 0x401749: JZ 0x401972, the frame message 0x9000) -> JZ here.
+; While brr_splash_hold says the start-up splash is held (splash.c), WndProc returns 0 (its
+; exit at 0x4025E1) and no frame runs; otherwise on to the frame message as before (0x401972).
+; Every register kept; POPAD leaves the flags alone.
+_brr_hook_frame_message:
+        pushad
+        call    _brr_splash_hold
+        test    eax, eax
+        popad
+        jnz     fm_hold
+        push    401972h
+        ret
+fm_hold:
+        push    4025E1h
+        ret
 
 _brr_hook_hud_icon:
         pushad

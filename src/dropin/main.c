@@ -77,6 +77,8 @@ static void load_config(void)
     cfg.fix_interpolation = ini_int(path, "fixes", "interpolation", 1);
     cfg.fix_camera = ini_int(path, "fixes", "camera", 1);
     cfg.fix_menu_keys = ini_int(path, "fixes", "menu_keys", 1);
+    cfg.fix_pause = ini_int(path, "fixes", "pause", 1);
+    cfg.quit_confirm = ini_int(path, "display", "quit_confirm", 1);
     cfg.fix_mode_switch = ini_int(path, "fixes", "mode_switch", 1);
     GetPrivateProfileStringA("display", "resolution", "high", text, sizeof text, path);
     cfg.resolution_high = !lstrcmpiA(text, "high");
@@ -148,10 +150,13 @@ static void load_config(void)
     cfg.hud_aspect43 = ini_int(path, "display", "hud_aspect43", 0);
     GetPrivateProfileStringA("display", "hud_size", "small", text, sizeof text, path);
     cfg.hud_large = !lstrcmpiA(text, "large");
-    GetPrivateProfileStringA("display", "hud_map", "large", text, sizeof text, path);
-    cfg.hud_map_large = lstrcmpiA(text, "small") != 0;
     cfg.widescreen = ini_int(path, "display", "widescreen", 1);
     cfg.widescreen_menus = ini_int(path, "display", "widescreen_menus", 1);
+    cfg.splash_seconds = ini_int(path, "display", "splash_seconds", 5);
+    if (cfg.splash_seconds < 0)
+        cfg.splash_seconds = 0;
+    if (cfg.splash_seconds > 60)
+        cfg.splash_seconds = 60;
     cfg.precise_3d = ini_int(path, "display", "precise_3d", 1);
     cfg.object_lighting = ini_int(path, "display", "object_lighting", 1);
     cfg.sort_footprint = ini_int(path, "display", "sort_footprint", 1);
@@ -164,6 +169,10 @@ static void load_config(void)
     cfg.object_detail = !lstrcmpiA(text, "original") ? 0 : !lstrcmpiA(text, "highest") ? 2 : 1;
     cfg.colour_animation = ini_int(path, "display", "colour_animation", 1);
     cfg.menu_navigation = ini_int(path, "controller", "menu_navigation", 1);
+    GetPrivateProfileStringA("controller", "menu_animations", "inverted", text, sizeof text, path);
+    cfg.menu_animations = lstrcmpiA(text, "original") != 0;
+    /* still with Inverted, animated with Original-ish, unless set (the launcher sets it) */
+    cfg.menu_still_titles = ini_int(path, "controller", "still_titles", cfg.menu_animations);
     cfg.show_version = ini_int(path, "display", "show_version", 1);
     cfg.controller = ini_int(path, "controller", "enabled", 1);
     cfg.pad_deadzone = ini_int(path, "controller", "deadzone", 15);
@@ -192,8 +201,10 @@ static void load_config(void)
     cfg.music_follow_game = ini_int(path, "music", "follow_game_volume", 1);
     cfg.distance_volume = ini_int(path, "sound", "distance_volume", 1);
     cfg.stereo_pan = ini_int(path, "sound", "stereo_pan", 1);
+    cfg.cd_volume = ini_int(path, "sound", "cd_volume", 1);
     /* auto (the default, or anything else): 8, as the game, on Windows 95, 98 and ME, where
-     * DirectSound mixes each sound playing on a 1990s processor; 32 elsewhere */
+     * DirectSound mixes each sound playing on a 1990s processor; 32 elsewhere. The original
+     * renderer always has the game's 8 (patch.c, once the renderer is decided). */
     cfg.sound_channels = ini_int(path, "sound", "channels", 0);
     if (cfg.sound_channels != 8 && cfg.sound_channels != 16 && cfg.sound_channels != 32)
         cfg.sound_channels = (GetVersion() & 0x80000000u) ? 8 : 32;

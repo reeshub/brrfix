@@ -24,7 +24,7 @@ import zipfile
 import brrpatch_build
 import dos_build
 from common import DATA, ROOT, WORK
-from dropin_build import WATCOM
+from dropin_build import watcom_bin
 from dropin_package import LICENCES, crlf, game_checksums, zip_date
 from prepkit import rel
 
@@ -35,18 +35,25 @@ RELEASE = WORK / "release"
 
 def shares_game_bytes(code, game, run=16):
     """(code, text): offsets in our code where 16 bytes in a row also appear in the game
-    file. Matches that are plain text (our own messages, which can coincide with common
-    phrases such as "not enough memory") are listed separately and allowed."""
+    file. Filler is skipped: runs where all but at most two bytes are the same value (zeroed
+    variables after a short constant such as "\\r\\n", padding, 0xCC, an 8-bit sound's silence),
+    which carry no content. Matches
+    that are plain text (our own messages, which can coincide with common phrases such as
+    "not enough memory") are listed separately and allowed."""
     windows = {game[i:i + run] for i in range(0, len(game) - run + 1)}
+
+    def filler(window):
+        return max(window.count(b) for b in set(window)) >= run - 2
+
     found = [i for i in range(0, len(code) - run + 1) if code[i:i + run] in windows
-             and code[i:i + run] != bytes(run) and code[i:i + run] != b"\xcc" * run]
+             and not filler(code[i:i + run])]
     text = [i for i in found if all(32 <= b < 127 for b in code[i:i + run])]
     return [i for i in found if i not in text], text
 
 
 def can_check_sources():
-    """dos-build --check needs the Linux Open Watcom and the Ghidra exports (the development PC)."""
-    return (WATCOM / "binl64" / "wcc386").exists() and (dos_build.EXPORTS / "calls.csv").exists()
+    """dos-build --check needs Open Watcom and the Ghidra exports."""
+    return (watcom_bin() / "wcc386").exists() and (dos_build.EXPORTS / "calls.csv").exists()
 
 
 def main(args):

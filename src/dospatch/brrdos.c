@@ -539,9 +539,11 @@ char *brr_credit_lookup(char *name)   /* name: "CRED_<n>", in the game's 20-byte
  * left and right 0x77 and 0x78. Every screen script with an OK lists 0x73 (button 1) beside
  * Return, so button 1 already chooses. A key hotspot a script adds for Esc (0x01) gets a twin
  * for button 2 (back, or quit where Esc quits), and one for the cursor or keypad left or
- * right keys (0x4B, 0x6B; 0x4D, 0x6D) a twin for the stick. Not on the keys screen (0x0E),
- * where joystick buttons and directions can be given to a control, nor the joystick screen
- * (0x17), whose script lists no joystick key. scn_load's CALL menu_hotspot_commit (site
+ * right keys (0x4B, 0x6B; 0x4D, 0x6D) a twin for the stick. Also on the keys screen (0x0E)
+ * and the joystick screen (0x17) since 2026-11-22 (the director: button 2 backs out of the
+ * keys screen too; giving a control button 2 there now goes back instead). The selection
+ * (up and down, the pointer, button 1 as the left button) is ../dropin/menunav.c's.
+ * scn_load's CALL menu_hotspot_commit (site
  * scn_commit_call) notes them; its last call, menu_background_save (site scn_end_call),
  * adds them after the script's own hotspots, as scripts refer to theirs by number. */
 #define HOTSPOT_SIZE 0x24
@@ -565,8 +567,8 @@ void brr_scn_commit(void)
     const u8 *h;
     s32 key, twin;
     game_menu_hotspot_commit();
-    if (game_menu_hotspot_count != before + 1 || before < 0 || before >= HOTSPOT_MAX
-        || twin_count == TWINS_MAX || game_screen_current == 0x0E || game_screen_current == 0x17)
+    if (!OPTION(OPT_MENU_PAD) || game_menu_hotspot_count != before + 1 || before < 0 || before >= HOTSPOT_MAX
+        || twin_count == TWINS_MAX)
         return;
     h = game_menu_hotspots + before * HOTSPOT_SIZE;
     if (*(const s16 *)(h + 2) != 6)

@@ -21,9 +21,32 @@ What it fixes
 - A shorter catch-up after a hiccup on fast machines: at most 8 ticks (about a
   tenth of a second) of game time in one frame, instead of 35.
 - Two camera calculations that depended on the frame rate.
-- Joystick menu navigation (partial): button 1 already chose in the menus, as
-  Return; now button 2 goes back, as Esc (where Esc quits, it quits), and the
-  stick's left and right change the race, logo or car, as the arrow keys.
+- Menu navigation with the joystick or the arrow keys: the menus start this
+  way (the main menu after the name has its top item selected and the mouse
+  pointer hidden), and in any menu pushing the stick (or an arrow key) up or
+  down selects its top item; then up and down step through the items in
+  reading order, with a click. Button 1 or Return chooses (and ticks or
+  unticks a box), and button 2 or Esc goes back (where Esc quits, it quits;
+  button 2 also ends the attract demo and the track's View). A slider (vision
+  and texture distance, the CD and effects volumes, each player's damage) is
+  one item: left and right move it, a step a push. Only the selected item
+  animates, and the headings stay still (inverted, the default), or the
+  selected item stops animating (original-ish): BRRPATCH asks which; an item's
+  label (such as "PL1:" beside a slider) and a slider's bar and knob go with
+  it, and on the keys screen
+  the row being set is the selected one. The globe's Select and the vehicle
+  screen's "next" are put away meanwhile (only the mouse needs them). On the
+  race, logo and car screens left and right still change them, as the arrow
+  keys did. On the globe button 1 works as Return (the first press chooses the
+  track, the second goes on), and the next screen starts on Race. The name
+  screen starts with the last name entered (kept in BRRNAME.TXT): button 1
+  takes it, and answers Y to "Create new file?" (button 2 is N). Using the
+  joystick in the menus sets player 1's controls to JS1, unless you change
+  them in Options, Joysticks. Moving the mouse hands the menus back to it
+  (other keys don't), until the stick, a button, an arrow key, Return or Esc
+  is used again (also doing its usual job, such as changing the car); a race
+  keeps the menus as they were. Any input on the main menu (mouse, keyboard or
+  joystick) holds back its attract demo for another 15 seconds.
 - The physics is left exactly as it was: the same game, bit for bit.
 
 "Fast machine" means one that draws a frame in 3 ticks (3/70 s) or less, on
@@ -49,17 +72,29 @@ Patching on a DOS PC (or a Windows 95/98/ME MS-DOS Prompt)
    RACING.EXE. It fits on a floppy disk.
 2. In that folder, type:
        BRRPATCH
-   (or BRRPATCH C:\BIGRED from anywhere). Checking and patching take a few
-   seconds on a 486.
-3. Start the game as usual, with RACING. The main menu shows the patch at the
-   bottom right, for example "V2.25R F0.1 CIARV": patch 0.1 with the Camera,
-   Interpolation, fine Angles, Roll and retrace (V) fixes on. (The game itself
-   said V2.24 even after the official v2.25 update; the patch shows V2.25.)
-   Its credits line at the top includes "Camera fix by ctrl-alt-rees".
+   (or BRRPATCH C:\BIGRED from anywhere). It checks RACING.EXE, then asks
+   about each fix in turn, with a sentence on what it does: press Y or N
+   (Return for Y, Esc to stop with nothing changed). If you say Y to menu
+   navigation, it also asks about the menus' animations: I for inverted (only
+   the selected item animates, and the headings stay still; Return) or O for
+   original-ish (the selected item stops animating). Checking and patching
+   take a few seconds on a 486.
+3. BRRPATCH then starts the game for you (later, start it as usual, with
+   RACING). The main menu shows the patch at the bottom right, for example
+   "V2.25R F0.1 CIARV": patch 0.1 with the Camera, Interpolation, fine Angles,
+   Roll and retrace (V) fixes on, and "35" after them if you said N to the
+   short catch-up. (The game itself said V2.24 even after the official v2.25
+   update; the patch shows V2.25.) Its credits line at the top includes
+   "Camera fix by ctrl-alt-rees".
 It needs about 650 KB of free disk space while it works.
 
-To put the original back:
+To change the fixes later, run BRRPATCH again: it asks again and changes the
+patched RACING.EXE. If an earlier version of BRRPATCH (or of Big Red Launcher)
+patched it, the new one updates it, rebuilding it from RACING.ORI, the saved
+original. To put the original back:
        BRRPATCH /U
+BRRPATCH /Y patches with every fix without asking (for batch files), and
+doesn't start the game; BRRPATCH /N asks but doesn't start the game.
 BRRPATCH /? lists the options.
 
 In DOSBox
@@ -85,9 +120,9 @@ The PYTHON folder holds the same patch as a Python 3.8+ script (standard
 library only). It writes a patched copy, BRRFIX.EXE, beside your RACING.EXE,
 which it never changes; start the game with BRRFIX instead of RACING:
        python3 PYTHON/DOSPATCH.PY ~/bigred/RACING.EXE
-Options such as --no-retrace turn single fixes off (python3 PYTHON/DOSPATCH.PY
---help lists them), and --verify checks a patched file. To undo, delete
-BRRFIX.EXE.
+Options such as --no-retrace turn single fixes off, and --menu-original
+gives the menus original-ish animations (python3 PYTHON/DOSPATCH.PY --help lists them);
+--verify checks a patched file. To undo, delete BRRFIX.EXE.
 
 What's in this zip
 ------------------
@@ -112,3 +147,8 @@ they will be useful, but WITHOUT ANY WARRANTY; without even the implied
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See
 LICENSE.TXT for the details. Big Red Racing itself is not included, and not
 covered by this licence.
+
+The joystick menus' click (SAMPLES\JOYCLICK.WAV, which the patched game
+writes) is "UI Click Deep": Sound Effect by SoundShelfStudio from Pixabay
+(https://pixabay.com/users/soundshelfstudio-46480698/,
+https://pixabay.com/sound-effects/), under the Pixabay Content License.

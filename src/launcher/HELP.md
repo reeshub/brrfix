@@ -281,7 +281,11 @@ it at all beyond the last, usually 39 squares.
 
 - **Highest** (the default): always the most detailed version, at any
   distance. There's more to draw, though in our tests on Italy it made no
-  measurable difference to how long each picture took.
+  measurable difference to how long each picture took. The drivers' heads are
+  the exception: their most detailed version is a close-up the game only shows
+  within a sixth of a square, never in a race, so they keep the game's own
+  choice (one of them had a flaw that could crash the game when drawn further
+  away).
 - **Matched:** each version is picked by the object's size on screen, as the
   game picked it for its 640x480 picture. At today's sizes the changes happen
   further away, where they can't be seen, and objects reach the far draw
@@ -291,7 +295,7 @@ it at all beyond the last, usually 39 squares.
 
 ### Miscellaneous
 
-**Colour animation (as in DOS)** (on by default; both renderers)
+**Colour animation (bugfix)** (on by default; both renderers)
 
 Four levels cycle some of their colours: CHOPPER3, CITY4 (Italy), MOON2 and
 RIG4. The DOS version does it; the Windows version lost it, as the code that
@@ -315,13 +319,13 @@ it's square either way.
 - **Large (1996):** as big as the game's low resolution showed it (4 on the
   Steam Deck, 5 at 1080).
 
-The track map is enlarged twice as much as the rest (the same 320x200 art:
-the game's 640x480 map was scaled badly in places in 1996).
-
 Either way the dashboard is laid out afresh: the map at the top left and the
 place at the top right sit the same distance from their edges, the nitro and
 the lap counter line up under the place with even gaps, and the messages
-(DAMAGE, FINAL LAP, WRONG WAY) are centred.
+(DAMAGE, FINAL LAP, WRONG WAY) are centred. While the race is paused, PAUSED
+shows in the middle of the screen, in the menus' own shimmering letters, at
+the dashboard's size, with the race darkened behind it (and the same for END
+RACE?: see Pausing and ending a race, under Controller).
 
 **Widescreen menu backgrounds** (Modern renderer, with Max, Native widescreen
 and full screen; on by default)
@@ -336,7 +340,10 @@ globe and lettering are drawn round, with square pixels); and on each
 level's picture whichever part keeps the level's title in view. The mouse
 pointer stays inside the menu, so it's never cut off at its sides. On the
 car screen the car is drawn a little smaller, as its left side used to be cut
-off where the 1996 screen ended. Unticked: black bars at the sides.
+off where the 1996 screen ended. The title picture at the start is a
+widescreen version made for Big Red Launcher, across the whole width (with
+thin bars above and below on a 16:10 screen). Unticked: black bars at the
+sides, and the 1996 title picture.
 
 ### Engine fixes (Modern renderer; all on by default)
 
@@ -396,7 +403,9 @@ Ogg Vorbis tracks (a few MB each) are read whole when they start.
 
 **Volume**
 
-The music's volume, on top of the game's own CD volume option.
+The music's volume, on top of the game's own CD volume option: the CD row on
+the game's Sound screen, which the 1996 Windows version left out and which is
+back, as in the DOS version ([sound] cd_volume in BRRFIX.INI).
 
 **Folder and Browse**
 
@@ -405,7 +414,7 @@ default, or any folder you choose with Browse.
 
 ### Sound effects
 
-**Distant vehicles quieter** (on by default)
+**Distant vehicles quieter (bugfix)** (on by default)
 
 The game fades other vehicles' sounds with their distance from the camera:
 full volume within about a square and a half, nothing beyond 16 squares. On
@@ -417,7 +426,7 @@ options screen) to life, which barely changed anything before, and the game's
 three engine sounds go to the nearest trucks rather than the first three in
 its list. Unticked: as the 1996 Windows version.
 
-**Natural stereo** (on by default)
+**Stereo fix (bugfix)** (on by default)
 
 The game does play vehicles in stereo: a truck on your right is louder on the
 right. But the Windows version scaled its stereo position straight into
@@ -427,25 +436,28 @@ and only trucks straight ahead were heard from both. Ticked, a truck's sound
 moves smoothly between the speakers as it moves round you (half way to the
 side: the far speaker 6 dB quieter), as the DOS version did.
 
-**Sound channels** (32 by default; 8 on Windows 95, 98 and ME)
+**Sound channels** (Modern renderer; 32 by default)
 
 The game mixes its sound effects on 8 channels and gathers at most 8 sounds
 at a time, and played only 3 trucks' engines: one busy truck (its engine,
 skid, ground and nitro, and its knocks) could take every channel.
 
-- **8 (1996):** as the game. The default on Windows 95, 98 and ME, and with
-  Period defaults: DirectSound mixes every sound playing at once on the
-  processor, so on a 1990s PC more sounds cost speed.
+- **8 (1996):** as the game. The default with Period defaults.
 - **16:** twice as many, and every truck's engine.
-- **32** (the default elsewhere): room for every truck's engine, skids,
-  ground noise, nitro and knocks at once: the whole field's chaos.
+- **32** (the default): room for every truck's engine, skids, ground noise,
+  nitro and knocks at once: the whole field's chaos.
 
 With 16 or 32 the nearest trucks come first; far trucks are quiet anyway with
-"Distant vehicles quieter". The number is a limit, not a target: the game
-only plays what the race calls for (each truck's engine, skid and nitro, your
-own truck's ground noise, and knocks), and nothing from trucks more than
+"Distant vehicles quieter (bugfix)". The number is a limit, not a target: the
+game only plays what the race calls for (each truck's engine, skid and nitro,
+your own truck's ground noise, and knocks), and nothing from trucks more than
 about 16 squares away. With Log ticked (Advanced tab), BRRFIX.LOG notes each
 new most channels playing at once.
+
+The Original renderer always has the game's 8, as in 1996, so the setting
+isn't shown with it. That includes Windows 95, 98 and ME, which have only the
+Original renderer: there DirectSound mixes every sound playing at once on the
+processor, so on a 1990s PC more sounds would cost speed.
 
 ## Controller
 
@@ -463,10 +475,20 @@ for modern pads.
 
 Xbox-style pads, including the Steam Deck's controls, work as the game's two
 joysticks: the first pad you use becomes joystick 1 (JS1), the next one you use
-joystick 2 (JS2), for two players. The left stick steers, and A and B are the
-joystick's buttons. In the game's controls menu, each player chooses JS1 or JS2.
-While a pad is connected, other joysticks (ones without XInput) are left out;
-without one, they work as in 1996.
+joystick 2 (JS2), for two players. The left stick steers (the D-pad too, as the
+keyboard does), and A and B are the joystick's buttons. In the game's controls
+menu, each player chooses JS1 or JS2. While a pad is connected, other joysticks
+(ones without XInput) are left out. Without one, a pad Windows reads itself is
+used the same way: its stick, its D-pad and its first two buttons; an 8BitDo pad
+in its D-input mode (such as the 8BitDo Micro on Windows) also has its L2 and R2
+as the triggers and its Select and Start as Back and Start. Untick this for the
+1996 joystick handling.
+
+Steering and the pedals are proportional once a pad has shown it has an
+analogue stick or trigger (moved part of the way); a pad with only a D-pad and
+buttons steers on or off, as the keyboard does. The game's Joystick Setup screen
+shows which with its Analogue box, which follows the pad (`analogue=0` under
+`[controller]` in BRRFIX.INI leaves the box to you, as in 1996).
 
 **Deadzone**
 
@@ -487,6 +509,28 @@ end of the stick's travel; higher values reach it sooner.
 
 In a race, Start pauses it and carries on, as the Pause key does, and Back
 (View on newer pads) ends it, as Esc does.
+
+**Pausing and ending a race**
+
+A race can be paused once the lights turn green (pausing during the start's
+countdown is ignored: the camera's zoom and the countdown carried on through
+it). The sound effects and the commentary pause with the race and carry on
+with it; the music plays on.
+
+With the Modern renderer, PAUSED shows in the middle of the darkened race
+while it's paused, and Esc or Back doesn't end the race straight away: it
+pauses it and asks END RACE?, with YES and NO (NO is chosen at first).
+
+- **Left and right** (the arrow keys, the stick or the D-pad) choose.
+- **Return, Enter or A** does what's chosen: YES ends the race, NO goes back.
+- **Esc, Back or B** goes back at once.
+
+Going back carries on with the race, or returns to PAUSED if you'd paused it
+first. While END RACE? is up, Pause and Start do nothing. It animates as the
+menus do: with Original-ish menu animations the chosen answer holds still and
+the rest moves; with Inverted only the chosen answer moves. During the start's
+countdown, Esc and Back end the race at once, as in 1996, as they do with the
+Original renderer and in split screen.
 
 ### Vibration
 
@@ -513,15 +557,62 @@ default); the nitro rumble is half as strong.
 
 ### Menus
 
-**Controller menu navigation** (on by default; both renderers, any joystick)
+**Controller / keyboard navigation** (on by default; both renderers, any joystick)
 
-The 1996 game already lets joystick button 1 (A on a pad) choose in its menus,
-as Return does. With this ticked, button 2 (B) goes back, as Esc does (on the
-first screens, as with Esc, it quits the game), and the stick's left and right
-(and a pad's D-pad) change the choice where the menus have arrows, as the arrow
-keys do: the race, the logo, the car. Not on the keys screen, where a
-joystick's buttons and directions can be given to controls, nor the joystick
-screen. Moving up and down through a menu's options is still to come.
+A joystick, a pad or the arrow keys can run the menus, and the menus start
+that way: after the name screen, the main menu's top item is selected and
+there's no mouse pointer. Up and down (the stick, the D-pad or an arrow key)
+step through every item in reading order (along a row, then the next row),
+with a click, stopping at the top and the bottom; left and right move along a
+row. A slider (vision and texture distance on Display, the CD and effects
+volumes on Sound, each player's damage) is one item: left and right move it, a
+step a push. The D-pad works on a modern pad and on a joystick Windows reads
+itself (its hat). Button 1 (A) or Return chooses, and ticks or unticks a box;
+button 2 (B) or Esc goes back (on the first screens, as with Esc, it quits the
+game), and button 2 also ends the attract demo and track select's View. Where
+the arrow keys change the race, the logo or the car, left and right still do
+that, and the arrow buttons themselves are skipped. On the globe (level
+select), button 1 works as Return: the first press chooses the track the globe
+is showing and the second goes on; the next screen starts with Race selected
+(move left for View or Car). With this ticked, any input on the main menu (the
+mouse, a key or the joystick) holds back the attract demo for another 15
+seconds, as if the menu had just appeared (in 1996 it started 15 seconds after
+the menu appeared, however busy you were).
+
+The name screen starts with the last name you entered, so button 1 accepts it;
+if the game asks "Create new file?", button 1 is Y and button 2 is N. Using
+the joystick in the menus also sets player one's controls to it (JS1 in
+Options, Joysticks), unless you change that setting yourself; the arrow keys
+alone don't. Moving the mouse brings back the pointer and hands the menus to
+the mouse (other keys do what they always did and leave this on), until you
+use the stick, the D-pad, a button, an arrow key, Return or Esc again (that
+press also does its usual job, such as left and right changing the vehicle); a
+race keeps the menus as they were, so the results
+come back the same way. On the keys screen every key you press goes to the
+control being set, as in 1996: there the selection only shows which control
+that is. The recording name is left to the keyboard (button 2 still goes back).
+
+**Menu animations** (with menu navigation; Inverted by default)
+
+The menus' texts and buttons shimmer and wobble, as they always have.
+Inverted: only the selected item moves, everything else is still. Original-ish:
+the selected item stops, so it stands out, while everything else carries on.
+Either way it covers the item's text, its button or tick box, its border and
+its label (such as "PL1:" beside a slider), and a slider's bar and knob, from
+the moment a screen appears.
+While the joystick or the arrow keys have the menus, the buttons only the
+mouse needs are put away: the globe's Select (button 1 or Return chooses the
+track) and "next" on Choose Your Vehicle (left and right change the vehicle).
+
+**Disable animated titles** (with menu navigation; ticked with Inverted)
+
+The screens' headings (such as SOUND OPTIONS) stay still too. Choosing Inverted
+ticks it and Original-ish unticks it, but you can change it either way. The
+screens that are one choice keep their headings moving: the name, the globe,
+Choose Your Vehicle, the driver, the logo and the recordings.
+
+The last name is kept in BRRNAME.TXT in the Game folder, and the click ("UI
+Click Deep" by SoundShelfStudio, from Pixabay) in Game\SAMPLES\JOYCLICK.WAV.
 
 ## Advanced
 
@@ -533,6 +624,15 @@ The game's language, as in its window's Language menu: English (the default),
 USA, French, German, Italian, Spanish or Japanese. It applies from the first
 screen, "Enter your name". The window's Language menu still works, but only
 until the game is closed: next time, this setting is used again.
+
+**The title screen at the start**
+
+Big Red Racing's title picture stays for 5 seconds before "Enter your name":
+on a 1996 PC it stayed while the game loaded, which today takes a moment.
+Esc, Space, Enter, a mouse click or any controller button skips it, and the
+game carries on as in 1996, fading it out. With Widescreen menu backgrounds
+it's a widescreen version of the picture. There's no setting here: [display]
+splash_seconds in BRRFIX.INI sets the time (0 for 1996's moment).
 
 ### Clock
 
@@ -584,8 +684,9 @@ the version there with yours.
 - **Skip this window next time:** starts the game straight away from now on.
   Hold Shift while starting, or start with -setup, to see this window again.
 - **Patch the DOS version:** fixes the DOS version's RACING.EXE in the Game
-  folder (the same game fixes, for DOS PCs and DOSBox), keeping the original as
-  RACING.ORI. Press it again on a patched file to put the original back.
+  folder (the same game fixes, for DOS PCs and DOSBox), keeping the original
+  as RACING.ORI. Press it again on a patched file to put the original back. On
+  one patched by an earlier version, it offers to update it.
 - **Help:** opens this file (or press F1).
 - **Play:** saves the settings and starts the game. When the game ends, this
   window comes back (on the same tab), so you can change something and play

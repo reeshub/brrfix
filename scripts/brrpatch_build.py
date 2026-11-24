@@ -8,7 +8,8 @@
    the build fails if any 16 bytes in a row of them also appear in RACING.EXE (apart from
    plain text of our own matching a common phrase, as in dos-package). Replays the steps
    to check they give exactly the patched file.
-3. Writes them, with both files' sizes and SHA-256, as brrdata.h (also used by the
+3. Writes them, with both files' sizes and SHA-256 (and those of earlier releases' patched
+   files, EARLIER, so they can be updated or undone), as brrdata.h (also used by the
    launcher's "Patch the DOS version" button, built by dropin-build).
 4. Compiles src/brrpatch/ with Open Watcom's 16-bit compiler as a real-mode DOS program
    (compact model, 386 instructions; no DOS extender needed), and checks it's an MZ
@@ -19,6 +20,7 @@ Example:
 
 import hashlib
 import json
+import struct
 import sys
 
 import dos_build
@@ -41,6 +43,15 @@ CFLAGS = ["-q", "-bt=dos", "-mc", "-3", "-za99", "-s", "-os", "-w4", "-we", "-zq
 LITERAL = 0xFFFFFFFF
 MIN_MATCH = 8
 MAX_CANDIDATES = 64
+# The patched RACING.EXE made by each earlier release (BRRPATCH, the launcher's DOS button, and
+# the Python patcher with no options), recognised so it can be updated or undone: (version,
+# size, SHA-256). Add each released patch's BRR_PATCHED_SIZE and BRR_PATCHED_SHA256 here
+# (RELEASING.md); one equal to this build's own is left out.
+# 0.1.0: brr-dos-patch-0.1.0.zip in releases 0.1.0 and 0.1.1 (the same zip), and Big Red
+# Launcher 0.1.0 and 0.1.1, which carry the same hash.
+EARLIER = [
+    ("0.1.0", 644832, "6336472a3c8de069617215f7333a3d6b0d4414a1c05e2ad2a74d4eeaf473eb2b"),
+]
 
 
 def sha256(data):
@@ -120,6 +131,88 @@ def replay(source, ops, literals):
     return bytes(out)
 
 
+def file_offset(le, data, address, length):
+    """Where length bytes at a linker address are in the file (within one page)."""
+    _, page, offset = le.locate(address)
+    if offset + length > dos_patch.PAGE:
+        raise BuildError(f"{address:#x}: {length} bytes cross a page")
+    at = le.header(0x80) + page * dos_patch.PAGE + offset
+    if data[at:at + length] != le.read(address, length):
+        raise BuildError(f"{address:#x}: not found at file offset {at:#x}")
+    return at
+
+
+def choice_offsets(patched, spec):
+    """(the options block's file offset, its size, the tag's file offset) in a patched file."""
+    code = spec["code"]
+    le = dos_patch.LE(patched)
+    symbols = {name: int(value, 16) for name, value in code["symbols"].items()}
+    size = 4 * len(spec["options"])
+    return (file_offset(le, patched, symbols[code["options_symbol"]], size), size,
+            file_offset(le, patched, symbols[code["tag_symbol"]], code["tag_size"]))
+
+
+def with_choices(patched, spec, changes):
+    """The default patched file with some options changed ({name: value}), and its tag, as
+    BRRPATCH writes the player's answers (for brrpatch-test)."""
+    options_at, _, tag_at = choice_offsets(patched, spec)
+    out = bytearray(patched)
+    values = dos_patch.with_hooks({name: about["default"] for name, about in spec["options"].items()})
+    values.update(changes)
+    for name, value in changes.items():
+        struct.pack_into("<I", out, options_at + spec["options"][name]["offset"], value)
+    text = dos_patch.tag(spec, values).encode("ascii") + b"\0"
+    out[tag_at:tag_at + len(text)] = text
+    return bytes(out), dos_patch.tag(spec, values)
+
+
+# The fixes BRRPATCH asks about (src/brrpatch/main.c), as the patch's options
+QUESTION_OPTIONS = ["camera", "cap", "interpolation", "fine_angles", "roll_fix", "retrace", "menu_pad", "menu_anim"]
+
+
+def choice_lines(patched, spec):
+    """brrdata.h's part for BRRPATCH's questions: where the options block and the menu's tag
+    are in the patched file, their default bytes (ours), each asked option's place in the
+    block, and the tag's letters. BRRPATCH writes the answers there after rebuilding the
+    default file, and ignores those bytes when it recognises a patched file."""
+    code = spec["code"]
+    options_at, size, tag_at = choice_offsets(patched, spec)
+    lines = [f"#define BRR_OPTIONS_AT {options_at:#x}UL",
+             f"#define BRR_OPTIONS_SIZE {size}",
+             f"static const uint8_t BRR_OPTIONS_DEFAULT[BRR_OPTIONS_SIZE] = {{"
+             + ",".join(str(b) for b in patched[options_at:options_at + size]) + "};"]
+    for name in QUESTION_OPTIONS:
+        about = spec["options"][name]
+        if about["size"] != 4:
+            raise BuildError(f"option {name} isn't a dword")
+        lines.append(f"#define BRR_OPTION_{name.upper()} {about['offset']}")
+    lines += [f"#define BRR_CAP_DEFAULT {spec['options']['cap']['default']}",
+              f"#define BRR_TAG_AT {tag_at:#x}UL",
+              f"#define BRR_TAG_SIZE {code['tag_size']}",
+              f"static const uint8_t BRR_TAG_DEFAULT[BRR_TAG_SIZE] = {{"
+              + ",".join(str(b) for b in patched[tag_at:tag_at + code["tag_size"]]) + "};",
+              f'#define BRR_TAG_PREFIX "F{".".join(spec["version"].split(".")[:2])} "',
+              f"#define BRR_TAG_LETTERS {len(spec['tag_letters'])}",
+              "static const struct { unsigned char option; char letter; } BRR_TAG_LETTER[BRR_TAG_LETTERS] = {"
+              + ", ".join(f"{{{spec['options'][name]['offset']}, '{letter}'}}" for name, letter in spec["tag_letters"].items())
+              + "};"]
+    return lines
+
+
+def earlier_lines(patched):
+    """brrdata.h's list of earlier releases' patched files (EARLIER), apart from this one."""
+    earlier = [(version, size, digest) for version, size, digest in EARLIER if digest != sha256(patched)]
+    for version, size, _ in earlier:
+        if size == len(patched):  # BRRPATCH ignores this build's options block in a file this size
+            raise BuildError(f"patch {version}'s RACING.EXE is the same size as this one's, so BRRPATCH "
+                             "would need that version's options block to recognise it")
+    lines = [f"#define BRR_EARLIER_COUNT {len(earlier)}"]
+    if earlier:
+        lines.append("static const struct { uint32_t size; const char *sha256; } BRR_EARLIER[BRR_EARLIER_COUNT] = {"
+                     + ", ".join(f'{{{size}UL, "{digest}"}}' for _, size, digest in earlier) + "};")
+    return lines
+
+
 def write_data():
     """Work out the steps and write brrdata.h; returns a summary dictionary."""
     from dos_package import shares_game_bytes
@@ -150,6 +243,8 @@ def write_data():
     for i in range(0, len(literals), 20):
         lines.append("    " + ",".join(str(b) for b in literals[i:i + 20]) + ",")
     lines.append("};")
+    lines += choice_lines(patched, spec)
+    lines += earlier_lines(patched)
     HEADER.write_text("\n".join(lines) + "\n")
     return {"ops": len(ops), "literals": len(literals), "copied": len(patched) - len(literals),
             "patched": len(patched), "tag": tag, "text": sorted({literals[i:i + 16].decode() for i in text})}

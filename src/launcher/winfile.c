@@ -14,14 +14,15 @@ static brr_file files[MAX_OPEN];
 
 brr_file *brr_fopen(const char *path, const char *mode)
 {
-    int writing = mode[0] == 'w';
+    int writing = mode[0] == 'w', updating = mode[1] == '+' || (mode[1] && mode[2] == '+');  /* "r+b" */
     HANDLE handle;
     int i;
     for (i = 0; i < MAX_OPEN && files[i].used; i++)
         ;
     if (i == MAX_OPEN)
         return NULL;
-    handle = CreateFileA(path, writing ? GENERIC_WRITE : GENERIC_READ, writing ? 0 : FILE_SHARE_READ, NULL,
+    handle = CreateFileA(path, updating ? GENERIC_READ | GENERIC_WRITE : writing ? GENERIC_WRITE : GENERIC_READ,
+                         writing || updating ? 0 : FILE_SHARE_READ, NULL,
                          writing ? CREATE_ALWAYS : OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (handle == INVALID_HANDLE_VALUE)
         return NULL;

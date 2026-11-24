@@ -35,6 +35,7 @@
  * Windows NT family only (Wine, Proton, Windows 2000 onwards): on Windows 95/98/ME the
  * original renderer stays. Docs: KNOWLEDGE "The renderer (Phase 3c)". */
 #include "brrfix.h"
+#include "menunav.h"
 #include <string.h>
 
 #define VIEW_W         (*(volatile int16_t *)0x44BE60)
@@ -445,6 +446,96 @@ static int wide_menus(int w, int h)
     return brr_widescreen && cfg.widescreen_menus && w == MENU_W && h == MENU_H;
 }
 
+/* ---- the start-up splash in widescreen (the director, 2026-11-24) ----
+ * game_init shows BRS2.RAW (320x200) while it loads, held by splash.c. With the widescreen menus,
+ * where that picture would have bars at its sides, a widescreen version made for Big Red Launcher
+ * is shown instead (BRS2.RAW-wide.png here, built in by dropin-build as splashw.h:
+ * the same picture's first 180 rows, the copyright line and Domark's logo moved up): 320x180
+ * with square pixels, so 16:9, enlarged to fill the picture's width (or its height, if wider
+ * than 16:9), nearest pixel (sharp, as the widened backgrounds), centred: the menus' picture of
+ * the screen's shape is filled on a 16:9 screen, with bars above and below on a 16:10 one. It
+ * uses BRS2.RAW's palette, so the game's fades work on it; if the game's palette then isn't
+ * that one, the 1996 picture stays. */
+#include "splashw.h"
+#define SCREEN_PALETTE ((const uint8_t *)0x452660)  /* the palette raw_picture_load read (6 bits a channel) */
+static int splash_shown;  /* the picture last composed (full colour: not a fade's step) is the splash */
+
+static int splash_palette_ok(void)
+{
+    static int ok = -1;
+    if (ok < 0) {
+        ok = !memcmp(splash_wide_palette, SCREEN_PALETTE, sizeof splash_wide_palette);
+        if (!ok)
+            brr_log("splash: the widescreen version's palette isn't the game's BRS2.RAW's: the 1996 picture kept");
+    }
+    return ok;
+}
+
+/* The splash in widescreen into out (32-bit with colours, else 8-bit); 0 when the 1996 picture,
+ * as laid out (l), is as wide or wider, so it's kept */
+static int draw_splash_wide(void *out, int out_w, int out_h, int out_pitch, const struct layout *l,
+                            const uint32_t *colours)
+{
+    static int16_t source_x[RENDER_LIMIT_W];
+    static int logged;
+    int dw, dh, x0, y0, x, y, last = -1;
+    if (out_w > RENDER_LIMIT_W)
+        return 0;
+    if ((long)out_w * SPLASH_WIDE_H <= (long)out_h * SPLASH_WIDE_W) {
+        dw = out_w;
+        dh = out_w * SPLASH_WIDE_H / SPLASH_WIDE_W;
+    } else {
+        dh = out_h;
+        dw = out_h * SPLASH_WIDE_W / SPLASH_WIDE_H;
+    }
+    if (dw <= MENU_W * l->sx || dh < SPLASH_WIDE_H || !splash_palette_ok())
+        return 0;
+    x0 = (out_w - dw) / 2;
+    y0 = (out_h - dh) / 2;
+    if (!logged++)
+        brr_log("splash: the widescreen version, %dx%d drawn %dx%d at %d,%d in %dx%d (the 1996 one %dx%d)",
+                SPLASH_WIDE_W, SPLASH_WIDE_H, dw, dh, x0, y0, out_w, out_h, MENU_W * l->sx, MENU_H * l->sy);
+    for (x = 0; x < dw; x++)
+        source_x[x] = (int16_t)((2 * x + 1) * SPLASH_WIDE_W / (2 * dw));
+    for (y = 0; y < out_h; y++) {
+        int row = y - y0, sy;
+        const uint8_t *p;
+        if (row < 0 || row >= dh) {
+            if (colours)
+                memset((uint32_t *)out + (size_t)y * (size_t)out_pitch, 0, (size_t)out_w * 4);
+            else
+                memset((uint8_t *)out + (size_t)y * (size_t)out_pitch, 0, (size_t)out_w);
+            last = -1;
+            continue;
+        }
+        sy = (2 * row + 1) * SPLASH_WIDE_H / (2 * dh);
+        p = splash_wide + sy * SPLASH_WIDE_W;
+        if (colours) {
+            uint32_t *o = (uint32_t *)out + (size_t)y * (size_t)out_pitch;
+            if (sy == last) {
+                memcpy(o, o - out_pitch, (size_t)out_w * 4);
+                continue;
+            }
+            memset(o, 0, (size_t)x0 * 4);
+            for (x = 0; x < dw; x++)
+                o[x0 + x] = colours[p[source_x[x]]];
+            memset(o + x0 + dw, 0, (size_t)(out_w - x0 - dw) * 4);
+        } else {
+            uint8_t *o = (uint8_t *)out + (size_t)y * (size_t)out_pitch;
+            if (sy == last) {
+                memcpy(o, o - out_pitch, (size_t)out_w);
+                continue;
+            }
+            memset(o, 0, (size_t)x0);
+            for (x = 0; x < dw; x++)
+                o[x0 + x] = p[source_x[x]];
+            memset(o + x0 + dw, 0, (size_t)(out_w - x0 - dw));
+        }
+        last = sy;
+    }
+    return 1;
+}
+
 static uint8_t *picture;
 static size_t picture_size;
 
@@ -483,9 +574,11 @@ const uint8_t *brr_render_compose(int out_w, int out_h, int out_pitch)
         menu_background_take();
     menu_square = brr_widescreen && globe_screen();
     fit(w, h, out_w, out_h, &l);
-    compose(pixels, w, h, pitch, out, out_w, out_h, out_pitch, &l);
-    if (wide_menus(w, h))
-        widen_background(pixels, pitch, out, out_w, out_h, out_pitch, &l, NULL);
+    if (!(wide_menus(w, h) && brr_splash_on && draw_splash_wide(out, out_w, out_h, out_pitch, &l, NULL))) {
+        compose(pixels, w, h, pitch, out, out_w, out_h, out_pitch, &l);
+        if (wide_menus(w, h))
+            widen_background(pixels, pitch, out, out_w, out_h, out_pitch, &l, NULL);
+    }
     brr_hud_overlay(pixels, w, h, out, out_w, out_h, out_pitch, l.x, l.y, l.sx, l.sy, NULL, 0);
     final_w = out_w;
     final_h = out_h;
@@ -616,9 +709,13 @@ int brr_render_compose32(uint32_t *out, int out_w, int out_h, int out_pitch)
     fit(w, h, out_w, out_h, &l);
     palette_colours();
     sky = brr_sky_begin(origin, w, h, pitch, l.sx, l.sy, l.x, l.y) > 0;
-    compose32(pixels, origin, w, h, pitch, out, out_w, out_h, out_pitch, &l, sky);
-    if (wide_menus(w, h))
-        widen_background(pixels, pitch, out, out_w, out_h, out_pitch, &l, colours);
+    if (!replaying)  /* a fade's steps keep the splash the picture was shown as */
+        splash_shown = brr_splash_on;
+    if (!(wide_menus(w, h) && splash_shown && draw_splash_wide(out, out_w, out_h, out_pitch, &l, colours))) {
+        compose32(pixels, origin, w, h, pitch, out, out_w, out_h, out_pitch, &l, sky);
+        if (wide_menus(w, h))
+            widen_background(pixels, pitch, out, out_w, out_h, out_pitch, &l, colours);
+    }
     /* the race HUD (hud.c) on top; a fade's steps keep the HUD the picture was shown with */
     if (!replaying)
         shown_hud = brr_hud_overlay(origin, w, h, out, out_w, out_h, out_pitch, l.x, l.y, l.sx, l.sy, colours, 0);
@@ -1006,11 +1103,45 @@ int32_t __cdecl brr_lod_scale(int32_t depth)
     return depth;
 }
 
+/* The drivers' heads (HEADnn.3DW in TEAMS.TEA) have a close-up version the game draws only within
+ * 80 units (0.156 squares) of the camera, so never in a race; the next smallest band of any model
+ * is a wheel's 0.78 squares. Team 4's (HEAD41) has a mouth drawn textured with no texture of its
+ * own (the only such version in the game's 130 models with versions), so it takes whatever
+ * texture was last used, and when that was a flat polygon's colour the engine reads the colour
+ * as an address: the attract demo's crash (2026-11-23). Matched and highest don't pick a version
+ * ending this near unless the game itself would. */
+#define CLOSE_UP_VERSION (128L << 16)  /* a quarter of a square, 16.16 */
+uint32_t brr_close_ups_skipped;
+
 void __cdecl brr_lod_select(const int32_t *table)
 {
+    int32_t depth = *(volatile int32_t *)0x54B488;
     if (cfg.debug_lod_log)
         lod_log(table);
-    brr_lod_depth = brr_lod_scale(*(volatile int32_t *)0x54B488);
+    brr_lod_depth = brr_lod_scale(depth);
+    if (table[0] != -1 && table[0] < CLOSE_UP_VERSION && table[2] != -1 && depth > table[0]
+        && brr_lod_depth <= table[0]) {
+        brr_lod_depth = table[0] + 1;  /* past the close-up: the next version, as the game */
+        brr_close_ups_skipped++;
+    }
+}
+
+/* The name the model cache (the .3DW cache, 0x542A90: a byte count at +4 and a list at +8 of
+ * entries of (their size, the data, the name)) keeps for a model's data, or "?" (crash reports) */
+const char *brr_model_name(const void *model)
+{
+    const uint8_t *entry = *(const uint8_t *const *)0x542A98;
+    int32_t left = *(const int32_t *)0x542A94;
+    while (entry && left > 0) {
+        uint32_t size = *(const uint32_t *)entry;
+        if (*(const void *const *)(entry + 4) == model)
+            return (const char *)(entry + 8);
+        if (size < 12)
+            break;
+        left -= (int32_t)size;
+        entry += size;
+    }
+    return "?";
 }
 
 /* Site shading_threshold: the distance in squares inside which display_list_draw lights objects
@@ -1052,6 +1183,10 @@ void brr_display_list_report(void)
     if (brr_count_unlit)
         brr_log("object lighting: %lu times the game would have left far objects unlit after an effect",
                 (unsigned long)brr_count_unlit);
+    if (brr_close_ups_skipped)
+        brr_log("object detail: %lu times a model's close-up version (the drivers' heads) left to the game's own "
+                "choice", (unsigned long)brr_close_ups_skipped);
+    brr_close_ups_skipped = 0;
     brr_count_project = brr_count_backface = brr_count_clip = brr_count_unlit = 0;
     if (list_frames) {
         uint32_t node_base, node_count, record_base, record_count;
@@ -1183,37 +1318,59 @@ static int pointer_extent(int *x0, int *y0, int *x1, int *y1)
 /* Site menu_mouse (in 0x4274FC, only when the race view isn't set): the menu's mouse
  * position from the pointer's position in the final picture, the inverse of the layout
  * above (the original mapped only at 640x480, to its doubled picture: x / 2, (y - 40) / 2).
+ * With the Original renderer (the site is there for the joystick menu navigation) the
+ * original's own mapping, exactly. Then the navigation (menunav.c) has its say: while the
+ * joystick has the menus, the pointer is at the selection and button 1 is the left button.
  * Returns x | y << 16. */
+#define BUTTONS_NOW (*(volatile int16_t *)0x4B13B2)  /* mouse_buttons_now, just read from 0x4988B0 */
 uint32_t __cdecl brr_menu_mouse(void)
 {
-    int x = MOUSE_X, y = MOUSE_Y;
-    if (final_w > 0 && final_h > 0) {
-        struct layout l;
-        fit(MENU_W, MENU_H, final_w, final_h, &l);
-        x = x >= l.x ? (x - l.x) / l.sx : -1;
-        y = y >= l.y ? (y - l.y) / l.sy : -1;
-    }
-    if (x < 0) x = 0;
-    if (x > MENU_W - 1) x = MENU_W - 1;
-    if (y < 0) y = 0;
-    if (y > MENU_H - 1) y = MENU_H - 1;
-    /* with the widescreen backgrounds, the menu's left and right edges are no longer the
-     * picture's: the pointer stops where it would start to be cut off (the director,
-     * 2026-11-16). The menu is as tall as the picture, so its top and bottom are the screen's
-     * edges, as in 1996 (and stopping 23 rows short would leave bottom buttons out of reach). */
-    if (brr_widescreen && cfg.widescreen_menus) {
-        int x0, y0, x1, y1;
-        if (pointer_extent(&x0, &y0, &x1, &y1)) {
-            if (x < -x0) x = -x0;
-            if (x > MENU_W - 1 - x1) x = MENU_W - 1 - x1;
+    static int last_x = -32768, last_y;
+    int x = MOUSE_X, y = MOUSE_Y, moved;
+    short menu_x, menu_y, buttons = BUTTONS_NOW;
+    if (!brr_renderer_active) {
+        if (DISPLAY_W == 640 && DISPLAY_H == 480) {
+            x = (int16_t)x >> 1;
+            if (y < 40) y = 40;
+            if (y > 440) y = 440;
+            y = (int16_t)(y - 40) >> 1;
+        }
+    } else {
+        if (final_w > 0 && final_h > 0) {
+            struct layout l;
+            fit(MENU_W, MENU_H, final_w, final_h, &l);
+            x = x >= l.x ? (x - l.x) / l.sx : -1;
+            y = y >= l.y ? (y - l.y) / l.sy : -1;
+        }
+        if (x < 0) x = 0;
+        if (x > MENU_W - 1) x = MENU_W - 1;
+        if (y < 0) y = 0;
+        if (y > MENU_H - 1) y = MENU_H - 1;
+        /* with the widescreen backgrounds, the menu's left and right edges are no longer the
+         * picture's: the pointer stops where it would start to be cut off (the director,
+         * 2026-11-16). The menu is as tall as the picture, so its top and bottom are the screen's
+         * edges, as in 1996 (and stopping 23 rows short would leave bottom buttons out of reach). */
+        if (brr_widescreen && cfg.widescreen_menus) {
+            int x0, y0, x1, y1;
+            if (pointer_extent(&x0, &y0, &x1, &y1)) {
+                if (x < -x0) x = -x0;
+                if (x > MENU_W - 1 - x1) x = MENU_W - 1 - x1;
+            }
         }
     }
     if (cfg.debug_log_mouse) {  /* each new position (the same one is asked for every tick) */
-        static int logged, last_x = -1, last_y = -1;
-        if ((MOUSE_X != last_x || MOUSE_Y != last_y) && logged++ < 40)
+        static int logged, last_logged_x = -1, last_logged_y = -1;
+        if ((MOUSE_X != last_logged_x || MOUSE_Y != last_logged_y) && logged++ < 40)
             brr_log("mouse: pointer %d,%d in the %dx%d picture -> menu %d,%d", MOUSE_X, MOUSE_Y, final_w, final_h, x, y);
-        last_x = MOUSE_X;
-        last_y = MOUSE_Y;
+        last_logged_x = MOUSE_X;
+        last_logged_y = MOUSE_Y;
     }
-    return (uint32_t)(uint16_t)x | (uint32_t)(uint16_t)y << 16;
+    moved = last_x != -32768 && (MOUSE_X != last_x || MOUSE_Y != last_y);
+    last_x = MOUSE_X;
+    last_y = MOUSE_Y;
+    menu_x = (short)x;
+    menu_y = (short)y;
+    nav_mouse(moved, buttons, &menu_x, &menu_y, &buttons);
+    BUTTONS_NOW = buttons;
+    return (uint32_t)(uint16_t)menu_x | (uint32_t)(uint16_t)menu_y << 16;
 }

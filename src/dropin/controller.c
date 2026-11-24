@@ -18,13 +18,16 @@
  * mirrors JS1's pad (the same pad seen twice) doesn't become JS2. While any XInput pad is
  * connected the game's own joystick messages are switched off (both captured bytes 0), so
  * the same pad can't also drive a joystick through Windows (under Proton the pad was both
- * JS1, through XInput, and JS2, through Windows' messages: 2026-11-15); with none, the
- * game's own joysticks work as in 1996 (Windows 95-ME, a pad without XInput). Each tick,
- * just before joystick_to_keys, each pad's state goes into its joystick's variables: left
- * stick X steers (deadzone, sensitivity and a response curve), the triggers (or stick Y)
- * are the pedals, A and B are buttons 1 and 2, the calibration matches, and with
- * analogue=1 the per-axis analogue flags (0x44B9D8) are set. A joystick without a pad
- * reads as centred. In a race, any pad's Start is Break (key-table index 0x72: pause, and
+ * JS1, through XInput, and JS2, through Windows' messages: 2026-11-15); with none, Windows'
+ * own joysticks (a pad without XInput, such as an 8BitDo in D-input mode) are read each tick
+ * and driven the same way (drive_windows_joysticks), and without XInput at all (Windows
+ * 95-ME) they work as in 1996. Each tick, just before joystick_to_keys, each pad's state goes
+ * into its joystick's variables: left stick X (or the D-pad's left and right) steers
+ * (deadzone, sensitivity and a response curve), the triggers (or stick Y) are the pedals, A
+ * and B are buttons 1 and 2, the calibration matches, and with analogue=1 the per-axis
+ * analogue flags (0x44B9D8) are set once the pad has shown it's analogue (a stick or trigger
+ * held part of the way; a pad with only a D-pad and digital triggers never does, so it
+ * steers as the keyboard does). A joystick without a pad reads as centred. In a race, any pad's Start is Break (key-table index 0x72: pause, and
  * again to carry on) and Back is Esc (0x01: end the race), as race_keys_tick (0x414240)
  * reads them through the key hotspots; each is set while the button is held and cleared on
  * release, so a key held on the keyboard is left alone. The game's code is unchanged: only what it's given.
@@ -45,6 +48,7 @@
  * 1 s (winebus cutoff_time_ms) and Wine's XInputSetState drops one equal to the last
  * (xinput1_3 HID_set_state), so each repeat changes a motor by one step in 65,535. */
 #include "brrfix.h"
+#include <mmsystem.h>
 #include <string.h>
 
 #define JOY_CAPTURED  ((volatile uint8_t *)0x44B9C8)   /* [j]: joystick j+1's messages are stored */
@@ -66,7 +70,9 @@
 #define REFRESH_MS    500    /* Wine and Proton end each rumble after 1 s (winebus cutoff_time_ms) */
 #define SLOTS         4
 #define JOYSTICKS     2
-#define PAD_LEFT      0x0004  /* the D-pad */
+#define PAD_UP        0x0001  /* the D-pad */
+#define PAD_DOWN      0x0002
+#define PAD_LEFT      0x0004
 #define PAD_RIGHT     0x0008
 #define PAD_START     0x0010
 #define PAD_BACK      0x0020
@@ -107,6 +113,7 @@ static struct rumble rumble[JOYSTICKS];
 static int64_t last_tick_time;               /* QPC: the last running race tick */
 static int damage_known[2];                  /* per player: damage_seen is from the last tick */
 static int32_t damage_seen[2], last_tick;
+static int analogue_seen[JOYSTICKS];          /* each joystick's pad has moved part of the way */
 
 void brr_controller_start(void)
 {
@@ -393,20 +400,18 @@ static void read_pads(xinput_state states[SLOTS], int ok[SLOTS])
         }
         motors_off(j);
         joystick_slot[j] = i;
+        analogue_seen[j] = 0;
         brr_log("controller: JS%d is the pad in XInput slot %d (first used)", j + 1, i);
     }
 }
 
-/* In a race, Start and Back on any pad are Break and Esc in the game's key table */
-static void race_buttons(const xinput_state states[SLOTS], const int ok[SLOTS])
+/* In a race, Start and Back on any pad (the buttons of every joystick's pad) are Break and Esc
+ * in the game's key table */
+static void race_buttons(WORD buttons)
 {
     static int held_start, held_back;
     uint8_t *keys = *(uint8_t **)0x56C648;  /* KEY.DLL's _KEY_pressed */
-    WORD buttons = 0;
-    int j, start, back;
-    for (j = 0; j < JOYSTICKS; j++)
-        if (joystick_slot[j] >= 0 && ok[joystick_slot[j]])
-            buttons |= states[joystick_slot[j]].pad.buttons;
+    int start, back;
     start = *SCREEN == 0x80 && (buttons & PAD_START);
     back = *SCREEN == 0x80 && (buttons & PAD_BACK);
     if (start || held_start)  /* the game clears Break when it pauses: held, it stays set */
@@ -428,34 +433,61 @@ static void race_buttons(const xinput_state states[SLOTS], const int ok[SLOTS])
     }
 }
 
-/* A pad's state into joystick j's variables */
-static void drive_joystick(int j, const pad_state *pad)
+/* Part of the way: a stick between a quarter and nine tenths over, a trigger between an
+ * eighth and seven eighths pulled; a D-pad, or a digital trigger, is never seen there */
+static int part_way(long v) { return (v > 8191 && v < 29491) || (v < -8191 && v > -29491); }
+static int part_pulled(int t) { return t > 31 && t < 224; }
+
+/* A pad's state into joystick j's variables. triggers: the pad's triggers are the pedals (an
+ * XInput pad's, an 8BitDo's L2 and R2), with layout=triggers; else stick up and down */
+static void drive_joystick(int j, const pad_state *pad, int triggers)
 {
     float steer, pedal;
     int i;
     steer = shape((float)pad->left_x / 32767.0f, cfg.pad_deadzone, cfg.pad_curve, cfg.pad_sensitivity);
-    /* menus: the D-pad's left and right push the stick all the way (the menus read its
-     * left and right through the game's joystick keys, keys.c) */
-    if (cfg.menu_navigation && *SCREEN != 0x80) {
-        if (pad->buttons & PAD_LEFT)
-            steer = -1.0f;
-        else if (pad->buttons & PAD_RIGHT)
-            steer = 1.0f;
-    }
-    if (cfg.pad_triggers)
+    /* the D-pad's left and right push the stick all the way: in the menus (which read its
+     * left and right through the game's joystick keys, keys.c) and in races, where it steers
+     * as the keyboard does (a pad without a stick: the director, 2026-11-24) */
+    if (pad->buttons & PAD_LEFT)
+        steer = -1.0f;
+    else if (pad->buttons & PAD_RIGHT)
+        steer = 1.0f;
+    if (triggers)
         pedal = ((float)pad->left_trigger - (float)pad->right_trigger) / 255.0f;  /* up = accelerate */
     else
         pedal = -shape((float)pad->left_y / 32767.0f, cfg.pad_deadzone, 100, 100);
+    /* menus: up and down are the stick's (or the D-pad's), whichever the layout, for the
+     * joystick menu navigation (menunav.c), which reads them as the game's joystick keys */
+    if (cfg.menu_navigation && *SCREEN != 0x80) {
+        if (pad->buttons & PAD_UP)
+            pedal = -1.0f;
+        else if (pad->buttons & PAD_DOWN)
+            pedal = 1.0f;
+        else
+            pedal = -shape((float)pad->left_y / 32767.0f, cfg.pad_deadzone, 100, 100);
+    }
     *JOY_X(j) = to_axis(steer);
     *JOY_Y(j) = to_axis(pedal);
     JOY_BUTTONS[j] = (uint8_t)((pad->buttons & 0x1000 ? 1 : 0) | (pad->buttons & 0x2000 ? 2 : 0));
+    /* an analogue pad shows itself by a stick or trigger held part of the way: until then (and
+     * always, on a pad with only a D-pad and digital triggers, as the 8BitDo Micro) its steering
+     * and pedals are on or off, ramping as the keyboard's do, and the joysticks screen's
+     * Analogue box is unticked (the director, 2026-11-24) */
+    if (part_way(pad->left_x) || part_way(pad->left_y)
+        || (triggers && (part_pulled(pad->left_trigger) || part_pulled(pad->right_trigger)))) {
+        if (!analogue_seen[j])
+            brr_log("controller: JS%d moved part of the way: analogue%s", j + 1,
+                    cfg.pad_analogue ? "" : " (off in BRRFIX.INI: analogue=0)");
+        analogue_seen[j] = 1;
+    }
     for (i = 2 * j; i < 2 * j + 2; i++) {  /* the calibration of a perfect stick, on the inverted values */
         JOY_CALIBRATE[3 * i] = 65535;
         JOY_CALIBRATE[3 * i + 1] = 32767;
         JOY_CALIBRATE[3 * i + 2] = 0;
-        /* analogue steering and pedals, through the game's own analogue code (FUN_004183ec) */
+        /* analogue steering and pedals, through the game's own analogue code (vehicle_control_axis
+         * 0x4183EC); with analogue=0 the game's own Analogue box decides, as in 1996 */
         if (cfg.pad_analogue)
-            JOY_ANALOGUE[i] = 1;
+            JOY_ANALOGUE[i] = (uint8_t)analogue_seen[j];
     }
 }
 
@@ -491,6 +523,150 @@ static void centre_absent_joysticks(void)
             *JOY_X(j) = 32767;
             *JOY_Y(j) = 32767;
         }
+}
+
+/* Windows' own joystick functions, looked up (Windows 95 has them) */
+typedef MMRESULT (WINAPI *getposex_fn)(UINT, JOYINFOEX *);
+typedef MMRESULT (WINAPI *getdevcaps_fn)(UINT, JOYCAPSA *, UINT);
+
+static MMRESULT joystick_read(int j, DWORD flags, JOYINFOEX *info)
+{
+    static getposex_fn getposex;
+    static int looked;
+    if (!looked) {
+        looked = 1;
+        getposex = (getposex_fn)GetProcAddress(GetModuleHandleA("winmm.dll"), "joyGetPosEx");
+    }
+    memset(info, 0, sizeof *info);
+    info->dwSize = sizeof *info;
+    info->dwFlags = flags;
+    return getposex ? getposex(JOYSTICKID1 + j, info) : JOYERR_NOCANDO;
+}
+
+/* A hat's position (joyGetPosEx's POV, in hundredths of a degree from up; diagonals count
+ * both ways) as the D-pad's buttons */
+static WORD hat_buttons(DWORD pov)
+{
+    if (pov >= 36000)
+        return 0;
+    return (WORD)((pov >= 31500 || pov <= 4500 ? PAD_UP : pov >= 13500 && pov <= 22500 ? PAD_DOWN : 0)
+                  | (pov >= 4500 && pov <= 13500 ? PAD_RIGHT : pov >= 22500 && pov <= 31500 ? PAD_LEFT : 0));
+}
+
+/* The D-pad of a joystick Windows delivers itself, without the controller layer (Windows
+ * 95-ME, or [controller] enabled=0) is a hat, which the game's joystick messages don't carry:
+ * in the menus, with the menu navigation, it pushes joystick 1's stick all the way, as an
+ * XInput pad's D-pad does (drive_joystick; the director, 2026-11-24: "I like to use the D-pad
+ * to navigate menus"). The stick's own position is put back when the hat is let go, unless a
+ * joystick message has brought a new one. */
+static void hat_to_stick(void)
+{
+    static int pushed;
+    static uint16_t saved_x, saved_y, forced_x, forced_y;
+    int dx = 0, dy = 0;
+    JOYINFOEX info;
+    if (*SCREEN != 0x80 && JOY_CAPTURED[0] && joystick_read(0, JOY_RETURNPOV, &info) == JOYERR_NOERROR) {
+        WORD d = hat_buttons(info.dwPOV);
+        dy = d & PAD_UP ? -1 : d & PAD_DOWN ? 1 : 0;
+        dx = d & PAD_LEFT ? -1 : d & PAD_RIGHT ? 1 : 0;
+    }
+    if (dx || dy) {
+        if (!pushed || *JOY_X(0) != forced_x)
+            saved_x = *JOY_X(0);
+        if (!pushed || *JOY_Y(0) != forced_y)
+            saved_y = *JOY_Y(0);
+        forced_x = (uint16_t)(dx < 0 ? 0 : dx > 0 ? 65535 : saved_x);
+        forced_y = (uint16_t)(dy < 0 ? 0 : dy > 0 ? 65535 : saved_y);
+        *JOY_X(0) = forced_x;
+        *JOY_Y(0) = forced_y;
+        if (!pushed)
+            brr_log("controller: the joystick's hat (D-pad) pushes the stick in the menus (POV %d,%d)", dx, dy);
+        pushed = 1;
+    } else if (pushed) {
+        if (*JOY_X(0) == forced_x)
+            *JOY_X(0) = saved_x;
+        if (*JOY_Y(0) == forced_y)
+            *JOY_Y(0) = saved_y;
+        pushed = 0;
+    }
+}
+
+/* Windows' own joysticks, with the controller layer, while no XInput pad is connected: a pad
+ * without XInput, such as an 8BitDo in its D-input mode (the director's Micro, 2026-11-24).
+ * Read each tick (joyGetPosEx) and driven as a pad is (drive_joystick): the D-pad (a hat,
+ * which the game's joystick messages don't carry) navigates and steers, the stick gets the
+ * deadzone, curve and sensitivity, and the Analogue box follows what the pad shows. An
+ * 8BitDo (USB vendor 0x2DC8: joyGetDevCaps' wMid) numbers its buttons one way in D-input
+ * mode (SDL's controller database: L2 9, R2 10, Select 11, Start 12): its L2 and R2 are the
+ * pedals with layout=triggers, its Select and Start a race's Back and Start. Other pads'
+ * extra buttons have no fixed numbers, so they're left alone; their stick's up and down stay
+ * the pedals. Returns the D-pad's, Back's and Start's buttons (race_buttons). */
+static WORD drive_windows_joysticks(void)
+{
+    static getdevcaps_fn getdevcaps;
+    static int known[JOYSTICKS], eightbitdo[JOYSTICKS];
+    WORD all = 0;
+    int j;
+    for (j = 0; j < JOYSTICKS; j++) {
+        JOYINFOEX info;
+        pad_state pad;
+        DWORD b;
+        if (!JOY_CAPTURED[j]
+            || joystick_read(j, JOY_RETURNX | JOY_RETURNY | JOY_RETURNPOV | JOY_RETURNBUTTONS, &info) != JOYERR_NOERROR)
+            continue;
+        if (!known[j]) {
+            JOYCAPSA caps;
+            known[j] = 1;
+            analogue_seen[j] = 0;
+            if (!getdevcaps)
+                getdevcaps = (getdevcaps_fn)GetProcAddress(GetModuleHandleA("winmm.dll"), "joyGetDevCapsA");
+            if (getdevcaps && getdevcaps(JOYSTICKID1 + j, &caps, sizeof caps) == JOYERR_NOERROR) {
+                eightbitdo[j] = caps.wMid == 0x2DC8;
+                brr_log("controller: JS%d is a joystick Windows reads itself (USB %04X:%04X, %u axes, %u buttons%s)%s",
+                        j + 1, caps.wMid, caps.wPid, caps.wNumAxes, caps.wNumButtons,
+                        caps.wCaps & JOYCAPS_HASPOV ? ", a hat" : "",
+                        eightbitdo[j] ? ": an 8BitDo, L2 and R2 its triggers, Select and Start" : "");
+            }
+        }
+        memset(&pad, 0, sizeof pad);
+        pad.left_x = (SHORT)((long)info.dwXpos - 32768L);
+        pad.left_y = (SHORT)(32767L - (long)info.dwYpos);
+        b = info.dwButtons;
+        pad.buttons = (WORD)((b & 1 ? 0x1000 : 0) | (b & 2 ? 0x2000 : 0) | hat_buttons(info.dwPOV));
+        if (eightbitdo[j]) {
+            pad.left_trigger = (BYTE)(b & 0x100 ? 255 : 0);
+            pad.right_trigger = (BYTE)(b & 0x200 ? 255 : 0);
+            pad.buttons |= (WORD)((b & 0x400 ? PAD_BACK : 0) | (b & 0x800 ? PAD_START : 0));
+        }
+        drive_joystick(j, &pad, cfg.pad_triggers && eightbitdo[j]);
+        all |= pad.buttons;
+    }
+    return all;
+}
+
+/* A button on any pad or joystick, read now (the start-up splash's skip, splash.c, before any
+ * tick has read them): an XInput pad's (not the D-pad's) or a trigger pulled, as a tick reads
+ * them (a pad used becomes JS1, as it would on the first tick); or one of Windows' own
+ * joysticks' (joyGetPosEx: a gameport stick on Windows 95-ME, a pad without XInput), only
+ * those the game captured, so absent ones are never asked */
+int brr_controller_any_button(void)
+{
+    xinput_state states[SLOTS];
+    int ok[SLOTS], i, any = 0;
+    if (cfg.controller && get_state && !cfg.debug_pad_test) {
+        read_pads(states, ok);
+        for (i = 0; i < SLOTS; i++)
+            if (ok[i] && ((states[i].pad.buttons & ~0x000Fu) || states[i].pad.left_trigger > 64
+                          || states[i].pad.right_trigger > 64))
+                any = 1;
+    }
+    for (i = 0; i < JOYSTICKS; i++)
+        if (JOY_CAPTURED[i]) {
+            JOYINFOEX info;
+            if (joystick_read(i, JOY_RETURNBUTTONS, &info) == JOYERR_NOERROR && info.dwButtons)
+                any = 1;
+        }
+    return any;
 }
 
 void __cdecl brr_before_joystick(void)
@@ -531,21 +707,28 @@ void __cdecl brr_before_joystick(void)
                     keys[0x73], keys[0x74], keys[0x75], keys[0x76], keys[0x77], keys[0x78], keys[0x79], keys[0x7A],
                     keys[0x7B], keys[0x7C], keys[0x7D], keys[0x7E]);
         }
-        drive_joystick(0, &states[0].pad);
+        analogue_seen[0] = 1;  /* the simulated pad is analogue */
+        drive_joystick(0, &states[0].pad, cfg.pad_triggers);
     } else {
+        WORD buttons = 0;
         if (!cfg.controller || !get_state) {
-            if (cfg.menu_navigation)
+            if (cfg.menu_navigation) {
                 centre_absent_joysticks();
+                hat_to_stick();
+            }
             return;
         }
         read_pads(states, ok);
-        race_buttons(states, ok);
         for (j = 0; j < JOYSTICKS; j++)
-            if (joystick_slot[j] >= 0 && ok[joystick_slot[j]])
-                drive_joystick(j, &states[joystick_slot[j]].pad);
-            else if (windows_off == 1)  /* no pad yet: a centred joystick, not Windows' last message */
-                drive_joystick(j, &centred);
+            if (joystick_slot[j] >= 0 && ok[joystick_slot[j]]) {
+                drive_joystick(j, &states[joystick_slot[j]].pad, cfg.pad_triggers);
+                buttons |= states[joystick_slot[j]].pad.buttons;
+            } else if (windows_off == 1)  /* no pad yet: a centred joystick, not Windows' last message */
+                drive_joystick(j, &centred, cfg.pad_triggers);
         centre_absent_joysticks();
+        if (windows_off != 1)  /* Windows' own joysticks, driven as pads */
+            buttons |= drive_windows_joysticks();
+        race_buttons(buttons);
     }
     if (vibration_timer)
         check_vehicles();

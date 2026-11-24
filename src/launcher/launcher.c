@@ -117,6 +117,7 @@ static const struct choice deadzones[] = {
 static const struct choice sensitivities[] = {
     {"50%", "50"}, {"75%", "75"}, {"100%", "100"}, {"125%", "125"}, {"150%", "150"}, {"200%", "200"}, {0, 0}};
 static const struct choice layouts[] = {{"Triggers", "triggers"}, {"Stick", "stick"}, {0, 0}};
+static const struct choice menu_animations[] = {{"Original-ish", "original"}, {"Inverted", "inverted"}, {0, 0}};
 static const struct choice rates[] = {{"70.0 (DOS original)", "70.0"}, {"71.43 (Windows original)", "71.43"}, {0, 0}};
 static const struct choice caps[] = {{"8 ticks", "8"}, {"35 (original)", "35"}, {0, 0}};
 
@@ -345,15 +346,18 @@ static int full_colour(HWND dialog)
 }
 
 /* The director's renderer split (2026-11-15): the Original renderer offers only what the 1996
- * game and cnc-ddraw did (mode, resolution, the full-screen scaling, smoothness); the Modern
- * one its own window size and shape, colour depth (and with full colour the smoother
- * gradients) and draw distance. The colour animation is for both. */
+ * game and cnc-ddraw did (mode, resolution, the full-screen scaling, smoothness, the game's 8
+ * sound channels); the Modern one its own window size and shape, colour depth (and with full
+ * colour the smoother gradients), draw distance and more sound channels. The colour animation
+ * is for both. */
 static int hidden_by_choice(HWND dialog, int id)
 {
     int fresh = new_renderer(dialog);
     switch (id) {
     case IDC_SCALE:
     case IDC_SCALE_LABEL:
+    case IDC_CHANNELS:
+    case IDC_CHANNELS_LABEL:
     case IDC_MAXLIMIT:
     case IDC_MAXLIMIT_LABEL:
     case IDC_WIDESCREEN:
@@ -564,6 +568,9 @@ static void update_enabled(HWND dialog)
         enable(dialog, IDC_INTENSITY_LABEL, shaking);
         enable(dialog, IDC_INTENSITY, shaking);
     }
+    enable(dialog, IDC_MENU_ANIM_LABEL, checked(dialog, IDC_MENU_NAV));
+    enable(dialog, IDC_MENU_ANIM, checked(dialog, IDC_MENU_NAV));
+    enable(dialog, IDC_MENU_TITLES, checked(dialog, IDC_MENU_NAV));
 }
 
 /* One line on each setting, shown when the mouse rests on it */
@@ -611,14 +618,15 @@ static const struct { int id; const char *text; } tips[] = {
                        "played almost at full volume); also gives the game's effects volume its full range."},
     {IDC_STEREO_PAN, "Vehicles to the right sound more from the right speaker, smoothly; the game's own panning sent "
                      "anything a little off centre almost entirely to one side."},
-    {IDC_CHANNELS, "How many sounds play at once: the game's 8, or 16 or 32, with every truck's engine (the game "
-                   "allowed 3), so more of the field is heard at once. 8 on Windows 95, 98 and ME, where each "
-                   "costs a 1990s PC some speed."},
+    {IDC_CHANNELS, "How many sounds play at once (Modern renderer): the game's 8, or 16 or 32, with every truck's "
+                   "engine (the game allowed 3), so more of the field is heard at once. The Original renderer always "
+                   "has the game's 8."},
     {IDC_MUSIC, "Plays the CD music from ripped tracks (trackNN.flac, .ogg or .wav) instead of the CD."},
     {IDC_VOLUME, "Music volume, on top of the game's own CD volume option."},
     {IDC_FOLDER, "The folder with the ripped tracks: Music next to the launcher, or a full path."},
     {IDC_BROWSE, "Choose the folder with the ripped tracks."},
-    {IDC_PAD, "Use an Xbox-style pad as the game's joystick (choose the joystick in the game's controls menu)."},
+    {IDC_PAD, "Use an Xbox-style pad, or another pad Windows reads, as the game's joystick (choose the joystick in the "
+              "game's controls menu). The D-pad steers too."},
     {IDC_JOYCPL, "Opens Windows' game controller settings, to set up and calibrate a joystick or pad."},
     {IDC_LANGUAGE, "The game's language, as in its window's Language menu."},
     {IDC_DEADZONE, "How far the stick moves before steering starts."},
@@ -627,8 +635,12 @@ static const struct { int id; const char *text; } tips[] = {
     {IDC_VIBRATION, "A brief buzz from the pad when player one's vehicle is damaged (with the game's damage option on)."},
     {IDC_NITRO_RUMBLE, "A steady rumble from the pad while player one's nitro flames show."},
     {IDC_INTENSITY, "How strong the damage buzz is; the nitro rumble is half as strong."},
-    {IDC_MENU_NAV, "In the menus, B (joystick button 2) goes back, as Esc, and left and right change the race, "
-                   "logo or car, as the arrow keys. A already chooses, as in 1996."},
+    {IDC_MENU_NAV, "Run the menus with a joystick, a pad (stick or D-pad) or the arrow keys: up and down step through the "
+                   "items, left and right move sliders, button 1 (A) or Return chooses, button 2 (B) goes back. The menus start "
+                   "this way; moving the mouse brings the pointer back. The joystick also sets player one to JS1."},
+    {IDC_MENU_ANIM, "Inverted: only the selected item animates. Original-ish: the selected item stops animating, the rest animate."},
+    {IDC_MENU_TITLES, "Hold the menus' headings still. Ticked with Inverted, unticked with Original-ish; your choice either way. "
+                      "The name, globe, vehicle, driver, logo and recording screens keep theirs animated."},
     {IDC_RATE, "Game ticks a second: 70.0 as the DOS version (real time), or 71.43 as the 1996 Windows version ran (2% fast)."},
     {IDC_CAP, "After a pause, how much missed game time is caught up at once: 8 ticks, or 35 as the original (see Help)."},
     {IDC_LOG, "Writes BRRFIX.LOG next to the launcher: what was fixed, for bug reports."},
@@ -770,8 +782,9 @@ static void load(HWND dialog, int defaults)
     check(dialog, IDC_MUSIC, defaults ? 1 : ini_flag("music", "music", 1));
     check(dialog, IDC_DISTANCE_VOL, defaults ? 1 : ini_flag("sound", "distance_volume", 1));
     check(dialog, IDC_STEREO_PAN, defaults ? 1 : ini_flag("sound", "stereo_pan", 1));
-    /* auto (BRRFIX.INI's default): the game's 8 on Windows 95, 98 and ME, where each sound playing
-     * costs a 1990s processor time (the director, 2026-11-22), and with Period defaults; else 32 */
+    /* auto (BRRFIX.INI's default): 32; Period defaults 8. Shown only with the Modern renderer: the
+     * Original always has the game's 8 (the director, 2026-11-24), so on Windows 95, 98 and ME too,
+     * where each sound playing costs a 1990s processor time */
     fill(dialog, IDC_CHANNELS, channel_counts,
          listed(channel_counts, GET(f, "sound", "channels", "auto"), period || (windows_9x && !defaults) ? "8" : "32"));
     fill(dialog, IDC_VOLUME, volumes, GET(f, "music", "volume", "100"));
@@ -783,6 +796,11 @@ static void load(HWND dialog, int defaults)
     check(dialog, IDC_VIBRATION, defaults ? 1 : ini_flag("controller", "vibration", 1));
     check(dialog, IDC_NITRO_RUMBLE, defaults ? 1 : ini_flag("controller", "nitro_rumble", 1));
     check(dialog, IDC_MENU_NAV, defaults ? 1 : ini_flag("controller", "menu_navigation", 1));
+    fill(dialog, IDC_MENU_ANIM, menu_animations, GET(f, "controller", "menu_animations", period ? "original" : "inverted"));
+    {  /* still titles with Inverted, animated with Original-ish, unless set */
+        int inverted = lstrcmpiA(chosen(dialog, IDC_MENU_ANIM, menu_animations), "original") != 0;
+        check(dialog, IDC_MENU_TITLES, defaults ? inverted : ini_flag("controller", "still_titles", inverted));
+    }
     fill(dialog, IDC_INTENSITY, intensities, GET(f, "controller", "vibration_intensity", "80"));
     fill(dialog, IDC_RATE, rates, GET(f, "clock", "tick_rate", "70.0"));
     fill(dialog, IDC_CAP, caps, GET(f, "clock", "catch_up_cap", "8"));
@@ -809,6 +827,14 @@ static void load(HWND dialog, int defaults)
 #undef GET
     show_track_count(dialog);
     update_enabled(dialog);
+}
+
+/* Wine (and Proton), whichever Windows version it reports: ntdll exports wine_get_version.
+ * Real Windows 95, 98 and ME have no ntdll of that kind. */
+static int under_wine(void)
+{
+    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+    return ntdll && GetProcAddress(ntdll, "wine_get_version") != NULL;
 }
 
 static void save(HWND dialog)
@@ -852,6 +878,8 @@ static void save(HWND dialog)
     ini_set(brrfix_ini, "controller", "vibration", checked(dialog, IDC_VIBRATION) ? "1" : "0");
     ini_set(brrfix_ini, "controller", "nitro_rumble", checked(dialog, IDC_NITRO_RUMBLE) ? "1" : "0");
     ini_set(brrfix_ini, "controller", "menu_navigation", checked(dialog, IDC_MENU_NAV) ? "1" : "0");
+    ini_set(brrfix_ini, "controller", "menu_animations", chosen(dialog, IDC_MENU_ANIM, menu_animations));
+    ini_set(brrfix_ini, "controller", "still_titles", checked(dialog, IDC_MENU_TITLES) ? "1" : "0");
     ini_set(brrfix_ini, "controller", "vibration_intensity", chosen(dialog, IDC_INTENSITY, intensities));
     ini_set(brrfix_ini, "log", "log", checked(dialog, IDC_LOG) ? "1" : "0");
     ini_set(brrfix_ini, "display", "max_draw_distance", chosen(dialog, IDC_DRAWDIST, distances));
@@ -885,10 +913,15 @@ static void save(HWND dialog)
          * idea of the window, scale the mouse again, or hook the window. Full screen, and the
          * Modern renderer's window (the game runs full screen; cnc-ddraw makes the window,
          * director 2026-11-15), are cnc-ddraw's job, with hook=3: what it chose itself from its
-         * default hook=4 while WINRACEP.EXE imported it as ddraw.dll. */
+         * default hook=4 while WINRACEP.EXE imported it as ddraw.dll. Under Wine and Proton
+         * without cnc-ddraw's cursor lock (devmode=true): it takes the lock only when the window
+         * is activated or clicked, which under Wine often doesn't happen, and until then it drops
+         * every mouse move and press, and the system's cursor shows (the director, 2026-11-24:
+         * "the in-game menu cursor doesn't track it"). Unlocked, the moves reach the game scaled
+         * and the game's own ShowCursor hides the cursor over its window. */
         ini_set(ddraw_ini, "ddraw", "hook", full || fresh ? "3" : "0");
         ini_set(ddraw_ini, "ddraw", "adjmouse", full || fresh ? "true" : "false");
-        ini_set(ddraw_ini, "ddraw", "devmode", full || fresh ? "false" : "true");
+        ini_set(ddraw_ini, "ddraw", "devmode", (full || fresh) && !under_wine() ? "false" : "true");
         /* at the desktop's own resolution: otherwise Windows switches to the game's (blurry) */
         ini_set(ddraw_ini, "ddraw", "fullscreen", full ? "true" : "false");
         /* Alt+Enter: the Modern renderer's window <-> full screen upscaled at the desktop's own
@@ -985,10 +1018,16 @@ static void patch_dos(HWND dialog)
                   "(from RACING.ORI)?", dos_folder);
         if (MessageBoxA(dialog, text, title, MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES)
             return;
+    } else if (state == BRR_DOS_EARLIER) {
+        wsprintfA(text, "The DOS version's RACING.EXE in %s has an earlier version of this patch.\n\n"
+                  "Update it to patch %s? The original stays in RACING.ORI, and this button can put "
+                  "it back.", dos_folder, brr_dos_version());
+        if (MessageBoxA(dialog, text, title, MB_YESNO | MB_ICONQUESTION) != IDYES)
+            return;
     }
     cursor = SetCursor(LoadCursorA(NULL, IDC_WAIT));
     result = state == BRR_DOS_PATCHED ? brr_dos_restore(dos_folder, message, sizeof message)
-                                      : brr_dos_patch(dos_folder, message, sizeof message);
+                                      : brr_dos_patch(dos_folder, NULL, message, sizeof message);
     SetCursor(cursor);
     if (result == 0 && state != BRR_DOS_PATCHED)
         lstrcatA(message, "\n\nStart the DOS version as usual, with RACING. To undo, press this button again.");
@@ -1030,8 +1069,11 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
             /* the note in a group of two rows; menu navigation works with a 1996 joystick too,
              * so its group goes under it */
             place(dialog, IDC_PAD_GROUP, 12, 24, 300, 44);
-            place(dialog, IDC_MENU_GROUP, 12, 72, 300, 30);
+            place(dialog, IDC_MENU_GROUP, 12, 72, 300, 44);
             place(dialog, IDC_MENU_NAV, 18, 84, 200, 10);
+            place(dialog, IDC_MENU_ANIM_LABEL, 18, 100, 60, 8);
+            place(dialog, IDC_MENU_ANIM, 80, 98, 70, 60);
+            place(dialog, IDC_MENU_TITLES, 162, 99, 140, 10);
         } else
             hide_for_good(dialog, IDC_PAD_NOTE);
         /* under Proton, Steam Input sets up controllers */
@@ -1087,7 +1129,12 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
         case IDC_CLOSE_GAPS:
         case IDC_VIBRATION:
         case IDC_NITRO_RUMBLE:
+        case IDC_MENU_NAV:
             update_enabled(dialog);
+            return TRUE;
+        case IDC_MENU_ANIM:  /* still titles go with Inverted, animated with Original-ish (then the player's) */
+            if (HIWORD(wparam) == CBN_SELCHANGE)
+                check(dialog, IDC_MENU_TITLES, lstrcmpiA(chosen(dialog, IDC_MENU_ANIM, menu_animations), "original") != 0);
             return TRUE;
         case IDC_HELPFILE:
             open_help(dialog);
@@ -1156,14 +1203,6 @@ static int file_contains(const char *path, const char *needle)
         HeapFree(GetProcessHeap(), 0, data);
     CloseHandle(f);
     return found;
-}
-
-/* Wine (and Proton), whichever Windows version it reports: ntdll exports wine_get_version.
- * Real Windows 95, 98 and ME have no ntdll of that kind. */
-static int under_wine(void)
-{
-    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-    return ntdll && GetProcAddress(ntdll, "wine_get_version") != NULL;
 }
 
 static int checks_pass(void)

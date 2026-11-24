@@ -32,14 +32,19 @@ Windows and on Linux/Steam Deck through Proton, and makes it run smoothly:
 - The main menu says V2.25, the official update you installed (the game
   itself still said V2.24), with Big Red Launcher's version, and its credits
   line at the top includes "Camera / Modern Windows fix by ctrl-alt-rees".
+- The title picture at the start stays for 5 seconds (on today's PCs it
+  flashed by); Esc, Space, Enter, a mouse click or any controller button
+  skips it (BRRFIX.INI, [display] splash_seconds). With the widescreen menus,
+  it's a widescreen version of the picture.
 
-It contains no part of the game, and your game's own files are left as they
-are: the launcher runs its own copy of WINRACE.EXE, WINRACEP.EXE, which uses
-PATCH.DLL in place of the game's TIMER.DLL (see Install). PATCH.DLL changes
-the game's code only in memory while it runs, and only after checking that the
-game is the exact v2.25 file and that every place it changes is as expected.
-If anything doesn't match, it changes nothing, writes why to BRRFIX.LOG, and
-works like the game's own TIMER.DLL.
+Apart from that widescreen title picture (a version of the game's own, made
+for Big Red Launcher), it contains no part of the game, and your game's own
+files are left as they are: the launcher runs its own copy of WINRACE.EXE,
+WINRACEP.EXE, which uses PATCH.DLL in place of the game's TIMER.DLL (see
+Install). PATCH.DLL changes the game's code only in memory while it runs, and
+only after checking that the game is the exact v2.25 file and that every place
+it changes is as expected. If anything doesn't match, it changes nothing,
+writes why to BRRFIX.LOG, and works like the game's own TIMER.DLL.
 
 You need
 --------
@@ -70,7 +75,8 @@ What's in this zip
 - Install Game Files.bat  makes the Game and Music folders from the game's
                       two zips (Windows 10 and 11; see Install)
 - LICENSE.txt         Big Red Launcher's licence: the GNU GPL, version 3
-- THIRD-PARTY.txt     the open-source parts and their licences
+- THIRD-PARTY.txt     the parts by others (code, and the menus' joystick click)
+                      and their licences
 
 Install (Windows 95 to 11)
 --------------------------
@@ -187,15 +193,16 @@ Sound effects
 The game fades other vehicles' sounds with their distance from the camera, but
 on Windows it gave DirectSound its volumes in the wrong units, so every sound
 played within 1.1 dB of full volume. Big Red Launcher converts them properly
-("Distant vehicles quieter", on by default; [sound] distance_volume), as the
-DOS version plays them: far trucks are quieter, the game's effects volume
-option works, and the three engines heard at once are the nearest trucks'.
-The stereo works too: the game panned a truck only a little off centre almost
-entirely into one speaker; it now moves smoothly between them ("Natural
-stereo"; [sound] stereo_pan). And it has 32 sound channels instead of 8 (or 16,
-or the game's 8: "Sound channels"), with every truck's engine heard instead of
-3 ([sound] channels). On Windows 95, 98 and ME it keeps the game's 8 unless you
-choose more: there each sound playing at once costs a 1990s PC some speed.
+("Distant vehicles quieter (bugfix)", on by default; [sound] distance_volume),
+as the DOS version plays them: far trucks are quieter, the game's effects
+volume option works, and the three engines heard at once are the nearest
+trucks'. The stereo works too: the game panned a truck only a little off
+centre almost entirely into one speaker; it now moves smoothly between them
+("Stereo fix (bugfix)"; [sound] stereo_pan). And with the Modern renderer it
+has 32 sound channels instead of 8 (or 16, or the game's 8: "Sound channels"),
+with every truck's engine heard instead of 3 ([sound] channels). The Original
+renderer, and so Windows 95, 98 and ME, keeps the game's 8: there each sound
+playing at once costs a 1990s PC some speed.
 
 Display and scaling
 -------------------
@@ -214,11 +221,14 @@ smooth_sky, smooth_shading). The race dashboard (map, place, nitro, laps,
 damage, messages) is the game's 320x200 art, drawn by the game on layers of
 its own and enlarged by whole numbers into the race picture's corners
 ([display] hud=lowres; hud=game gives the game's own, as before; "4:3 HUD
-correction" gives its pixels the 1996 monitor's shape). With Max in full
+correction" gives its pixels the 1996 monitor's shape); while the race is
+paused, PAUSED shows in the middle, in the menus' shimmering letters, with the
+race darkened behind it. With Max in full
 screen on a wide screen, races are drawn at the screen's own shape ("Native
 widescreen", [display] widescreen; the menus stay 4:3 in the middle, their
 background pictures widened across the screen: "Widescreen menu backgrounds",
-[display] widescreen_menus).
+[display] widescreen_menus, and the title picture at the start a widescreen
+version).
 Windowed, it's a plain window drawn by cnc-ddraw: Alt+Enter switches to full
 screen and back. Its options: scaling, window size, colour depth,
 "Resolution: Max" (the default: races drawn with a part of the screen's
@@ -250,24 +260,40 @@ menu's Full screen item) broke cnc-ddraw's window and is removed: choose the
 mode in the launcher. On Windows 95, 98 and ME, without cnc-ddraw, it works and
 stays, as in 1996: started in a window, Tab goes full screen and back. The
 colour cycling of four levels (CHOPPER3, CITY4 Italy, MOON2, RIG4), which the
-DOS version has and the Windows version lost, runs again ("Colour animation",
-[display] colour_animation).
+DOS version has and the Windows version lost, runs again ("Colour animation
+(bugfix)", [display] colour_animation).
 
 Controllers
 -----------
 Xbox-style pads (XInput, including the Steam Deck's controls) work as the
 game's two joysticks: the first pad you use is joystick 1, the next one you
-use joystick 2 (two players). Left stick steers, right trigger accelerates,
-left trigger brakes and reverses, A and B are the joystick buttons. In a
-race, Start pauses (and carries on) and Back (View) ends it, as Pause and Esc
-do. In the menus A chooses (the 1996 game's own joystick
-support), B goes back, as Esc, and left and right (stick or D-pad) change the
-race, logo or car ([controller] menu_navigation). In the game's controls menu, choose the joystick (JS1 or JS2). Deadzone, sensitivity, the response curve and the
-layout (triggers or stick) are in the launcher and in BRRFIX.INI. The pad
-buzzes when your vehicle takes damage and rumbles while its nitro flames show
-(the launcher's Vibration settings: either can be off, and an intensity).
-No-code alternative: Steam Input can map the pad to keyboard keys instead
-(steering is then on or off, as with the keyboard).
+use joystick 2 (two players). Left stick (or the D-pad) steers, right trigger
+accelerates, left trigger brakes and reverses, A and B are the joystick
+buttons. With no Xbox-style pad connected, a pad Windows reads itself works the
+same way (an 8BitDo in D-input mode, such as the Micro: L2 and R2 are its
+triggers). A pad with only a D-pad steers on or off, as the keyboard does (the
+game's Analogue box follows the pad). In a race,
+Start pauses (and carries on) and Back (View) ends it, as Pause and Esc do
+(with the Modern renderer, after END RACE?: left and right choose YES or NO, A
+or Return does it, B or Esc goes back to the race; [display] quit_confirm). A
+race can't be paused before the lights turn green, and its sound effects and
+commentary pause with it ([fixes] pause). The
+menus start with a joystick, a pad (stick or D-pad) or the arrow keys in
+charge: up and down step through the items (no pointer), left and right move a
+slider or change the race, logo or car, A or Return chooses, B or Esc goes back
+(B also ends the attract demo and the track's View) ([controller]
+menu_navigation; moving the mouse hands the menus to it, and the stick, a
+button, an arrow key, Return or Esc takes them back). Only the selected item animates and the headings are still, or with
+[controller] menu_animations=original the selected item stops animating
+(still_titles sets the headings either way). The name screen starts with your last name, so A accepts it, and
+player 1's controls are set to the joystick (JS1) for you; otherwise choose
+the joystick (JS1 or JS2) in the game's Options, Joysticks. Deadzone,
+sensitivity, the response curve and the layout (triggers or stick) are in the
+launcher and in BRRFIX.INI. The pad buzzes when your vehicle takes damage and
+rumbles while its nitro flames show (the launcher's Vibration settings: either
+can be off, and an intensity). No-code alternative: Steam Input can map the
+pad to keyboard keys instead (steering is then on or off, as with the
+keyboard).
 Not on Windows 95/98/ME (they have no XInput): use a joystick as in 1996.
 
 Settings: BRRFIX.INI
@@ -309,4 +335,5 @@ later version. It is distributed in the hope that it will be useful, but
 WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE. See LICENSE.txt for the details. Big Red
 Racing itself is not included, and not covered by this licence. The parts by
-others keep their own licences (THIRD-PARTY.txt).
+others keep their own licences (THIRD-PARTY.txt), including the menus'
+joystick click: Sound Effect by SoundShelfStudio from Pixabay.

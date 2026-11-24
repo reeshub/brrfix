@@ -25,6 +25,8 @@
 struct brr_config {
     int fix_vga, fix_clock, fix_cap, fix_interpolation, fix_camera, fix_mode_switch;
     int fix_menu_keys;       /* one menu action per key press (keys.c) */
+    int fix_pause;           /* [fixes] pause: no pause before the start; the effects pause with the race (pause.c) */
+    int quit_confirm;        /* [display] quit_confirm: Esc or Back asks END RACE? (pause.c, hud.c; Modern renderer) */
     int resolution_high;     /* [display] resolution=high: the game's 640x480 mode (keypad +) */
     int renderer_new;        /* [display] renderer=new: Phase 3c's renderer (render.c); original = the game's */
     int render_max;          /* [display] render_resolution=max: experimental, races drawn at the
@@ -40,9 +42,9 @@ struct brr_config {
                               * enlarged by whole numbers (hud.c; the new renderer only); game = the game's own */
     int hud_aspect43;        /* [display] hud_aspect43: the HUD's blocks the 4:3 monitor's shape (1) or square */
     int hud_large;           /* [display] hud_size=large: the 1996 low resolution's size; small (half) the default */
-    int hud_map_large;       /* [display] hud_map=large: the map twice the rest of the HUD's size (hud.c) */
     int widescreen;          /* [display] widescreen: Max races at the screen's shape (render.c) */
     int widescreen_menus;    /* [display] widescreen_menus: menu backgrounds across the whole width (render.c) */
+    int splash_seconds;      /* [display] splash_seconds: the start-up splash held this long, unless skipped (splash.c) */
     int precise_3d;          /* [display] precise_3d: the 3D maths in 64 bits and culling by the real scale */
     int object_lighting;     /* [display] object_lighting: far objects lit after effects (the game left them unlit) */
     int sort_footprint;      /* [display] sort_footprint: objects drawn in order of their footprint, not their height */
@@ -56,7 +58,10 @@ struct brr_config {
     int texture_distance;    /* [display] texture_distance with max_draw_distance: 0 the slider's, else squares */
     int object_detail;       /* [display] object_detail: 0 original, 1 matched to the resolution, 2 highest */
     int colour_animation;    /* [display] colour_animation: the levels' palette cycling, as in DOS (palanim.c) */
-    int menu_navigation;     /* [controller] menu_navigation: B, and the stick's left and right, in menus (keys.c) */
+    int menu_navigation;     /* [controller] menu_navigation: the joystick and arrow keys in menus (menunav.c) */
+    int menu_animations;     /* [controller] menu_animations: 0 original (the selection still), 1 inverted */
+    int menu_still_titles;   /* [controller] still_titles: menu headings held still in the navigation */
+    int cd_volume;           /* [sound] cd_volume: the sound screen's CD volume, as in DOS (music.c) */
     int language;            /* [display] language: 1-7 (ENG, USA, FRE, GER, ITA, SPA, JAP) */
     int clock_original;      /* emulate the original 14 ms callback timer instead */
     uint32_t rate_milli;     /* ticks per 1000 s: 70000 = 70.0 Hz */
@@ -182,10 +187,19 @@ void brr_debug_every_frame(void);
 void brr_debug_frame_shot(const uint32_t *picture, int width, int height, int pitch);
 /* hud.c: the race HUD on layers of its own */
 extern int brr_hud_active;
+/* pause.c: the pause's fixes and the END RACE? question, which hud.c draws */
+void brr_pause_tick(void);
+extern int brr_quit_open, brr_quit_choice, brr_quit_serial;  /* choice: 0 YES, 1 NO */
+extern int brr_quit_ending;  /* YES chosen: the question stays up until the race has gone */
 void brr_hud_setup(void);
 void brr_hook_hud_draw(void);
 void brr_hook_hud_icon(void);
 void brr_hook_raw_name(void);              /* thunks.asm: site raw_name_call */
+void brr_hook_splash_present(void);        /* thunks.asm: site splash_present */
+void brr_hook_frame_message(void);         /* thunks.asm: site frame_message */
+void __cdecl brr_splash_shown(void);       /* splash.c */
+int __cdecl brr_splash_hold(void);
+extern int brr_splash_on;                  /* the start-up splash is the game's picture (splash.c, render.c) */
 void brr_hook_persp_setup(void);           /* thunks.asm: site persp_setup_hook */
 void brr_hook_scenery_pos(void);           /* thunks.asm: site scenery_snap */
 void brr_hook_display_list(void);          /* thunks.asm: site display_list_call */
@@ -267,6 +281,8 @@ void brr_hook_lod(void);                   /* thunks.asm: site lod_select; rende
 void brr_hook_fit_depth(void);              /* thunks.asm: site fit_depth */
 int32_t __cdecl brr_lod_scale(int32_t depth);
 extern int32_t brr_lod_depth;
+extern uint32_t brr_close_ups_skipped;
+const char *brr_model_name(const void *model);
 void brr_hook_shading_threshold(void);
 int __cdecl brr_shading_threshold(void);
 extern uint32_t brr_count_unlit;
@@ -284,18 +300,35 @@ void __cdecl brr_render_after_present(void);
 uint32_t __cdecl brr_menu_mouse(void);
 void brr_hook_menu_mouse(void);
 
+/* music.c: the sound screen's CD volume, and thunks.asm's way in */
+void __cdecl brr_sound_cd_draw(void);
+void brr_sound_cd_action(void);
+void brr_hook_sound_draw(void);
+void __cdecl brr_call_sprite_draw(int frame, int x, int y);
+
 /* controller.c */
 extern uint32_t brr_orig_joystick_to_keys;
 void brr_controller_start(void);
 void brr_controller_stop(void);
 void __cdecl brr_before_joystick(void);
 void brr_hook_joystick(void);
+int brr_controller_any_button(void);       /* a button on any pad or joystick, read now (splash.c) */
 
 /* keys.c */
 extern uint32_t brr_orig_menu_hotspots;
 void __cdecl brr_before_menu_hotspots(void);
 void __cdecl brr_after_menu_hotspots(void);
 void brr_hook_menu_hotspots(void);
+
+/* navwin.c, thunks.asm: the joystick menu navigation (the core: menunav.h) */
+extern uint32_t brr_orig_hotspot_draw, brr_orig_sprite_draw, brr_orig_text_draw;
+void brr_hook_hotspot_draw(void);              /* site hotspot_draw_call */
+void brr_hook_label_draw(void);                /* site label_draw_call */
+void brr_sound_sprite_down(void);              /* sites sound_button_*: frame base - step */
+void brr_sound_sprite_up(void);                /* base + step */
+void brr_sound_sprite_up2(void);               /* base + 2 x step */
+void brr_knob_sprite(void);                    /* sites slider_knob_*: animation 1's frame */
+void __cdecl brr_call_play_sample(const char *name);  /* the game's sound_play_sample */
 
 /* music.c */
 int brr_music_check(void);

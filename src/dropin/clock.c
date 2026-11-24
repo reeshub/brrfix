@@ -292,8 +292,13 @@ uint32_t __cdecl brr_clock_read(void)
         int screen = *(volatile uint16_t *)0x4B13C0;
         if (screen != last_screen && cfg.log_clock) {
             static int logged;
-            if (logged++ < 200)
-                brr_log("screen: 0x%02X (game mode %d)", screen, *(volatile int16_t *)0x49C5C0);
+            if (logged++ < 200) {
+                if (screen == 0x80)  /* level_name: which level the race (or the demo) is on */
+                    brr_log("screen: 0x80 (game mode %d, level %.8s)", *(volatile int16_t *)0x49C5C0,
+                            (const char *)0x44AF5A);
+                else
+                    brr_log("screen: 0x%02X (game mode %d)", screen, *(volatile int16_t *)0x49C5C0);
+            }
             last_screen = screen;
         }
     }

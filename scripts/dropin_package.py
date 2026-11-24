@@ -89,8 +89,8 @@ def licence_block(text, start_marker):
 
 def third_party_text(cnc_licence, shaders):
     from dropin_build import DECODERS
-    parts = ["Third-party code in Big Red Launcher",
-             "====================================",
+    parts = ["Third-party code and sound in Big Red Launcher",
+             "==============================================",
              "Everything else in this package is the project's own code: free software under the",
              "GNU General Public License, version 3 or (at your option) any later version",
              "(LICENSE.txt). Each part below is pinned to a release or commit and checked by",
@@ -112,6 +112,13 @@ def third_party_text(cnc_licence, shaders):
                   licence_block(text, "This software is available as a choice of the following licenses")
                   if "This software is available as a choice" in text
                   else licence_block(text, "This software is available under 2 licenses"), ""]
+    parts += ["The menus' joystick click (JOYCLICK.WAV, built into PATCH.DLL, which writes it into the",
+              "game's SAMPLES folder): \"UI Click Deep\"",
+              "  Sound Effect by SoundShelfStudio from Pixabay",
+              "  https://pixabay.com/users/soundshelfstudio-46480698/",
+              "  https://pixabay.com/sound-effects/",
+              "  Under the Pixabay Content License; converted to the game's own sample format",
+              "  (11,025 Hz, 8-bit, mono) and trimmed to the click.", ""]
     parts += ["Downloaded by Install Game Files.bat, only if you choose that music format",
               "(not in this package; each from its own source, checked by SHA-256):",
               f"  {setup_build.FLAC['Label']} for FLAC: {setup_build.FLAC['Url']}",
