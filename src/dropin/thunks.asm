@@ -33,6 +33,8 @@
         extrn   _brr_orig_hud_draw:dword
         extrn   _brr_orig_hud_icon:dword
         extrn   _brr_raw_loaded:near
+        extrn   _brr_splash_shown:near
+        extrn   _brr_splash_hold:near
         extrn   _brr_persp_setup:near
         extrn   _brr_persp_setup_original:dword
         extrn   _brr_horizon_cull:near
@@ -124,6 +126,7 @@
         public  _brr_hook_sprite_rows, _brr_hook_sprite_columns
         public  _brr_hook_hud_draw, _brr_hook_hud_icon, _brr_hook_sprite_scaled
         public  _brr_hook_raw_name, _brr_hook_persp_setup, _brr_hook_scenery_pos, _brr_hook_display_list
+        public  _brr_hook_splash_present, _brr_hook_frame_message
         public  _brr_hook_sound_nearest, _brr_hook_ds_pan
         public  _brr_hook_proj_scale, _brr_hook_landscape_width
         public  _brr_backface, _brr_clip_t_x, _brr_clip_t_y, _brr_cull_margin, _brr_shading_restore
@@ -958,6 +961,32 @@ _brr_hook_raw_name:
         popad
         mov     edx, 411B78h
         jmp     edx
+
+; Site splash_present (game_init 0x4240D4: CALL present_view, just after BRS2.RAW is loaded) ->
+; CALL here: brr_splash_shown notes the start-up splash (splash.c), then present_view (0x426360),
+; which returns to game_init. Every register kept (game_init has set ESI).
+_brr_hook_splash_present:
+        pushad
+        call    _brr_splash_shown
+        popad
+        push    426360h
+        ret
+
+; Site frame_message (WndProc 0x401749: JZ 0x401972, the frame message 0x9000) -> JZ here.
+; While brr_splash_hold says the start-up splash is held (splash.c), WndProc returns 0 (its
+; exit at 0x4025E1) and no frame runs; otherwise on to the frame message as before (0x401972).
+; Every register kept; POPAD leaves the flags alone.
+_brr_hook_frame_message:
+        pushad
+        call    _brr_splash_hold
+        test    eax, eax
+        popad
+        jnz     fm_hold
+        push    401972h
+        ret
+fm_hold:
+        push    4025E1h
+        ret
 
 _brr_hook_hud_icon:
         pushad

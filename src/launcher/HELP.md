@@ -340,7 +340,10 @@ globe and lettering are drawn round, with square pixels); and on each
 level's picture whichever part keeps the level's title in view. The mouse
 pointer stays inside the menu, so it's never cut off at its sides. On the
 car screen the car is drawn a little smaller, as its left side used to be cut
-off where the 1996 screen ended. Unticked: black bars at the sides.
+off where the 1996 screen ended. The title picture at the start is a
+widescreen version made for Big Red Launcher, across the whole width (with
+thin bars above and below on a 16:10 screen). Unticked: black bars at the
+sides, and the 1996 title picture.
 
 ### Engine fixes (Modern renderer; all on by default)
 
@@ -583,6 +586,15 @@ The game's language, as in its window's Language menu: English (the default),
 USA, French, German, Italian, Spanish or Japanese. It applies from the first
 screen, "Enter your name". The window's Language menu still works, but only
 until the game is closed: next time, this setting is used again.
+
+**The title screen at the start**
+
+Big Red Racing's title picture stays for 5 seconds before "Enter your name":
+on a 1996 PC it stayed while the game loaded, which today takes a moment.
+Esc, Space, Enter, a mouse click or any controller button skips it, and the
+game carries on as in 1996, fading it out. With Widescreen menu backgrounds
+it's a widescreen version of the picture. There's no setting here: [display]
+splash_seconds in BRRFIX.INI sets the time (0 for 1996's moment).
 
 ### Clock
 

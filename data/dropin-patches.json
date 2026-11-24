@@ -695,6 +695,22 @@
    "sha256": "1d44f2bb9890982c87bbb3df9392ce16edf027553b5a909acdff98daa633170c"
   },
   {
+   "name": "splash_present",
+   "fix": "splash",
+   "address": "0x4240D4",
+   "length": 5,
+   "patch": "game_init (0x423FF8): CALL present_view (0x426360), just after raw_picture_load of BRS2.RAW (the start-up splash) -> CALL brr_hook_splash_present (thunks.asm): brr_splash_shown (splash.c) notes the time it appears and that it's the picture (render.c's widescreen version), then present_view",
+   "sha256": "7579a6f3779620a2060523ef79221f56eff11a5e58e66b80b4ff3e58a4e2fc1d"
+  },
+  {
+   "name": "frame_message",
+   "fix": "splash",
+   "address": "0x401749",
+   "length": 6,
+   "patch": "WndProc: JZ 0x401972 (the frame message 0x9000, which pump_messages posts whenever its queue is empty) -> JZ brr_hook_frame_message (thunks.asm): while brr_splash_hold (splash.c) holds the start-up splash ([display] splash_seconds, or until Esc, Space, Enter, a click or a controller button), WndProc returns 0 (0x4025E1) and no frame runs, so the first screen waits; otherwise on to 0x401972 as before",
+   "sha256": "5a92f5c30dff9f0c564908d9a0c3c2d3f225234f5dd8a5fbe7f62a8a5689d8b3"
+  },
+  {
    "name": "ds_volume_curve",
    "fix": "distance_volume",
    "address": "0x42EC1F",

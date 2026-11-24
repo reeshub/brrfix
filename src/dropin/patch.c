@@ -208,6 +208,10 @@ static int enabled(const char *fix)
     if (!strcmp(fix, "widescreen")) return brr_widescreen && brr_renderer_active && cfg.render_max;
     if (!strcmp(fix, "wide_menus"))
         return brr_widescreen && brr_renderer_active && cfg.render_max && cfg.widescreen_menus;
+    /* the start-up splash held (splash.c), and its widescreen version with the menus' (render.c) */
+    if (!strcmp(fix, "splash"))
+        return cfg.splash_seconds > 0
+            || (brr_widescreen && brr_renderer_active && cfg.render_max && cfg.widescreen_menus);
     if (!strcmp(fix, "menu_pad")) return cfg.menu_navigation;
     if (!strcmp(fix, "menu_nav")) return cfg.menu_navigation;  /* the selection (menunav.c) */
     /* the menu's mouse: the Modern renderer's mapping, or the joystick navigation's pointer */
@@ -454,6 +458,13 @@ static int replacement(const struct site_info *s, uint8_t *out)
     } else if (!strcmp(n, "raw_name_call") && s->length == 5) {
         out[0] = 0xE8;  /* CALL brr_hook_raw_name: which picture the screen loaded, then file_open */
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_raw_name);
+    } else if (!strcmp(n, "splash_present") && s->length == 5) {
+        out[0] = 0xE8;  /* CALL brr_hook_splash_present: the start-up splash noted (splash.c), then present_view */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_splash_present);
+    } else if (!strcmp(n, "frame_message") && s->length == 6) {
+        out[0] = 0x0F;  /* JZ brr_hook_frame_message: no frame while the splash is held (splash.c) */
+        out[1] = 0x84;
+        put_rel32(out + 2, s->address + 6, (void *)brr_hook_frame_message);
     } else if ((!strcmp(n, "hud_draw_call") || !strcmp(n, "hud_icon_call")) && s->length == 5) {
         out[0] = 0xE8;  /* CALL brr_hook_hud_draw / _icon: the HUD drawn into our layers (hud.c) */
         put_rel32(out + 1, s->address + 5,

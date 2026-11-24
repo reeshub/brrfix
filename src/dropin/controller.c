@@ -557,6 +557,40 @@ static void hat_to_stick(void)
     }
 }
 
+/* A button on any pad or joystick, read now (the start-up splash's skip, splash.c, before any
+ * tick has read them): an XInput pad's (not the D-pad's) or a trigger pulled, as a tick reads
+ * them (a pad used becomes JS1, as it would on the first tick); or one of Windows' own
+ * joysticks' (joyGetPosEx: a gameport stick on Windows 95-ME, a pad without XInput), only
+ * those the game captured, so absent ones are never asked */
+int brr_controller_any_button(void)
+{
+    static getposex_fn getposex;
+    static int looked;
+    xinput_state states[SLOTS];
+    int ok[SLOTS], i, any = 0;
+    if (cfg.controller && get_state && !cfg.debug_pad_test) {
+        read_pads(states, ok);
+        for (i = 0; i < SLOTS; i++)
+            if (ok[i] && ((states[i].pad.buttons & ~0x000Fu) || states[i].pad.left_trigger > 64
+                          || states[i].pad.right_trigger > 64))
+                any = 1;
+    }
+    if (!looked) {
+        looked = 1;
+        getposex = (getposex_fn)GetProcAddress(GetModuleHandleA("winmm.dll"), "joyGetPosEx");
+    }
+    for (i = 0; i < JOYSTICKS && getposex; i++)
+        if (JOY_CAPTURED[i]) {
+            JOYINFOEX info;
+            memset(&info, 0, sizeof info);
+            info.dwSize = sizeof info;
+            info.dwFlags = JOY_RETURNBUTTONS;
+            if (getposex(JOYSTICKID1 + i, &info) == JOYERR_NOERROR && info.dwButtons)
+                any = 1;
+        }
+    return any;
+}
+
 void __cdecl brr_before_joystick(void)
 {
     xinput_state states[SLOTS];

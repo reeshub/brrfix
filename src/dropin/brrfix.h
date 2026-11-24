@@ -43,6 +43,7 @@ struct brr_config {
     int hud_map_large;       /* [display] hud_map=large: the map twice the rest of the HUD's size (hud.c) */
     int widescreen;          /* [display] widescreen: Max races at the screen's shape (render.c) */
     int widescreen_menus;    /* [display] widescreen_menus: menu backgrounds across the whole width (render.c) */
+    int splash_seconds;      /* [display] splash_seconds: the start-up splash held this long, unless skipped (splash.c) */
     int precise_3d;          /* [display] precise_3d: the 3D maths in 64 bits and culling by the real scale */
     int object_lighting;     /* [display] object_lighting: far objects lit after effects (the game left them unlit) */
     int sort_footprint;      /* [display] sort_footprint: objects drawn in order of their footprint, not their height */
@@ -189,6 +190,11 @@ void brr_hud_setup(void);
 void brr_hook_hud_draw(void);
 void brr_hook_hud_icon(void);
 void brr_hook_raw_name(void);              /* thunks.asm: site raw_name_call */
+void brr_hook_splash_present(void);        /* thunks.asm: site splash_present */
+void brr_hook_frame_message(void);         /* thunks.asm: site frame_message */
+void __cdecl brr_splash_shown(void);       /* splash.c */
+int __cdecl brr_splash_hold(void);
+extern int brr_splash_on;                  /* the start-up splash is the game's picture (splash.c, render.c) */
 void brr_hook_persp_setup(void);           /* thunks.asm: site persp_setup_hook */
 void brr_hook_scenery_pos(void);           /* thunks.asm: site scenery_snap */
 void brr_hook_display_list(void);          /* thunks.asm: site display_list_call */
@@ -301,6 +307,7 @@ void brr_controller_start(void);
 void brr_controller_stop(void);
 void __cdecl brr_before_joystick(void);
 void brr_hook_joystick(void);
+int brr_controller_any_button(void);       /* a button on any pad or joystick, read now (splash.c) */
 
 /* keys.c */
 extern uint32_t brr_orig_menu_hotspots;

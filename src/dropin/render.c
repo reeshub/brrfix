@@ -446,6 +446,96 @@ static int wide_menus(int w, int h)
     return brr_widescreen && cfg.widescreen_menus && w == MENU_W && h == MENU_H;
 }
 
+/* ---- the start-up splash in widescreen (the director, 2026-11-24) ----
+ * game_init shows BRS2.RAW (320x200) while it loads, held by splash.c. With the widescreen menus,
+ * where that picture would have bars at its sides, a widescreen version made for Big Red Launcher
+ * is shown instead (BRS2.RAW-wide.png here, built in by dropin-build as splashw.h:
+ * the same picture's first 180 rows, the copyright line and Domark's logo moved up): 320x180
+ * with square pixels, so 16:9, enlarged to fill the picture's width (or its height, if wider
+ * than 16:9), nearest pixel (sharp, as the widened backgrounds), centred: the menus' picture of
+ * the screen's shape is filled on a 16:9 screen, with bars above and below on a 16:10 one. It
+ * uses BRS2.RAW's palette, so the game's fades work on it; if the game's palette then isn't
+ * that one, the 1996 picture stays. */
+#include "splashw.h"
+#define SCREEN_PALETTE ((const uint8_t *)0x452660)  /* the palette raw_picture_load read (6 bits a channel) */
+static int splash_shown;  /* the picture last composed (full colour: not a fade's step) is the splash */
+
+static int splash_palette_ok(void)
+{
+    static int ok = -1;
+    if (ok < 0) {
+        ok = !memcmp(splash_wide_palette, SCREEN_PALETTE, sizeof splash_wide_palette);
+        if (!ok)
+            brr_log("splash: the widescreen version's palette isn't the game's BRS2.RAW's: the 1996 picture kept");
+    }
+    return ok;
+}
+
+/* The splash in widescreen into out (32-bit with colours, else 8-bit); 0 when the 1996 picture,
+ * as laid out (l), is as wide or wider, so it's kept */
+static int draw_splash_wide(void *out, int out_w, int out_h, int out_pitch, const struct layout *l,
+                            const uint32_t *colours)
+{
+    static int16_t source_x[RENDER_LIMIT_W];
+    static int logged;
+    int dw, dh, x0, y0, x, y, last = -1;
+    if (out_w > RENDER_LIMIT_W)
+        return 0;
+    if ((long)out_w * SPLASH_WIDE_H <= (long)out_h * SPLASH_WIDE_W) {
+        dw = out_w;
+        dh = out_w * SPLASH_WIDE_H / SPLASH_WIDE_W;
+    } else {
+        dh = out_h;
+        dw = out_h * SPLASH_WIDE_W / SPLASH_WIDE_H;
+    }
+    if (dw <= MENU_W * l->sx || dh < SPLASH_WIDE_H || !splash_palette_ok())
+        return 0;
+    x0 = (out_w - dw) / 2;
+    y0 = (out_h - dh) / 2;
+    if (!logged++)
+        brr_log("splash: the widescreen version, %dx%d drawn %dx%d at %d,%d in %dx%d (the 1996 one %dx%d)",
+                SPLASH_WIDE_W, SPLASH_WIDE_H, dw, dh, x0, y0, out_w, out_h, MENU_W * l->sx, MENU_H * l->sy);
+    for (x = 0; x < dw; x++)
+        source_x[x] = (int16_t)((2 * x + 1) * SPLASH_WIDE_W / (2 * dw));
+    for (y = 0; y < out_h; y++) {
+        int row = y - y0, sy;
+        const uint8_t *p;
+        if (row < 0 || row >= dh) {
+            if (colours)
+                memset((uint32_t *)out + (size_t)y * (size_t)out_pitch, 0, (size_t)out_w * 4);
+            else
+                memset((uint8_t *)out + (size_t)y * (size_t)out_pitch, 0, (size_t)out_w);
+            last = -1;
+            continue;
+        }
+        sy = (2 * row + 1) * SPLASH_WIDE_H / (2 * dh);
+        p = splash_wide + sy * SPLASH_WIDE_W;
+        if (colours) {
+            uint32_t *o = (uint32_t *)out + (size_t)y * (size_t)out_pitch;
+            if (sy == last) {
+                memcpy(o, o - out_pitch, (size_t)out_w * 4);
+                continue;
+            }
+            memset(o, 0, (size_t)x0 * 4);
+            for (x = 0; x < dw; x++)
+                o[x0 + x] = colours[p[source_x[x]]];
+            memset(o + x0 + dw, 0, (size_t)(out_w - x0 - dw) * 4);
+        } else {
+            uint8_t *o = (uint8_t *)out + (size_t)y * (size_t)out_pitch;
+            if (sy == last) {
+                memcpy(o, o - out_pitch, (size_t)out_w);
+                continue;
+            }
+            memset(o, 0, (size_t)x0);
+            for (x = 0; x < dw; x++)
+                o[x0 + x] = p[source_x[x]];
+            memset(o + x0 + dw, 0, (size_t)(out_w - x0 - dw));
+        }
+        last = sy;
+    }
+    return 1;
+}
+
 static uint8_t *picture;
 static size_t picture_size;
 
@@ -484,9 +574,11 @@ const uint8_t *brr_render_compose(int out_w, int out_h, int out_pitch)
         menu_background_take();
     menu_square = brr_widescreen && globe_screen();
     fit(w, h, out_w, out_h, &l);
-    compose(pixels, w, h, pitch, out, out_w, out_h, out_pitch, &l);
-    if (wide_menus(w, h))
-        widen_background(pixels, pitch, out, out_w, out_h, out_pitch, &l, NULL);
+    if (!(wide_menus(w, h) && brr_splash_on && draw_splash_wide(out, out_w, out_h, out_pitch, &l, NULL))) {
+        compose(pixels, w, h, pitch, out, out_w, out_h, out_pitch, &l);
+        if (wide_menus(w, h))
+            widen_background(pixels, pitch, out, out_w, out_h, out_pitch, &l, NULL);
+    }
     brr_hud_overlay(pixels, w, h, out, out_w, out_h, out_pitch, l.x, l.y, l.sx, l.sy, NULL, 0);
     final_w = out_w;
     final_h = out_h;
@@ -617,9 +709,13 @@ int brr_render_compose32(uint32_t *out, int out_w, int out_h, int out_pitch)
     fit(w, h, out_w, out_h, &l);
     palette_colours();
     sky = brr_sky_begin(origin, w, h, pitch, l.sx, l.sy, l.x, l.y) > 0;
-    compose32(pixels, origin, w, h, pitch, out, out_w, out_h, out_pitch, &l, sky);
-    if (wide_menus(w, h))
-        widen_background(pixels, pitch, out, out_w, out_h, out_pitch, &l, colours);
+    if (!replaying)  /* a fade's steps keep the splash the picture was shown as */
+        splash_shown = brr_splash_on;
+    if (!(wide_menus(w, h) && splash_shown && draw_splash_wide(out, out_w, out_h, out_pitch, &l, colours))) {
+        compose32(pixels, origin, w, h, pitch, out, out_w, out_h, out_pitch, &l, sky);
+        if (wide_menus(w, h))
+            widen_background(pixels, pitch, out, out_w, out_h, out_pitch, &l, colours);
+    }
     /* the race HUD (hud.c) on top; a fade's steps keep the HUD the picture was shown with */
     if (!replaying)
         shown_hud = brr_hud_overlay(origin, w, h, out, out_w, out_h, out_pitch, l.x, l.y, l.sx, l.sy, colours, 0);

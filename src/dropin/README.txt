@@ -32,14 +32,19 @@ Windows and on Linux/Steam Deck through Proton, and makes it run smoothly:
 - The main menu says V2.25, the official update you installed (the game
   itself still said V2.24), with Big Red Launcher's version, and its credits
   line at the top includes "Camera / Modern Windows fix by ctrl-alt-rees".
+- The title picture at the start stays for 5 seconds (on today's PCs it
+  flashed by); Esc, Space, Enter, a mouse click or any controller button
+  skips it (BRRFIX.INI, [display] splash_seconds). With the widescreen menus,
+  it's a widescreen version of the picture.
 
-It contains no part of the game, and your game's own files are left as they
-are: the launcher runs its own copy of WINRACE.EXE, WINRACEP.EXE, which uses
-PATCH.DLL in place of the game's TIMER.DLL (see Install). PATCH.DLL changes
-the game's code only in memory while it runs, and only after checking that the
-game is the exact v2.25 file and that every place it changes is as expected.
-If anything doesn't match, it changes nothing, writes why to BRRFIX.LOG, and
-works like the game's own TIMER.DLL.
+Apart from that widescreen title picture (a version of the game's own, made
+for Big Red Launcher), it contains no part of the game, and your game's own
+files are left as they are: the launcher runs its own copy of WINRACE.EXE,
+WINRACEP.EXE, which uses PATCH.DLL in place of the game's TIMER.DLL (see
+Install). PATCH.DLL changes the game's code only in memory while it runs, and
+only after checking that the game is the exact v2.25 file and that every place
+it changes is as expected. If anything doesn't match, it changes nothing,
+writes why to BRRFIX.LOG, and works like the game's own TIMER.DLL.
 
 You need
 --------
@@ -219,7 +224,8 @@ correction" gives its pixels the 1996 monitor's shape). With Max in full
 screen on a wide screen, races are drawn at the screen's own shape ("Native
 widescreen", [display] widescreen; the menus stay 4:3 in the middle, their
 background pictures widened across the screen: "Widescreen menu backgrounds",
-[display] widescreen_menus).
+[display] widescreen_menus, and the title picture at the start a widescreen
+version).
 Windowed, it's a plain window drawn by cnc-ddraw: Alt+Enter switches to full
 screen and back. Its options: scaling, window size, colour depth,
 "Resolution: Max" (the default: races drawn with a part of the screen's

@@ -152,6 +152,11 @@ static void load_config(void)
     cfg.hud_map_large = lstrcmpiA(text, "small") != 0;
     cfg.widescreen = ini_int(path, "display", "widescreen", 1);
     cfg.widescreen_menus = ini_int(path, "display", "widescreen_menus", 1);
+    cfg.splash_seconds = ini_int(path, "display", "splash_seconds", 5);
+    if (cfg.splash_seconds < 0)
+        cfg.splash_seconds = 0;
+    if (cfg.splash_seconds > 60)
+        cfg.splash_seconds = 60;
     cfg.precise_3d = ini_int(path, "display", "precise_3d", 1);
     cfg.object_lighting = ini_int(path, "display", "object_lighting", 1);
     cfg.sort_footprint = ini_int(path, "display", "sort_footprint", 1);
