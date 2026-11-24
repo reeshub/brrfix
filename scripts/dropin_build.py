@@ -39,6 +39,7 @@ Example:
 import hashlib
 import json
 import os
+import platform
 import re
 import shutil
 import struct
@@ -338,11 +339,16 @@ def write_splash():
 
 
 def watcom_bin():
-    """Open Watcom's programs: Linux (the release snapshot), or macOS ARM or Intel (built from source)."""
-    for name in ("binl64", "armo64", "bino64"):
+    """Open Watcom's programs: Linux (the release snapshot), or macOS ARM or Intel (built from source).
+    Chosen by this machine, not by what's there: a copied tools/ folder can hold another's."""
+    if platform.system() == "Darwin":
+        names = ("armo64", "bino64") if platform.machine() == "arm64" else ("bino64",)
+    else:
+        names = ("binl64",)
+    for name in names:
         if (WATCOM / name / "wcc386").exists():
             return WATCOM / name
-    return WATCOM / "binl64"
+    return WATCOM / names[0]
 
 
 def watcom_env():

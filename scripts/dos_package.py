@@ -24,7 +24,7 @@ import zipfile
 import brrpatch_build
 import dos_build
 from common import DATA, ROOT, WORK
-from dropin_build import WATCOM
+from dropin_build import watcom_bin
 from dropin_package import LICENCES, crlf, game_checksums, zip_date
 from prepkit import rel
 
@@ -52,8 +52,8 @@ def shares_game_bytes(code, game, run=16):
 
 
 def can_check_sources():
-    """dos-build --check needs the Linux Open Watcom and the Ghidra exports (the development PC)."""
-    return (WATCOM / "binl64" / "wcc386").exists() and (dos_build.EXPORTS / "calls.csv").exists()
+    """dos-build --check needs Open Watcom and the Ghidra exports."""
+    return (watcom_bin() / "wcc386").exists() and (dos_build.EXPORTS / "calls.csv").exists()
 
 
 def main(args):
