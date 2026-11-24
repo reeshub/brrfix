@@ -472,10 +472,20 @@ for modern pads.
 
 Xbox-style pads, including the Steam Deck's controls, work as the game's two
 joysticks: the first pad you use becomes joystick 1 (JS1), the next one you use
-joystick 2 (JS2), for two players. The left stick steers, and A and B are the
-joystick's buttons. In the game's controls menu, each player chooses JS1 or JS2.
-While a pad is connected, other joysticks (ones without XInput) are left out;
-without one, they work as in 1996.
+joystick 2 (JS2), for two players. The left stick steers (the D-pad too, as the
+keyboard does), and A and B are the joystick's buttons. In the game's controls
+menu, each player chooses JS1 or JS2. While a pad is connected, other joysticks
+(ones without XInput) are left out. Without one, a pad Windows reads itself is
+used the same way: its stick, its D-pad and its first two buttons; an 8BitDo pad
+in its D-input mode (such as the 8BitDo Micro on Windows) also has its L2 and R2
+as the triggers and its Select and Start as Back and Start. Untick this for the
+1996 joystick handling.
+
+Steering and the pedals are proportional once a pad has shown it has an
+analogue stick or trigger (moved part of the way); a pad with only a D-pad and
+buttons steers on or off, as the keyboard does. The game's Joystick Setup screen
+shows which with its Analogue box, which follows the pad (`analogue=0` under
+`[controller]` in BRRFIX.INI leaves the box to you, as in 1996).
 
 **Deadzone**
 
@@ -550,7 +560,9 @@ the joystick in the menus also sets player one's controls to it (JS1 in
 Options, Joysticks), unless you change that setting yourself; the arrow keys
 alone don't. Moving the mouse brings back the pointer and hands the menus to
 the mouse (other keys do what they always did and leave this on), until you
-push up or down again; a race keeps the menus as they were, so the results
+use the stick, the D-pad, a button, an arrow key, Return or Esc again (that
+press also does its usual job, such as left and right changing the vehicle); a
+race keeps the menus as they were, so the results
 come back the same way. On the keys screen every key you press goes to the
 control being set, as in 1996: there the selection only shows which control
 that is. The recording name is left to the keyboard (button 2 still goes back).
@@ -561,7 +573,8 @@ The menus' texts and buttons shimmer and wobble, as they always have.
 Inverted: only the selected item moves, everything else is still. Original-ish:
 the selected item stops, so it stands out, while everything else carries on.
 Either way it covers the item's text, its button or tick box, its border and
-its label (such as "PL1:" beside a slider), from the moment a screen appears.
+its label (such as "PL1:" beside a slider), and a slider's bar and knob, from
+the moment a screen appears.
 While the joystick or the arrow keys have the menus, the buttons only the
 mouse needs are put away: the globe's Select (button 1 or Return chooses the
 track) and "next" on Choose Your Vehicle (left and right change the vehicle).

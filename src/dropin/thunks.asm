@@ -65,7 +65,7 @@
         extrn   _nav_label_font:near
         extrn   _brr_orig_sprite_draw:dword
         extrn   _nav_sprite_frame:near
-        public  _brr_sound_sprite_down, _brr_sound_sprite_up, _brr_sound_sprite_up2
+        public  _brr_sound_sprite_down, _brr_sound_sprite_up, _brr_sound_sprite_up2, _brr_knob_sprite
         extrn   _brr_sound_cd_draw:near
         public  _brr_hook_sound_draw, _brr_call_sprite_draw
         extrn   _nav_before_draw:near
@@ -501,7 +501,11 @@ _brr_hook_label_draw:
 ; sound_options_draw's CALL sprite_draw (0x426D48) of a button (EDX its frame, EBX x, ECX y;
 ; sites sound_button_*): the frame nav_sprite_frame gives (its step of the screen's animation
 ; kept in the joystick's selection, menunav.c), then sprite_draw. Each entry is how the
-; button's frame follows the step.
+; button's frame follows the step; _brr_knob_sprite (sites slider_knob_*: the display and
+; damage screens' knobs, drawn from animation 1's frame) passes 0.
+_brr_knob_sprite:
+        push    0
+        jmp     short sound_sprite
 _brr_sound_sprite_down:
         push    -1
         jmp     short sound_sprite

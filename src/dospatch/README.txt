@@ -32,7 +32,8 @@ What it fixes
   one item: left and right move it, a step a push. Only the selected item
   animates, and the headings stay still (inverted, the default), or the
   selected item stops animating (original-ish): BRRPATCH asks which; an item's
-  label (such as "PL1:" beside a slider) goes with it, and on the keys screen
+  label (such as "PL1:" beside a slider) and a slider's bar and knob go with
+  it, and on the keys screen
   the row being set is the selected one. The globe's Select and the vehicle
   screen's "next" are put away meanwhile (only the mouse needs them). On the
   race, logo and car screens left and right still change them, as the arrow
@@ -42,7 +43,8 @@ What it fixes
   takes it, and answers Y to "Create new file?" (button 2 is N). Using the
   joystick in the menus sets player 1's controls to JS1, unless you change
   them in Options, Joysticks. Moving the mouse hands the menus back to it
-  (other keys don't), until the stick or an arrow key is pushed again; a race
+  (other keys don't), until the stick, a button, an arrow key, Return or Esc
+  is used again (also doing its usual job, such as changing the car); a race
   keeps the menus as they were. Any input on the main menu (mouse, keyboard or
   joystick) holds back its attract demo for another 15 seconds.
 - The physics is left exactly as it was: the same game, bit for bit.

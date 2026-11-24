@@ -322,6 +322,7 @@ void brr_hook_label_draw(void);                /* site label_draw_call */
 void brr_sound_sprite_down(void);              /* sites sound_button_*: frame base - step */
 void brr_sound_sprite_up(void);                /* base + step */
 void brr_sound_sprite_up2(void);               /* base + 2 x step */
+void brr_knob_sprite(void);                    /* sites slider_knob_*: animation 1's frame */
 void __cdecl brr_call_play_sample(const char *name);  /* the game's sound_play_sample */
 
 /* music.c */

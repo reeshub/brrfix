@@ -264,15 +264,19 @@ Controllers
 -----------
 Xbox-style pads (XInput, including the Steam Deck's controls) work as the
 game's two joysticks: the first pad you use is joystick 1, the next one you
-use joystick 2 (two players). Left stick steers, right trigger accelerates,
-left trigger brakes and reverses, A and B are the joystick buttons. In a race,
+use joystick 2 (two players). Left stick (or the D-pad) steers, right trigger
+accelerates, left trigger brakes and reverses, A and B are the joystick
+buttons. With no Xbox-style pad connected, a pad Windows reads itself works the
+same way (an 8BitDo in D-input mode, such as the Micro: L2 and R2 are its
+triggers). A pad with only a D-pad steers on or off, as the keyboard does (the
+game's Analogue box follows the pad). In a race,
 Start pauses (and carries on) and Back (View) ends it, as Pause and Esc do. The
 menus start with a joystick, a pad (stick or D-pad) or the arrow keys in
 charge: up and down step through the items (no pointer), left and right move a
 slider or change the race, logo or car, A or Return chooses, B or Esc goes back
 (B also ends the attract demo and the track's View) ([controller]
-menu_navigation; moving the mouse hands the menus to it, and up or down takes
-them back). Only the selected item animates and the headings are still, or with
+menu_navigation; moving the mouse hands the menus to it, and the stick, a
+button, an arrow key, Return or Esc takes them back). Only the selected item animates and the headings are still, or with
 [controller] menu_animations=original the selected item stops animating
 (still_titles sets the headings either way). The name screen starts with your last name, so A accepts it, and
 player 1's controls are set to the joystick (JS1) for you; otherwise choose

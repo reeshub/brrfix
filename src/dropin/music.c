@@ -500,7 +500,7 @@ void __cdecl brr_sound_cd_draw(void)
     brr_call_sprite_draw(nav_sprite_frame(step + 5, 0x67, 0x32, 1), 0x67, 0x32);
     brr_call_sprite_draw(nav_sprite_frame(step, 0xEC, 0x32, 1), 0xEC, 0x32);
     if (volume >= 0 && volume <= 7)
-        brr_call_sprite_draw(step + 15 + 5 * volume, 0x81, 0x2D);
+        brr_call_sprite_draw(nav_sprite_frame(step + 15 + 5 * volume, 0x81, 0x2D, 1), 0x81, 0x2D);
 }
 
 void brr_sound_cd_action(void)

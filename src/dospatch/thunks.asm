@@ -8,7 +8,7 @@
         public  brr_hook_rotation_, brr_rotation_trampoline_, brr_call_rotation_original_
         public  brr_cam4_, brr_cap_, brr_approach_
         public  brr_menu_tick_, brr_hook_menu_mouse_, brr_hook_hotspot_draw_, brr_hook_label_draw_
-        public  brr_sound_sprite_down_, brr_sound_sprite_up_, brr_sound_sprite_up2_
+        public  brr_sound_sprite_down_, brr_sound_sprite_up_, brr_sound_sprite_up2_, brr_knob_sprite_
         extrn   nav_before_tick_ : near
         extrn   nav_after_tick_ : near
         extrn   nav_before_draw_ : near
@@ -178,7 +178,11 @@ brr_hook_label_draw_:
 
 ; sound_options_draw's CALL sprite_draw of a button (EDX its frame, EBX x, ECX y): the frame
 ; nav_sprite_frame gives (its step of the screen's animation kept in the joystick's
-; selection), then sprite_draw. Each entry is how the button's frame follows the step.
+; selection), then sprite_draw. Each entry is how the button's frame follows the step;
+; brr_knob_sprite (the display and damage screens' knobs, from animation 1's frame) passes 0.
+brr_knob_sprite_:
+        push    0
+        jmp     short sound_sprite
 brr_sound_sprite_down_:
         push    -1
         jmp     short sound_sprite

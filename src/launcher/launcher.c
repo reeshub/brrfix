@@ -622,7 +622,8 @@ static const struct { int id; const char *text; } tips[] = {
     {IDC_VOLUME, "Music volume, on top of the game's own CD volume option."},
     {IDC_FOLDER, "The folder with the ripped tracks: Music next to the launcher, or a full path."},
     {IDC_BROWSE, "Choose the folder with the ripped tracks."},
-    {IDC_PAD, "Use an Xbox-style pad as the game's joystick (choose the joystick in the game's controls menu)."},
+    {IDC_PAD, "Use an Xbox-style pad, or another pad Windows reads, as the game's joystick (choose the joystick in the "
+              "game's controls menu). The D-pad steers too."},
     {IDC_JOYCPL, "Opens Windows' game controller settings, to set up and calibrate a joystick or pad."},
     {IDC_LANGUAGE, "The game's language, as in its window's Language menu."},
     {IDC_DEADZONE, "How far the stick moves before steering starts."},

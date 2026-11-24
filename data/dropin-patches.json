@@ -231,6 +231,46 @@
    "sha256": "ba2ef0158bdeff58ea36a02430e1dd5b478898bc03dc5377a11da36e1a50e623"
   },
   {
+   "name": "sound_button_fx_level",
+   "fix": "menu_nav",
+   "address": "0x40AFD3",
+   "length": 5,
+   "patch": "sound_options_draw's CALL sprite_draw (0x426D48) of the effects volume's level (frame 0x13 + 5 x volume - step) -> CALL brr_sound_sprite_down: it stops and starts with its slider in the joystick's selection, as the slider's - and + do (sound_options_anim 0x44AEC0; menunav.c)",
+   "sha256": "b116b1a20892bae1f6210db8c78a8d6bcd9746b25f342c9dda7e5178b5957f05"
+  },
+  {
+   "name": "slider_knob_vision",
+   "fix": "menu_nav",
+   "address": "0x4090CE",
+   "length": 5,
+   "patch": "landscape_options_draw's CALL sprite_draw (0x426D48) of the vision distance's knob (frame anim_frame(animation 1) + 0x1E) -> CALL brr_knob_sprite: held while its slider's - is held, so it stops and starts with its slider (menunav.c)",
+   "sha256": "cd80abc6c8f1261d2f29bf4f56d484eebc09b27a211072e9bc4af1413871a688"
+  },
+  {
+   "name": "slider_knob_texture",
+   "fix": "menu_nav",
+   "address": "0x40911A",
+   "length": 5,
+   "patch": "landscape_options_draw's CALL sprite_draw (0x426D48) of the texture distance's knob (frame anim_frame(animation 1) + 0x1E) -> CALL brr_knob_sprite: held while its slider's - is held (menunav.c)",
+   "sha256": "827d4560928f85a7b7fe4d2e8526eb807c3e597ae082dd5638b5a5530410197c"
+  },
+  {
+   "name": "slider_knob_pl1",
+   "fix": "menu_nav",
+   "address": "0x406B0E",
+   "length": 5,
+   "patch": "game_options_draw's CALL sprite_draw (0x426D48) of player 1's damage knob (frame anim_frame(animation 1) + 0x1E) -> CALL brr_knob_sprite: held while its slider's - is held (menunav.c)",
+   "sha256": "d383b353c25886cd83ba7b36b212fc84babd661b97959b35900c339473c61a43"
+  },
+  {
+   "name": "slider_knob_pl2",
+   "fix": "menu_nav",
+   "address": "0x406B91",
+   "length": 5,
+   "patch": "game_options_draw's CALL sprite_draw (0x426D48) of player 2's damage knob (frame anim_frame(animation 1) + 0x1E) -> CALL brr_knob_sprite: held while its slider's - is held (menunav.c)",
+   "sha256": "b765d804b8b0af1e8fa5899c0e0b2b80112e8cf36e0be6e30a4e23cc1ab96a6f"
+  },
+  {
    "name": "sound_cd_draw",
    "fix": "cd_volume",
    "address": "0x40B020",

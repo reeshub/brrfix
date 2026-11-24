@@ -322,6 +322,9 @@ static int replacement(const struct site_info *s, uint8_t *out)
         out[0] = 0xE8;  /* CALL brr_sound_sprite_*: the button keeps its step in the joystick's selection */
         put_rel32(out + 1, s->address + 5, !strcmp(n, "sound_button_commentary") ? (void *)brr_sound_sprite_up2
                   : !strcmp(n, "sound_button_ok") ? (void *)brr_sound_sprite_up : (void *)brr_sound_sprite_down);
+    } else if (!strncmp(n, "slider_knob_", 12) && s->length == 5) {
+        out[0] = 0xE8;  /* CALL brr_knob_sprite: the knob stops and starts with its slider */
+        put_rel32(out + 1, s->address + 5, (void *)brr_knob_sprite);
     } else if (!strcmp(n, "class_menu") && s->length == 1) {
         out[0] = 0x74;  /* MOV [ESP+0x24],ESI: the window class has no menu */
     } else if (!strcmp(n, "window_command_resolution") && s->length == 7) {

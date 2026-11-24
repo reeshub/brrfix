@@ -9,10 +9,13 @@
  *   or car (the key twins added when a screen's script is read: keys.c, brrdos.c).
  * - Joystick 1 pushed up or down (or left or right on a screen that has no left and right of
  *   its own, such as car, view and race; on Windows also a pad's D-pad, controller.c) gives
- *   the menus to the joystick: the top item is selected. The selected item stops shimmering (its texts keep their font of that moment,
- *   its animated buttons and borders their frame, and the sound screen's own buttons their
- *   step) and the mouse pointer is hidden (the game's, and Windows' own in a window); it
- *   still goes to the middle of the selection's box, for button 1's click. Up and down go through the items
+ *   the menus to the joystick: the top item is selected. Its other inputs (buttons 1 and 2,
+ *   left and right where they're the screen's own, and the keys below, Esc too) give them as
+ *   well, after doing their usual job that once (the director, 2026-11-24). The selected
+ *   item stops shimmering (its texts keep their font of that moment, its animated buttons
+ *   and borders their frame, and the sound screen's own buttons their step) and the mouse
+ *   pointer is hidden (the game's, and Windows' own in a window); it still goes to the
+ *   middle of the selection's box, for button 1's click. Up and down go through the items
  *   in reading order (a row's left to right, then the next row's), stopping at the ends, with
  *   a click (JOYCLICK, played as the game plays its BEEPs); left and right move to the
  *   nearest item that way in the same row. On the globe, logo and car screens, left and
@@ -24,7 +27,8 @@
  *   meanwhile, so they don't choose something else. Button 2 is Esc, as before, and also ends
  *   the attract demo and track select's flyover (View), as Esc does.
  * - A slider (display's vision and texture distances, the sound screen's CD and effects
- *   volumes, the damage screen's PL1 and PL2) is one item: its -, its + and its name. Up and
+ *   volumes, the damage screen's PL1 and PL2) is one item: its -, its +, its name, and its bar
+ *   and knob or level (which animate or stay still with it, the director, 2026-11-24). Up and
  *   down go past it like any item; left and right are its - and + (the game's own action for
  *   each, one step a push), and button 1 does nothing there (the director, 2026-11-24; holding
  *   button 1 on a - had stepped it every tick, and display's two distances push each other).
@@ -55,7 +59,8 @@
  *   its top item selected and no pointer from its first picture. It carries on through every
  *   screen (the top item of each new one is selected), through races (the results come back to
  *   it), until the mouse is moved: then the menus are the mouse's again, with the pointer, and
- *   all animating, until up or down is pushed. Other keys are the scripts' own and leave it on.
+ *   all animating, until the stick, a button or a navigation key is used again. Other keys are
+ *   the scripts' own and leave it as it is.
  * - While the joystick has been used for it, player 1's controls are JS1 if they were Keys
  *   (not for the arrow keys alone), until the player changes them by hand on the joysticks
  *   screen (then they're left alone).
@@ -117,6 +122,7 @@
 
 enum { B1, B2, LEFT = 4, RIGHT, UP, DOWN, JOY_KEYS };  /* 0x73 + n */
 enum { SAVED_FONT = 1, SAVED_FRAME, SAVED_TYPE };
+#define KEY_ESC       0x01
 #define KEY_RETURN    0x1C
 #define KEY_PAD_ENTER 0x70
 
@@ -149,7 +155,7 @@ static short owner[MAX_HOTSPOTS], frozen[MAX_HOTSPOTS];
 static short row_of[MAX_HOTSPOTS];        /* a label's row: one of its items (find_owners) */
 static unsigned char item[MAX_HOTSPOTS];  /* a box that can be an item (find_owners) */
 static short plus_of[MAX_HOTSPOTS];       /* a slider's - box: its + box (find_owners) */
-static unsigned char is_plus[MAX_HOTSPOTS];
+static short slider_of[MAX_HOTSPOTS];     /* a slider's + and bar boxes: its - box */
 static unsigned long drawn_at[MAX_HOTSPOTS];
 
 /* A hotspot's fields, as shorts (the game changes them only between our calls: one thread):
@@ -160,6 +166,9 @@ static unsigned long drawn_at[MAX_HOTSPOTS];
 #define HS(i) ((short *)(NAV_HOTSPOTS + (i) * HOTSPOT_SIZE))
 enum { TYPE = 1, MB_ACTION = 3, MB_X = 4, MB_Y = 5, MB_W = 6, MB_H = 7, TX_FONT = 4, TX_SHOWN = 5,
        SP_X = 3, SP_Y = 4, AS_ANIM = 2, AS_X = 5, AS_Y = 6, KEY = 2 };
+/* The sliders' knobs: animation 1 (anim_frame(0, 1)), its step (+7) and its frames (+9 on) */
+#define KNOB_STEP     (NAV_ANIMS[ANIM_SIZE + 7])
+#define KNOB_FRAME(s) (NAV_ANIMS[ANIM_SIZE + 9 + (s)])
 
 static int count(void)
 {
@@ -255,6 +264,14 @@ static int box_with(int action)
     return -1;
 }
 
+/* (x, y) in item m's box; for a slider anywhere along it, from its - to its +, and a little
+ * above their tops (its bar, and the knob or level the screen's own code draws there) */
+static int in_item(int m, int x, int y)
+{
+    short *b = HS(m), *r = plus_of[m] >= 0 ? HS(plus_of[m]) : b;
+    return x >= b[MB_X] && x < r[MB_X] + r[MB_W] && y >= b[MB_Y] - (r != b ? CLOSE : 0) && y < b[MB_Y] + b[MB_H];
+}
+
 static void find_owners(void)
 {
     int n = count(), d, m, reach = screen == SCREEN_KEYS ? KEYS_REACH : LABEL_REACH;
@@ -263,15 +280,16 @@ static void find_owners(void)
         short *b = HS(m);
         item[m] = b[TYPE] == 5 && b[MB_W] >= MIN_ITEM && b[MB_H] >= MIN_ITEM && !(b[MB_W] >= 300 && b[MB_H] >= 190)
                   && !left_out(b[MB_ACTION]);
-        plus_of[m] = -1;
-        is_plus[m] = 0;
+        plus_of[m] = slider_of[m] = -1;
     }
     for (j = 0; j < SLIDERS; j++) {
         int minus, plus;
         if (sliders[j][0] != screen || (minus = box_with(sliders[j][1])) < 0 || (plus = box_with(sliders[j][2])) < 0)
             continue;
         plus_of[minus] = (short)plus;
-        is_plus[plus] = 1;
+        for (m = 0; m < n; m++)  /* its +, and its bar's boxes (display's and damage's scaler, the volume steps) */
+            if (m == plus || (!item[m] && HS(m)[TYPE] == 5 && in_item(minus, HS(m)[MB_X], HS(m)[MB_Y])))
+                slider_of[m] = (short)minus;
     }
     for (d = 0; d < n; d++) {
         short *h = HS(d), x, y, middle;
@@ -331,6 +349,13 @@ static void find_owners(void)
     owners_count = n;
 }
 
+/* The owners, found again when the screen or its hotspots have changed */
+static void owners(void)
+{
+    if (owners_screen != screen || owners_count != count())
+        find_owners();
+}
+
 /* A key hotspot for the stick's left or right with this action (any, with -1): the twins of
  * a screen's own arrow keys (globe, logo, car), so left and right are the screen's own there */
 static int arrow_key(int action)
@@ -363,7 +388,7 @@ static int left_out(int action)
 static int navigable(int m)
 {
     int n = count(), d, owned = 0;
-    if (m < 0 || m >= n || !item[m] || is_plus[m])
+    if (m < 0 || m >= n || !item[m] || slider_of[m] >= 0)
         return 0;
     for (d = 0; d < n; d++)
         if (owner[d] == m) {
@@ -460,18 +485,19 @@ static int shown_now(int d)
     return -1;
 }
 
-/* Part of item m: its own texts and pictures, and the labels of its row */
+/* Part of item m: its own texts and pictures (a slider's: its +'s and its bar's too), and the
+ * labels of its row */
 static int part_of(int d, int m)
 {
-    return m >= 0 && (owner[d] == m || (plus_of[m] >= 0 && owner[d] == plus_of[m])
-                      || (row_of[d] >= 0 && same_row(HS(row_of[d]), HS(m))));
+    int o = owner[d];
+    return m >= 0 && (o == m || (o >= 0 && slider_of[o] == m) || (row_of[d] >= 0 && same_row(HS(row_of[d]), HS(m))));
 }
 
 /* A heading, or another of the screen's own pictures: part of no item */
 static int heading(int d)
 {
     int o = owner[d];
-    return row_of[d] < 0 && (o < 0 || !item[o]);
+    return row_of[d] < 0 && (o < 0 || (!item[o] && slider_of[o] < 0));
 }
 
 /* The screens that are one choice (the name, the globe, the vehicle, the driver, the logo, the
@@ -633,7 +659,7 @@ void nav_before_tick(void)
 {
     volatile unsigned char *keys = NAV_KEYS;
     unsigned char now[JOY_KEYS], pressed[JOY_KEYS], stick[JOY_KEYS];
-    int s, i, own, way = -1, chose = 0, keyboard_nav_on, stick_pressed = 0;
+    int s, i, own, way = -1, chose = 0, keyboard_nav_on, stick_pressed = 0, esc;
     unsigned j;
     hid_clicks = input_seen = 0;
     if (!NAV_ENABLED || !keys)
@@ -653,6 +679,7 @@ void nav_before_tick(void)
      * controls); other keys are the scripts' own, as ever, and leave the navigation on: only the
      * mouse moving hands the menus back (the director, 2026-11-24) */
     keyboard_nav_on = s != SCREEN_KEYS && s != SCREEN_NAME && s != SCREEN_RNAME;
+    esc = keys[KEY_ESC] && !key_prev[KEY_ESC];
     for (i = 1; i <= LAST_KEYBOARD; i++) {
         unsigned char down = keys[i] != 0, fresh = down && !key_prev[i];
         key_prev[i] = down;
@@ -705,8 +732,7 @@ void nav_before_tick(void)
     if (s == SCREEN_KEYS && joy && count() > 0) {
         /* every key is the game's here: it gives the blinking row the next key pressed. The
          * navigation only shows which row that is, as its selection (no pointer, no click) */
-        if (owners_screen != s || owners_count != count())
-            find_owners();
+        owners();
         select_item(box_with(KEYS_FIRST + NAV_KEY_SLOT), 0);
         have_target = 0;
         return;
@@ -714,21 +740,27 @@ void nav_before_tick(void)
     if (s == SCREEN_KEYS || s == SCREEN_RNAME || s == SCREEN_VIEW || s >= SCREEN_QUIT || count() == 0)
         return;
     own = arrow_key(-1);
-    if (!joy && (pressed[UP] || pressed[DOWN] || (!own && (pressed[LEFT] || pressed[RIGHT])))) {
+    if (!joy) {
+        /* Any of the navigation's inputs gives it the menus (the director, 2026-11-24: car
+         * select's left and right didn't): a push up or down, or left or right where the screen
+         * has none of its own, selects the top item; a button, Esc, or the screen's own left
+         * or right does its usual job too, this once */
+        int push = pressed[UP] || pressed[DOWN] || (!own && (pressed[LEFT] || pressed[RIGHT]));
+        if (!push && !pressed[B1] && !pressed[B2] && !pressed[LEFT] && !pressed[RIGHT] && !esc)
+            return;
         take();
         nav_note("on, screen", s);
         selected = -1;
+        if (!push)
+            return;
         chose = 1;  /* the push that starts it selects the top item */
     }
-    if (!joy)
-        return;
     stick_used |= stick_pressed;
     if (stick_used && !manual_type && NAV_PLAYER1 == 0) {  /* the joystick's, not the arrow keys' */
         NAV_PLAYER1 = 1;
         nav_note("player 1 set to JS1, screen", s);
     }
-    if (owners_screen != s || owners_count != count())
-        find_owners();
+    owners();
     if (!navigable(selected)) {
         if (!drawn_any && ticks_on_screen < 10)  /* the screen's first picture first */
             selected = -1;
@@ -828,8 +860,7 @@ void nav_before_draw(int d)
     drawn_any = 1;
     if (!joy)
         return;
-    if (owners_screen != screen || owners_count != count())
-        find_owners();
+    owners();
     h = HS(d);
     saved_index = d;
     if (h[TYPE] == 4 || hidden(owner[d])) {  /* the pointer, Select and Next: not drawn */
@@ -890,26 +921,33 @@ void nav_label_font(void)
     }
 }
 
-/* The sound screen's own buttons (sound_options_draw's sprite_draw calls, through thunks.asm:
- * the volume - and +, OK and the commentary tick box), whose frames follow the screen's own
- * step (sound_options_anim, 0-4) by per_step frames a step. Original-ish: the selection's
- * keep the step they showed when first drawn after it was selected; inverted: the others keep
- * the step they first had. The tick box still shows its new state when toggled. */
-static int in_box(int m, int x, int y)
-{
-    short *b = HS(m);
-    return m >= 0 && x >= b[MB_X] && x < b[MB_X] + b[MB_W] && y >= b[MB_Y] && y < b[MB_Y] + b[MB_H];
-}
-
+/* The sound screen's own buttons and levels (sound_options_draw's sprite_draw calls, through
+ * thunks.asm: the volumes' - and + and levels, OK and the commentary tick box), whose frames
+ * follow the screen's own step (sound_options_anim, 0-4) by per_step frames a step.
+ * Original-ish: the selection's keep the step they showed when first drawn after it was
+ * selected; inverted: the others keep the step they first had. The tick box still shows its
+ * new state when toggled. per_step 0: a slider's knob on the display and damage screens
+ * (their draw routines' sprite_draw(anim_frame(animation 1) + 0x1E)), held at the step its
+ * slider's - (an animated sprite on animation 1) is held at, so it stops and starts with its
+ * slider (the director, 2026-11-24). */
 int nav_sprite_frame(int frame, int x, int y, int per_step)
 {
-    int inside;
+    int n = count(), d, inside;
     if (!NAV_ENABLED || !started)
         return frame;
     follow_screen();
     if (!joy)
         return frame;
-    inside = selected >= 0 && (in_box(selected, x, y) || in_box(plus_of[selected], x, y));
+    owners();
+    if (!per_step) {
+        for (d = 0; d < n; d++) {
+            int o = owner[d];
+            if (HS(d)[TYPE] == 8 && frozen[d] >= 0 && o >= 0 && plus_of[o] >= 0 && in_item(o, x, y))
+                return frame + KNOB_FRAME(frozen[d]) - KNOB_FRAME(KNOB_STEP);
+        }
+        return frame;
+    }
+    inside = selected >= 0 && in_item(selected, x, y);
     if (inside == NAV_INVERTED)
         return frame;
     if (!still_set) {
