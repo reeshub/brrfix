@@ -45,6 +45,7 @@
  * 1 s (winebus cutoff_time_ms) and Wine's XInputSetState drops one equal to the last
  * (xinput1_3 HID_set_state), so each repeat changes a motor by one step in 65,535. */
 #include "brrfix.h"
+#include <mmsystem.h>
 #include <string.h>
 
 #define JOY_CAPTURED  ((volatile uint8_t *)0x44B9C8)   /* [j]: joystick j+1's messages are stored */
@@ -505,6 +506,57 @@ static void centre_absent_joysticks(void)
         }
 }
 
+/* The D-pad of a joystick Windows delivers itself (no XInput pad: Windows 95-ME, a pad without
+ * XInput, or [controller] enabled=0) is a hat, which the game's joystick messages don't carry:
+ * in the menus, with the menu navigation, its position (joyGetPosEx's POV, in hundredths of a
+ * degree from up; diagonals count both ways) pushes joystick 1's stick all the way, as an
+ * XInput pad's D-pad does (drive_joystick; the director, 2026-11-24: "I like to use the D-pad
+ * to navigate menus"). The stick's own position is put back when the hat is let go, unless a
+ * joystick message has brought a new one. joyGetPosEx is looked up (Windows 95 has it). */
+typedef MMRESULT (WINAPI *getposex_fn)(UINT, JOYINFOEX *);
+
+static void hat_to_stick(void)
+{
+    static getposex_fn getposex;
+    static int looked, pushed;
+    static uint16_t saved_x, saved_y, forced_x, forced_y;
+    int dx = 0, dy = 0;
+    if (!looked) {
+        looked = 1;
+        getposex = (getposex_fn)GetProcAddress(GetModuleHandleA("winmm.dll"), "joyGetPosEx");
+    }
+    if (getposex && *SCREEN != 0x80 && JOY_CAPTURED[0]) {
+        JOYINFOEX info;
+        memset(&info, 0, sizeof info);
+        info.dwSize = sizeof info;
+        info.dwFlags = JOY_RETURNPOV;
+        if (getposex(JOYSTICKID1, &info) == JOYERR_NOERROR && info.dwPOV < 36000) {
+            DWORD a = info.dwPOV;
+            dy = a >= 31500 || a <= 4500 ? -1 : a >= 13500 && a <= 22500 ? 1 : 0;
+            dx = a >= 4500 && a <= 13500 ? 1 : a >= 22500 && a <= 31500 ? -1 : 0;
+        }
+    }
+    if (dx || dy) {
+        if (!pushed || *JOY_X(0) != forced_x)
+            saved_x = *JOY_X(0);
+        if (!pushed || *JOY_Y(0) != forced_y)
+            saved_y = *JOY_Y(0);
+        forced_x = (uint16_t)(dx < 0 ? 0 : dx > 0 ? 65535 : saved_x);
+        forced_y = (uint16_t)(dy < 0 ? 0 : dy > 0 ? 65535 : saved_y);
+        *JOY_X(0) = forced_x;
+        *JOY_Y(0) = forced_y;
+        if (!pushed)
+            brr_log("controller: the joystick's hat (D-pad) pushes the stick in the menus (POV %d,%d)", dx, dy);
+        pushed = 1;
+    } else if (pushed) {
+        if (*JOY_X(0) == forced_x)
+            *JOY_X(0) = saved_x;
+        if (*JOY_Y(0) == forced_y)
+            *JOY_Y(0) = saved_y;
+        pushed = 0;
+    }
+}
+
 void __cdecl brr_before_joystick(void)
 {
     xinput_state states[SLOTS];
@@ -546,8 +598,10 @@ void __cdecl brr_before_joystick(void)
         drive_joystick(0, &states[0].pad);
     } else {
         if (!cfg.controller || !get_state) {
-            if (cfg.menu_navigation)
+            if (cfg.menu_navigation) {
                 centre_absent_joysticks();
+                hat_to_stick();
+            }
             return;
         }
         read_pads(states, ok);
@@ -558,6 +612,8 @@ void __cdecl brr_before_joystick(void)
             else if (windows_off == 1)  /* no pad yet: a centred joystick, not Windows' last message */
                 drive_joystick(j, &centred);
         centre_absent_joysticks();
+        if (cfg.menu_navigation && windows_off != 1)  /* Windows' own joysticks: their D-pads */
+            hat_to_stick();
     }
     if (vibration_timer)
         check_vehicles();

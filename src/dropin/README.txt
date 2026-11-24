@@ -260,14 +260,15 @@ Xbox-style pads (XInput, including the Steam Deck's controls) work as the
 game's two joysticks: the first pad you use is joystick 1, the next one you
 use joystick 2 (two players). Left stick steers, right trigger accelerates,
 left trigger brakes and reverses, A and B are the joystick buttons. In a race,
-Start pauses (and carries on) and Back (View) ends it, as Pause and Esc do. In
-the menus a joystick, a pad or the arrow keys take over when you push up or
-down: up and down step through the items (the pointer hides), A or Return
-chooses, B or Esc goes back (B also ends the attract demo and the track's
-View), and left and right still change the race, logo or car ([controller]
-menu_navigation; the mouse or another key hands the menus back). The selected
-item stops animating, or with [controller] menu_animations=inverted only it
-animates. The name screen starts with your last name, so A accepts it, and
+Start pauses (and carries on) and Back (View) ends it, as Pause and Esc do. The
+menus start with a joystick, a pad (stick or D-pad) or the arrow keys in
+charge: up and down step through the items (no pointer), left and right move a
+slider or change the race, logo or car, A or Return chooses, B or Esc goes back
+(B also ends the attract demo and the track's View) ([controller]
+menu_navigation; moving the mouse hands the menus to it, and up or down takes
+them back). Only the selected item animates and the headings are still, or with
+[controller] menu_animations=original the selected item stops animating
+(still_titles sets the headings either way). The name screen starts with your last name, so A accepts it, and
 player 1's controls are set to the joystick (JS1) for you; otherwise choose
 the joystick (JS1 or JS2) in the game's Options, Joysticks. Deadzone,
 sensitivity, the response curve and the layout (triggers or stick) are in the

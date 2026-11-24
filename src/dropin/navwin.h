@@ -24,10 +24,12 @@
 #define NAV_TICK_COUNT   (*GAME_TICK_COUNT)                        /* tick_count: ticks since the screen started */
 #define NAV_CREDITS_TICK (*(volatile int *)0x44BCE4)               /* credits_last_tick: tick_count at the ticker's last line */
 #define NAV_SOUND_STEP   (*(volatile short *)0x44AEC0)             /* sound_options_anim: the sound screen's buttons' step */
-#define NAV_SOUND_CD     0                                         /* sound_options_draw draws no CD volume */
+#define NAV_SOUND_CD     (cfg.cd_volume)                           /* our CD volume row (music.c; the game's draws none) */
+#define NAV_KEY_SLOT     (*(volatile short *)0x44ADCA)             /* key_options_slot: the keys screen's row being set */
 #define NAV_GLOBE_TRACK  (*(volatile short *)0x44A984)             /* globe_cursor's track: -1 until one is picked */
 #define NAV_GLOBE_RACES  (*(volatile int *)0x4524CC)               /* series_races: the races chosen on the globe */
 #define NAV_ENABLED      (cfg.menu_navigation)
 #define NAV_INVERTED     (cfg.menu_animations == 1)                /* [controller] menu_animations=inverted */
+#define NAV_STILL_TITLES (cfg.menu_still_titles)                   /* [controller] still_titles */
 
 #endif

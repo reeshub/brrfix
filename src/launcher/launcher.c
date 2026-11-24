@@ -567,6 +567,7 @@ static void update_enabled(HWND dialog)
     }
     enable(dialog, IDC_MENU_ANIM_LABEL, checked(dialog, IDC_MENU_NAV));
     enable(dialog, IDC_MENU_ANIM, checked(dialog, IDC_MENU_NAV));
+    enable(dialog, IDC_MENU_TITLES, checked(dialog, IDC_MENU_NAV));
 }
 
 /* One line on each setting, shown when the mouse rests on it */
@@ -630,9 +631,12 @@ static const struct { int id; const char *text; } tips[] = {
     {IDC_VIBRATION, "A brief buzz from the pad when player one's vehicle is damaged (with the game's damage option on)."},
     {IDC_NITRO_RUMBLE, "A steady rumble from the pad while player one's nitro flames show."},
     {IDC_INTENSITY, "How strong the damage buzz is; the nitro rumble is half as strong."},
-    {IDC_MENU_NAV, "Run the menus with a joystick, a pad or the arrow keys: up and down step through the items (the "
-                   "pointer hides), button 1 (A) or Return chooses, button 2 (B) goes back. The joystick also sets player one to JS1."},
-    {IDC_MENU_ANIM, "Original-ish: the selected item stops animating. Inverted: everything else stops, and the selected item animates."},
+    {IDC_MENU_NAV, "Run the menus with a joystick, a pad (stick or D-pad) or the arrow keys: up and down step through the "
+                   "items, left and right move sliders, button 1 (A) or Return chooses, button 2 (B) goes back. The menus start "
+                   "this way; moving the mouse brings the pointer back. The joystick also sets player one to JS1."},
+    {IDC_MENU_ANIM, "Inverted: only the selected item animates. Original-ish: the selected item stops animating, the rest animate."},
+    {IDC_MENU_TITLES, "Hold the menus' headings still. Ticked with Inverted, unticked with Original-ish; your choice either way. "
+                      "The name, globe, vehicle, driver, logo and recording screens keep theirs animated."},
     {IDC_RATE, "Game ticks a second: 70.0 as the DOS version (real time), or 71.43 as the 1996 Windows version ran (2% fast)."},
     {IDC_CAP, "After a pause, how much missed game time is caught up at once: 8 ticks, or 35 as the original (see Help)."},
     {IDC_LOG, "Writes BRRFIX.LOG next to the launcher: what was fixed, for bug reports."},
@@ -787,7 +791,11 @@ static void load(HWND dialog, int defaults)
     check(dialog, IDC_VIBRATION, defaults ? 1 : ini_flag("controller", "vibration", 1));
     check(dialog, IDC_NITRO_RUMBLE, defaults ? 1 : ini_flag("controller", "nitro_rumble", 1));
     check(dialog, IDC_MENU_NAV, defaults ? 1 : ini_flag("controller", "menu_navigation", 1));
-    fill(dialog, IDC_MENU_ANIM, menu_animations, GET(f, "controller", "menu_animations", "original"));
+    fill(dialog, IDC_MENU_ANIM, menu_animations, GET(f, "controller", "menu_animations", period ? "original" : "inverted"));
+    {  /* still titles with Inverted, animated with Original-ish, unless set */
+        int inverted = lstrcmpiA(chosen(dialog, IDC_MENU_ANIM, menu_animations), "original") != 0;
+        check(dialog, IDC_MENU_TITLES, defaults ? inverted : ini_flag("controller", "still_titles", inverted));
+    }
     fill(dialog, IDC_INTENSITY, intensities, GET(f, "controller", "vibration_intensity", "80"));
     fill(dialog, IDC_RATE, rates, GET(f, "clock", "tick_rate", "70.0"));
     fill(dialog, IDC_CAP, caps, GET(f, "clock", "catch_up_cap", "8"));
@@ -814,6 +822,14 @@ static void load(HWND dialog, int defaults)
 #undef GET
     show_track_count(dialog);
     update_enabled(dialog);
+}
+
+/* Wine (and Proton), whichever Windows version it reports: ntdll exports wine_get_version.
+ * Real Windows 95, 98 and ME have no ntdll of that kind. */
+static int under_wine(void)
+{
+    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+    return ntdll && GetProcAddress(ntdll, "wine_get_version") != NULL;
 }
 
 static void save(HWND dialog)
@@ -858,6 +874,7 @@ static void save(HWND dialog)
     ini_set(brrfix_ini, "controller", "nitro_rumble", checked(dialog, IDC_NITRO_RUMBLE) ? "1" : "0");
     ini_set(brrfix_ini, "controller", "menu_navigation", checked(dialog, IDC_MENU_NAV) ? "1" : "0");
     ini_set(brrfix_ini, "controller", "menu_animations", chosen(dialog, IDC_MENU_ANIM, menu_animations));
+    ini_set(brrfix_ini, "controller", "still_titles", checked(dialog, IDC_MENU_TITLES) ? "1" : "0");
     ini_set(brrfix_ini, "controller", "vibration_intensity", chosen(dialog, IDC_INTENSITY, intensities));
     ini_set(brrfix_ini, "log", "log", checked(dialog, IDC_LOG) ? "1" : "0");
     ini_set(brrfix_ini, "display", "max_draw_distance", chosen(dialog, IDC_DRAWDIST, distances));
@@ -891,10 +908,15 @@ static void save(HWND dialog)
          * idea of the window, scale the mouse again, or hook the window. Full screen, and the
          * Modern renderer's window (the game runs full screen; cnc-ddraw makes the window,
          * director 2026-11-15), are cnc-ddraw's job, with hook=3: what it chose itself from its
-         * default hook=4 while WINRACEP.EXE imported it as ddraw.dll. */
+         * default hook=4 while WINRACEP.EXE imported it as ddraw.dll. Under Wine and Proton
+         * without cnc-ddraw's cursor lock (devmode=true): it takes the lock only when the window
+         * is activated or clicked, which under Wine often doesn't happen, and until then it drops
+         * every mouse move and press, and the system's cursor shows (the director, 2026-11-24:
+         * "the in-game menu cursor doesn't track it"). Unlocked, the moves reach the game scaled
+         * and the game's own ShowCursor hides the cursor over its window. */
         ini_set(ddraw_ini, "ddraw", "hook", full || fresh ? "3" : "0");
         ini_set(ddraw_ini, "ddraw", "adjmouse", full || fresh ? "true" : "false");
-        ini_set(ddraw_ini, "ddraw", "devmode", full || fresh ? "false" : "true");
+        ini_set(ddraw_ini, "ddraw", "devmode", (full || fresh) && !under_wine() ? "false" : "true");
         /* at the desktop's own resolution: otherwise Windows switches to the game's (blurry) */
         ini_set(ddraw_ini, "ddraw", "fullscreen", full ? "true" : "false");
         /* Alt+Enter: the Modern renderer's window <-> full screen upscaled at the desktop's own
@@ -1046,6 +1068,7 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
             place(dialog, IDC_MENU_NAV, 18, 84, 200, 10);
             place(dialog, IDC_MENU_ANIM_LABEL, 18, 100, 60, 8);
             place(dialog, IDC_MENU_ANIM, 80, 98, 70, 60);
+            place(dialog, IDC_MENU_TITLES, 162, 99, 140, 10);
         } else
             hide_for_good(dialog, IDC_PAD_NOTE);
         /* under Proton, Steam Input sets up controllers */
@@ -1103,6 +1126,10 @@ static BOOL CALLBACK settings_proc(HWND dialog, UINT message, WPARAM wparam, LPA
         case IDC_NITRO_RUMBLE:
         case IDC_MENU_NAV:
             update_enabled(dialog);
+            return TRUE;
+        case IDC_MENU_ANIM:  /* still titles go with Inverted, animated with Original-ish (then the player's) */
+            if (HIWORD(wparam) == CBN_SELCHANGE)
+                check(dialog, IDC_MENU_TITLES, lstrcmpiA(chosen(dialog, IDC_MENU_ANIM, menu_animations), "original") != 0);
             return TRUE;
         case IDC_HELPFILE:
             open_help(dialog);
@@ -1171,14 +1198,6 @@ static int file_contains(const char *path, const char *needle)
         HeapFree(GetProcessHeap(), 0, data);
     CloseHandle(f);
     return found;
-}
-
-/* Wine (and Proton), whichever Windows version it reports: ntdll exports wine_get_version.
- * Real Windows 95, 98 and ME have no ntdll of that kind. */
-static int under_wine(void)
-{
-    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-    return ntdll && GetProcAddress(ntdll, "wine_get_version") != NULL;
 }
 
 static int checks_pass(void)

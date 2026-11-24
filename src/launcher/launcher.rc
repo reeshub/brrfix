@@ -125,9 +125,10 @@ BEGIN
     LTEXT           "Intensity:", IDC_INTENSITY_LABEL, 18, 142, 44, 8
     COMBOBOX        IDC_INTENSITY, 64, 140, 50, 90, CBS_DROPDOWNLIST | WS_TABSTOP | WS_VSCROLL
     GROUPBOX        "Menus", IDC_MENU_GROUP, 12, 162, 300, 44
-    AUTOCHECKBOX    "Controller &menu navigation", IDC_MENU_NAV, 18, 174, 200, 10, WS_TABSTOP
+    AUTOCHECKBOX    "Controller / keyboard &navigation", IDC_MENU_NAV, 18, 174, 200, 10, WS_TABSTOP
     LTEXT           "Menu &animations:", IDC_MENU_ANIM_LABEL, 18, 190, 60, 8
     COMBOBOX        IDC_MENU_ANIM, 80, 188, 70, 60, CBS_DROPDOWNLIST | WS_TABSTOP
+    AUTOCHECKBOX    "Disable animated &titles", IDC_MENU_TITLES, 162, 189, 140, 10, WS_TABSTOP
     LTEXT           "Modern pads (XInput) need a newer version of Windows. Configure opens Windows' own joystick settings; choose the joystick in the game's controls menu.", IDC_PAD_NOTE, 18, 36, 230, 24
 
     /* Advanced */

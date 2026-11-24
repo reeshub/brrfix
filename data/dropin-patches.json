@@ -231,6 +231,14 @@
    "sha256": "ba2ef0158bdeff58ea36a02430e1dd5b478898bc03dc5377a11da36e1a50e623"
   },
   {
+   "name": "sound_cd_draw",
+   "fix": "cd_volume",
+   "address": "0x40B020",
+   "length": 5,
+   "patch": "sound_options_draw's CALL menu_draw_group (0x427DD8, EAX 1) -> CALL brr_hook_sound_draw: the CD volume's -, + and level (as DOS's sound_options_draw, RACING.EXE 0x33390), then groups 1 and 21 (the CD's name); its actions are taken after the hotspots' tick (music.c, [sound] cd_volume)",
+   "sha256": "6d172f57fd280b3a4cee028b980cd5e1f4147497adc5372119d67c1d94768897"
+  },
+  {
    "name": "version_date",
    "fix": "version",
    "address": "0x406365",

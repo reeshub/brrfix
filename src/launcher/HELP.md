@@ -400,7 +400,9 @@ Ogg Vorbis tracks (a few MB each) are read whole when they start.
 
 **Volume**
 
-The music's volume, on top of the game's own CD volume option.
+The music's volume, on top of the game's own CD volume option: the CD row on
+the game's Sound screen, which the 1996 Windows version left out and which is
+back, as in the DOS version ([sound] cd_volume in BRRFIX.INI).
 
 **Folder and Browse**
 
@@ -517,46 +519,56 @@ default); the nitro rumble is half as strong.
 
 ### Menus
 
-**Controller menu navigation** (on by default; both renderers, any joystick)
+**Controller / keyboard navigation** (on by default; both renderers, any joystick)
 
-A joystick, a pad or the arrow keys can run the menus. Until you use them, the
-menus work as usual. Push up or down (the stick, the D-pad or an arrow key)
-and the top item is selected, and the mouse pointer is hidden. Up and down
-then step through every item in reading order (along a row, then the next
-row), with a click, stopping at the top and the bottom; left and right move
-along a row, such as from a slider's - to its +. Button 1 (A) or Return
-chooses, and ticks or unticks a box; button 2 (B) or Esc goes back (on the
-first screens, as with Esc, it quits the game), and button 2 also ends the
-attract demo and track select's View. Where the arrow keys change the race,
-the logo or the car, left and right still do that, and the arrow buttons
-themselves are skipped. On the globe (level select), button 1 works as Return:
-the first press chooses the track the globe is showing and the second goes on;
-the next screen starts with Race selected (move left for View or Car). With
-this ticked, any input on the main menu (the mouse, a key or the joystick)
-holds back the attract demo for another 15 seconds, as if the menu had just
-appeared (in 1996 it started 15 seconds after the menu appeared, however busy
-you were).
+A joystick, a pad or the arrow keys can run the menus, and the menus start
+that way: after the name screen, the main menu's top item is selected and
+there's no mouse pointer. Up and down (the stick, the D-pad or an arrow key)
+step through every item in reading order (along a row, then the next row),
+with a click, stopping at the top and the bottom; left and right move along a
+row. A slider (vision and texture distance on Display, the CD and effects
+volumes on Sound, each player's damage) is one item: left and right move it, a
+step a push. The D-pad works on a modern pad and on a joystick Windows reads
+itself (its hat). Button 1 (A) or Return chooses, and ticks or unticks a box;
+button 2 (B) or Esc goes back (on the first screens, as with Esc, it quits the
+game), and button 2 also ends the attract demo and track select's View. Where
+the arrow keys change the race, the logo or the car, left and right still do
+that, and the arrow buttons themselves are skipped. On the globe (level
+select), button 1 works as Return: the first press chooses the track the globe
+is showing and the second goes on; the next screen starts with Race selected
+(move left for View or Car). With this ticked, any input on the main menu (the
+mouse, a key or the joystick) holds back the attract demo for another 15
+seconds, as if the menu had just appeared (in 1996 it started 15 seconds after
+the menu appeared, however busy you were).
 
 The name screen starts with the last name you entered, so button 1 accepts it;
 if the game asks "Create new file?", button 1 is Y and button 2 is N. Using
 the joystick in the menus also sets player one's controls to it (JS1 in
 Options, Joysticks), unless you change that setting yourself; the arrow keys
-alone don't. Moving the mouse, clicking or pressing another key brings back
-the pointer and hands the menus back to the mouse and keyboard, and they start
-that way again after a race. The keys screen and the recording name are left
-to the keyboard (button 2 still goes back).
+alone don't. Moving the mouse brings back the pointer and hands the menus to
+the mouse (other keys do what they always did and leave this on), until you
+push up or down again; a race keeps the menus as they were, so the results
+come back the same way. On the keys screen every key you press goes to the
+control being set, as in 1996: there the selection only shows which control
+that is. The recording name is left to the keyboard (button 2 still goes back).
 
-**Menu animations** (with menu navigation; Original-ish by default)
+**Menu animations** (with menu navigation; Inverted by default)
 
 The menus' texts and buttons shimmer and wobble, as they always have.
-Original-ish: the selected item stops, so it stands out, while everything else
-carries on. Inverted: everything else stops, and only the selected item moves.
+Inverted: only the selected item moves, everything else is still. Original-ish:
+the selected item stops, so it stands out, while everything else carries on.
 Either way it covers the item's text, its button or tick box, its border and
-its label (such as "PL1:" beside a slider), from the moment a screen appears;
-the screens' headings and other pictures carry on as in 1996. While the
-joystick or the arrow keys have the menus, the buttons only the mouse needs
-are put away: the globe's Select (button 1 or Return chooses the track) and
-"next" on Choose Your Vehicle (left and right change the vehicle).
+its label (such as "PL1:" beside a slider), from the moment a screen appears.
+While the joystick or the arrow keys have the menus, the buttons only the
+mouse needs are put away: the globe's Select (button 1 or Return chooses the
+track) and "next" on Choose Your Vehicle (left and right change the vehicle).
+
+**Disable animated titles** (with menu navigation; ticked with Inverted)
+
+The screens' headings (such as SOUND OPTIONS) stay still too. Choosing Inverted
+ticks it and Original-ish unticks it, but you can change it either way. The
+screens that are one choice keep their headings moving: the name, the globe,
+Choose Your Vehicle, the driver, the logo and the recordings.
 
 The last name is kept in BRRNAME.TXT in the Game folder, and the click ("UI
 Click Deep" by SoundShelfStudio, from Pixabay) in Game\SAMPLES\JOYCLICK.WAV.

@@ -64,6 +64,8 @@
         extrn   _brr_orig_sprite_draw:dword
         extrn   _nav_sprite_frame:near
         public  _brr_sound_sprite_down, _brr_sound_sprite_up, _brr_sound_sprite_up2
+        extrn   _brr_sound_cd_draw:near
+        public  _brr_hook_sound_draw, _brr_call_sprite_draw
         extrn   _nav_before_draw:near
         extrn   _nav_after_draw:near
         public  _brr_hook_hotspot_draw, _brr_call_play_sample, _brr_hook_label_draw
@@ -518,6 +520,39 @@ sound_sprite:
         popad
         add     esp, 4
         jmp     dword ptr [_brr_orig_sprite_draw]
+
+; sound_options_draw's CALL menu_draw_group with EAX 1 (0x40B020; site sound_cd_draw): the CD
+; volume's -, + and level first (music.c), then groups 1 and 21 (the CD's name), as DOS's
+; sound_options_draw does. menu_draw_group (0x427DD8) takes the group in EAX; what follows the
+; site (present, then the pops) needs no register kept.
+_brr_hook_sound_draw:
+        pushad
+        call    _brr_sound_cd_draw
+        popad
+        mov     eax, 1
+        mov     edx, 427DD8h
+        call    edx
+        mov     eax, 15h
+        mov     edx, 427DD8h
+        jmp     edx
+
+; brr_call_sprite_draw(frame, x, y), cdecl: the game's sprite_draw (0x426D48) from the
+; screen's sprite bank (menu_sprites 0x44BF34): EAX the bank, EDX the frame, EBX x, ECX y
+_brr_call_sprite_draw:
+        push    ebx
+        push    esi
+        push    edi
+        push    ebp
+        mov     eax, dword ptr ds:[44BF34h]
+        mov     edx, [esp + 20]
+        mov     ebx, [esp + 24]
+        mov     ecx, [esp + 28]
+        call    dword ptr [_brr_orig_sprite_draw]
+        pop     ebp
+        pop     edi
+        pop     esi
+        pop     ebx
+        ret
 
 ; brr_call_play_sample(name), cdecl: the game's sound_play_sample (0x415A28; EAX the
 ; sample's name, played from SAMPLES\<name>.WAV once; it keeps EBX, ECX and EDX)

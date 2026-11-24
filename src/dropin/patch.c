@@ -162,8 +162,9 @@ static int enabled(const char *fix)
         return cfg.show_version;
     if (!strcmp(fix, "controller"))  /* also centres absent joysticks for the menu navigation */
         return cfg.controller || cfg.debug_pad_test || cfg.menu_navigation;
-    if (!strcmp(fix, "keys"))  /* the per-tick hook also carries the joystick menu navigation */
-        return cfg.fix_menu_keys || cfg.debug_log_keys || cfg.menu_navigation;
+    if (!strcmp(fix, "keys"))  /* the per-tick hook also carries the joystick menu navigation and the CD volume */
+        return cfg.fix_menu_keys || cfg.debug_log_keys || cfg.menu_navigation || cfg.cd_volume;
+    if (!strcmp(fix, "cd_volume")) return cfg.cd_volume;
     if (!strcmp(fix, "display"))
         return cfg.display_mode != DISPLAY_ASK;
     if (!strcmp(fix, "present"))  /* our window drawing, and the new renderer */
@@ -310,6 +311,9 @@ static int replacement(const struct site_info *s, uint8_t *out)
     } else if (!strcmp(n, "label_draw_call") && s->length == 5) {
         out[0] = 0xE8;  /* CALL brr_hook_label_draw: the label's font from its line, then text_draw */
         put_rel32(out + 1, s->address + 5, (void *)brr_hook_label_draw);
+    } else if (!strcmp(n, "sound_cd_draw") && s->length == 5) {
+        out[0] = 0xE8;  /* CALL brr_hook_sound_draw: the CD volume, then groups 1 and 21 (music.c) */
+        put_rel32(out + 1, s->address + 5, (void *)brr_hook_sound_draw);
     } else if (!strncmp(n, "sound_button_", 13) && s->length == 5) {
         out[0] = 0xE8;  /* CALL brr_sound_sprite_*: the button keeps its step in the joystick's selection */
         put_rel32(out + 1, s->address + 5, !strcmp(n, "sound_button_commentary") ? (void *)brr_sound_sprite_up2

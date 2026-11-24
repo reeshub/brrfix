@@ -229,6 +229,7 @@ void __cdecl brr_after_menu_hotspots(void)
         brr_log("keys: tick %ld fired action %d (latch 0x%02X)", (long)*GAME_TICK_COUNT, *HOTSPOT_ACTION,
                 (unsigned)(uint16_t)latch);
     nav_after_tick();  /* the joystick menu navigation's answers, before the screen's tick reads them */
+    brr_sound_cd_action();  /* the sound screen's CD volume, which Windows' tick doesn't take */
 }
 
 /* ---- Controller menu navigation ([controller] menu_navigation; both renderers) ----

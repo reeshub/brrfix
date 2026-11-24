@@ -164,8 +164,10 @@ static void load_config(void)
     cfg.object_detail = !lstrcmpiA(text, "original") ? 0 : !lstrcmpiA(text, "highest") ? 2 : 1;
     cfg.colour_animation = ini_int(path, "display", "colour_animation", 1);
     cfg.menu_navigation = ini_int(path, "controller", "menu_navigation", 1);
-    GetPrivateProfileStringA("controller", "menu_animations", "original", text, sizeof text, path);
-    cfg.menu_animations = !lstrcmpiA(text, "inverted");
+    GetPrivateProfileStringA("controller", "menu_animations", "inverted", text, sizeof text, path);
+    cfg.menu_animations = lstrcmpiA(text, "original") != 0;
+    /* still with Inverted, animated with Original-ish, unless set (the launcher sets it) */
+    cfg.menu_still_titles = ini_int(path, "controller", "still_titles", cfg.menu_animations);
     cfg.show_version = ini_int(path, "display", "show_version", 1);
     cfg.controller = ini_int(path, "controller", "enabled", 1);
     cfg.pad_deadzone = ini_int(path, "controller", "deadzone", 15);
@@ -194,6 +196,7 @@ static void load_config(void)
     cfg.music_follow_game = ini_int(path, "music", "follow_game_volume", 1);
     cfg.distance_volume = ini_int(path, "sound", "distance_volume", 1);
     cfg.stereo_pan = ini_int(path, "sound", "stereo_pan", 1);
+    cfg.cd_volume = ini_int(path, "sound", "cd_volume", 1);
     /* auto (the default, or anything else): 8, as the game, on Windows 95, 98 and ME, where
      * DirectSound mixes each sound playing on a 1990s processor; 32 elsewhere */
     cfg.sound_channels = ini_int(path, "sound", "channels", 0);

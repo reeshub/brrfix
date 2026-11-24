@@ -102,6 +102,7 @@
 #define IDC_MENU_NAV     1517
 #define IDC_MENU_ANIM_LABEL 1518
 #define IDC_MENU_ANIM    1519
+#define IDC_MENU_TITLES  1520
 
 /* Advanced */
 #define IDC_PAGE_ADVANCED 1600

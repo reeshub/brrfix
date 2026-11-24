@@ -118,11 +118,12 @@ static int questions(struct brr_dos_choices *c)
     c->menu_inverted = 0;
     if (c->menu_navigation) {
         int k;
-        wrapped_from("   Menu animations: O for original-ish (the selected item stops animating) or I "
-                     "for inverted (only the selected item animates).", 3);
-        printf("   [O/I] ");
+        wrapped_from("   Menu animations: I for inverted (only the selected item animates, and the "
+                     "headings stay still) or O for original-ish (the selected item stops "
+                     "animating).", 3);
+        printf("   [I/O] ");
         fflush(stdout);
-        k = key("OI");
+        k = key("IO");
         printf("%s\n", k == 27 ? "(stopped)" : k == 'I' ? "Inverted" : "Original-ish");
         if (k == 27)
             return -1;

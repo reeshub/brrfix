@@ -474,3 +474,54 @@ void brr_music_start(void)
     else
         brr_log("music: no tracks in %s (trackNN.flac, .ogg or .wav); CD audio goes to Windows (a real CD)", folder);
 }
+
+/* ---- The sound screen's CD volume ([sound] cd_volume; the director, 2026-11-24) ----
+ * DOS's sound screen has a CD volume as well as the effects': sound_options_draw (RACING.EXE
+ * 0x33390) draws its - (frame step + 5 at 103,50), + (step at 236,50) and level (step + 15 +
+ * 5 x volume at 129,45) and the script's group 21 ("CD"), and its tick takes the - and +
+ * (actions 0 and 1) and the level's eight steps (10-17): cd_volume (0-7), then the level, x 255
+ * / 7, sent to the drive. Windows' draws and takes none of it (only the -/+ keys, actions 5
+ * and 6, still change it with the effects volume). Here as DOS: the screen's draw (site
+ * sound_cd_draw, thunks.asm) and, after the hotspots' tick, the actions, into cd_volume and
+ * the music's level (0x44AE88, and 0x44AE84 now, which the gain above follows). */
+#include "menunav.h"
+#define CD_VOLUME     ((volatile int16_t *)0x44AFEE)   /* cd_volume: 0-7 */
+#define CD_LEVEL_SET  ((volatile int32_t *)0x44AE88)   /* each track's level: cd_volume x 255 / 7 */
+#define SOUND_STEP    ((volatile int16_t *)0x44AEC0)   /* sound_options_anim: the buttons' step */
+#define MENU_ACTION   ((volatile int16_t *)0x44BF2C)   /* hotspot_action: -1 none */
+#define MENU_SCREEN   ((volatile uint16_t *)0x4B13C0)
+#define SCREEN_SOUND  0x0B
+
+void __cdecl brr_sound_cd_draw(void)
+{
+    int step = *SOUND_STEP, volume = *CD_VOLUME;
+    if (!cfg.cd_volume)
+        return;
+    brr_call_sprite_draw(nav_sprite_frame(step + 5, 0x67, 0x32, 1), 0x67, 0x32);
+    brr_call_sprite_draw(nav_sprite_frame(step, 0xEC, 0x32, 1), 0xEC, 0x32);
+    if (volume >= 0 && volume <= 7)
+        brr_call_sprite_draw(step + 15 + 5 * volume, 0x81, 0x2D);
+}
+
+void brr_sound_cd_action(void)
+{
+    int action = *MENU_ACTION, volume = *CD_VOLUME;
+    if (!cfg.cd_volume || *MENU_SCREEN != SCREEN_SOUND)
+        return;
+    if (action == 0 || action == 1 || (action >= 10 && action <= 17)) {
+        if (action == 0)
+            volume = volume > 0 ? volume - 1 : 0;
+        else if (action == 1)
+            volume = volume < 7 ? volume + 1 : 7;
+        else
+            volume = action - 10;
+        *CD_VOLUME = (int16_t)volume;
+        *MENU_ACTION = -1;  /* the screen's own tick has nothing for it */
+    }
+    /* the level follows cd_volume, also after the - and = keys (actions 5 and 6), which the
+     * screen's own tick applies to it without the level: put right on the next tick */
+    if (volume >= 0 && volume <= 7 && *CD_LEVEL_SET != volume * 255 / 7) {
+        *CD_LEVEL_SET = volume * 255 / 7;
+        *GAME_LEVEL = *CD_LEVEL_SET;
+    }
+}

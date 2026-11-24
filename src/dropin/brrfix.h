@@ -58,6 +58,8 @@ struct brr_config {
     int colour_animation;    /* [display] colour_animation: the levels' palette cycling, as in DOS (palanim.c) */
     int menu_navigation;     /* [controller] menu_navigation: the joystick and arrow keys in menus (menunav.c) */
     int menu_animations;     /* [controller] menu_animations: 0 original (the selection still), 1 inverted */
+    int menu_still_titles;   /* [controller] still_titles: menu headings held still in the navigation */
+    int cd_volume;           /* [sound] cd_volume: the sound screen's CD volume, as in DOS (music.c) */
     int language;            /* [display] language: 1-7 (ENG, USA, FRE, GER, ITA, SPA, JAP) */
     int clock_original;      /* emulate the original 14 ms callback timer instead */
     uint32_t rate_milli;     /* ticks per 1000 s: 70000 = 70.0 Hz */
@@ -286,6 +288,12 @@ int __cdecl brr_render_before_present(void);  /* 1: it presented the frame itsel
 void __cdecl brr_render_after_present(void);
 uint32_t __cdecl brr_menu_mouse(void);
 void brr_hook_menu_mouse(void);
+
+/* music.c: the sound screen's CD volume, and thunks.asm's way in */
+void __cdecl brr_sound_cd_draw(void);
+void brr_sound_cd_action(void);
+void brr_hook_sound_draw(void);
+void __cdecl brr_call_sprite_draw(int frame, int x, int y);
 
 /* controller.c */
 extern uint32_t brr_orig_joystick_to_keys;

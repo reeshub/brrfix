@@ -26,6 +26,7 @@ extern volatile s32 game_credits_last_tick;   /* tick_count at the credits ticke
 extern volatile s16 game_sound_options_anim;  /* the sound screen's buttons' step */
 extern volatile s16 game_globe_track;         /* the globe cursor's track: -1 until one is picked */
 extern volatile s32 game_series_races;        /* the races chosen on the globe */
+extern volatile s16 game_key_options_slot;    /* the keys screen's row being set */
 extern void game_sound_play_sample(const char *name);       /* SAMPLES\<name>.WAV, once */
 
 #define NAV_HOTSPOTS  game_menu_hotspots
@@ -53,6 +54,8 @@ extern void game_sound_play_sample(const char *name);       /* SAMPLES\<name>.WA
 #define NAV_GLOBE_RACES game_series_races
 #define NAV_ENABLED   (OPTION(OPT_MENU_PAD))
 #define NAV_INVERTED  (OPTION(OPT_MENU_ANIM) == 1)
+#define NAV_STILL_TITLES NAV_INVERTED /* the headings still with Inverted (Windows: a launcher option) */
+#define NAV_KEY_SLOT  game_key_options_slot
 #define nav_pointer(shown)            /* no system pointer: the game's own is the only one */
 #define nav_note(what, value)         /* no notes: their text doesn't fit before object 2 (Windows logs them) */
 
