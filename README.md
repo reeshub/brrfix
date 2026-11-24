@@ -1,6 +1,6 @@
 # Big Red Racing fixes: Big Red Launcher and BRRPATCH
 
-Hello, my name's Rees, and back in the 90s I was obsessed with a ridiculous little PC gaming called *Big Red Racing*.
+Hello, my name's Rees, and back in the 90s I was obsessed with a ridiculous little PC game called *Big Red Racing*.
 
 In recent years I've tried to revisit it and relive my youth, but alas, it ran incredibly badly in DOSBox and not at all under modern Windows. Even Wine didn't like it.
 
