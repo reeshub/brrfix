@@ -77,6 +77,8 @@ static void load_config(void)
     cfg.fix_interpolation = ini_int(path, "fixes", "interpolation", 1);
     cfg.fix_camera = ini_int(path, "fixes", "camera", 1);
     cfg.fix_menu_keys = ini_int(path, "fixes", "menu_keys", 1);
+    cfg.fix_pause = ini_int(path, "fixes", "pause", 1);
+    cfg.quit_confirm = ini_int(path, "display", "quit_confirm", 1);
     cfg.fix_mode_switch = ini_int(path, "fixes", "mode_switch", 1);
     GetPrivateProfileStringA("display", "resolution", "high", text, sizeof text, path);
     cfg.resolution_high = !lstrcmpiA(text, "high");

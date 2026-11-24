@@ -162,8 +162,9 @@ static int enabled(const char *fix)
         return cfg.show_version;
     if (!strcmp(fix, "controller"))  /* also centres absent joysticks for the menu navigation */
         return cfg.controller || cfg.debug_pad_test || cfg.menu_navigation;
-    if (!strcmp(fix, "keys"))  /* the per-tick hook also carries the joystick menu navigation and the CD volume */
-        return cfg.fix_menu_keys || cfg.debug_log_keys || cfg.menu_navigation || cfg.cd_volume;
+    if (!strcmp(fix, "keys"))  /* the per-tick hook also carries the menu navigation, the CD volume and the pause */
+        return cfg.fix_menu_keys || cfg.debug_log_keys || cfg.menu_navigation || cfg.cd_volume || cfg.fix_pause
+            || (cfg.quit_confirm && brr_hud_active);
     if (!strcmp(fix, "cd_volume")) return cfg.cd_volume;
     if (!strcmp(fix, "display"))
         return cfg.display_mode != DISPLAY_ASK;

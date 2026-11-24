@@ -324,7 +324,8 @@ place at the top right sit the same distance from their edges, the nitro and
 the lap counter line up under the place with even gaps, and the messages
 (DAMAGE, FINAL LAP, WRONG WAY) are centred. While the race is paused, PAUSED
 shows in the middle of the screen, in the menus' own shimmering letters, at
-the dashboard's size.
+the dashboard's size, with the race darkened behind it (and the same for END
+RACE?: see Pausing and ending a race, under Controller).
 
 **Widescreen menu backgrounds** (Modern renderer, with Max, Native widescreen
 and full screen; on by default)
@@ -508,6 +509,28 @@ end of the stick's travel; higher values reach it sooner.
 
 In a race, Start pauses it and carries on, as the Pause key does, and Back
 (View on newer pads) ends it, as Esc does.
+
+**Pausing and ending a race**
+
+A race can be paused once the lights turn green (pausing during the start's
+countdown is ignored: the camera's zoom and the countdown carried on through
+it). The sound effects and the commentary pause with the race and carry on
+with it; the music plays on.
+
+With the Modern renderer, PAUSED shows in the middle of the darkened race
+while it's paused, and Esc or Back doesn't end the race straight away: it
+pauses it and asks END RACE?, with YES and NO (NO is chosen at first).
+
+- **Left and right** (the arrow keys, the stick or the D-pad) choose.
+- **Return, Enter or A** does what's chosen: YES ends the race, NO goes back.
+- **Esc, Back or B** goes back at once.
+
+Going back carries on with the race, or returns to PAUSED if you'd paused it
+first. While END RACE? is up, Pause and Start do nothing. It animates as the
+menus do: with Original-ish menu animations the chosen answer holds still and
+the rest moves; with Inverted only the chosen answer moves. During the start's
+countdown, Esc and Back end the race at once, as in 1996, as they do with the
+Original renderer and in split screen.
 
 ### Vibration
 

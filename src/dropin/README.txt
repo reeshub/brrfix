@@ -222,7 +222,8 @@ damage, messages) is the game's 320x200 art, drawn by the game on layers of
 its own and enlarged by whole numbers into the race picture's corners
 ([display] hud=lowres; hud=game gives the game's own, as before; "4:3 HUD
 correction" gives its pixels the 1996 monitor's shape); while the race is
-paused, PAUSED shows in the middle, in the menus' shimmering letters. With Max in full
+paused, PAUSED shows in the middle, in the menus' shimmering letters, with the
+race darkened behind it. With Max in full
 screen on a wide screen, races are drawn at the screen's own shape ("Native
 widescreen", [display] widescreen; the menus stay 4:3 in the middle, their
 background pictures widened across the screen: "Widescreen menu backgrounds",
@@ -272,7 +273,11 @@ buttons. With no Xbox-style pad connected, a pad Windows reads itself works the
 same way (an 8BitDo in D-input mode, such as the Micro: L2 and R2 are its
 triggers). A pad with only a D-pad steers on or off, as the keyboard does (the
 game's Analogue box follows the pad). In a race,
-Start pauses (and carries on) and Back (View) ends it, as Pause and Esc do. The
+Start pauses (and carries on) and Back (View) ends it, as Pause and Esc do
+(with the Modern renderer, after END RACE?: left and right choose YES or NO, A
+or Return does it, B or Esc goes back to the race; [display] quit_confirm). A
+race can't be paused before the lights turn green, and its sound effects and
+commentary pause with it ([fixes] pause). The
 menus start with a joystick, a pad (stick or D-pad) or the arrow keys in
 charge: up and down step through the items (no pointer), left and right move a
 slider or change the race, logo or car, A or Return chooses, B or Esc goes back

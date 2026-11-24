@@ -230,6 +230,7 @@ void __cdecl brr_after_menu_hotspots(void)
                 (unsigned)(uint16_t)latch);
     nav_after_tick();  /* the joystick menu navigation's answers, before the screen's tick reads them */
     brr_sound_cd_action();  /* the sound screen's CD volume, which Windows' tick doesn't take */
+    brr_pause_tick();  /* a race's pause and END RACE? (pause.c) */
 }
 
 /* ---- Controller menu navigation ([controller] menu_navigation; both renderers) ----

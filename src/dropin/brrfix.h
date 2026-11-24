@@ -25,6 +25,8 @@
 struct brr_config {
     int fix_vga, fix_clock, fix_cap, fix_interpolation, fix_camera, fix_mode_switch;
     int fix_menu_keys;       /* one menu action per key press (keys.c) */
+    int fix_pause;           /* [fixes] pause: no pause before the start; the effects pause with the race (pause.c) */
+    int quit_confirm;        /* [display] quit_confirm: Esc or Back asks END RACE? (pause.c, hud.c; Modern renderer) */
     int resolution_high;     /* [display] resolution=high: the game's 640x480 mode (keypad +) */
     int renderer_new;        /* [display] renderer=new: Phase 3c's renderer (render.c); original = the game's */
     int render_max;          /* [display] render_resolution=max: experimental, races drawn at the
@@ -185,6 +187,10 @@ void brr_debug_every_frame(void);
 void brr_debug_frame_shot(const uint32_t *picture, int width, int height, int pitch);
 /* hud.c: the race HUD on layers of its own */
 extern int brr_hud_active;
+/* pause.c: the pause's fixes and the END RACE? question, which hud.c draws */
+void brr_pause_tick(void);
+extern int brr_quit_open, brr_quit_choice, brr_quit_serial;  /* choice: 0 YES, 1 NO */
+extern int brr_quit_ending;  /* YES chosen: the question stays up until the race has gone */
 void brr_hud_setup(void);
 void brr_hook_hud_draw(void);
 void brr_hook_hud_icon(void);
