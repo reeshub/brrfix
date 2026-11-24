@@ -4,7 +4,7 @@ Hello, my name's Rees, and back in the 90s I was obsessed with a ridiculous litt
 
 In recent years I've tried to revisit it and relive my youth, but alas, it ran incredibly badly in DOSBox and not at all under modern Windows. Even Wine didn't like it.
 
-Well, I'm a big boy now, so I decided to take matters into my own hands and fix this sorry state of affairs once and for all. I've been fiddling with it for a few weeks now, so I suppose it's time I put something out there.
+Well, I'm a big boy now - not to mention a professional software developer armed with Claude - so I decided to take matters into my own hands and fix this sorry state of affairs once and for all.
 
 ## What this is
 
@@ -13,7 +13,7 @@ Two free patch utilities by [ctrl-alt-rees](https://ctrl-alt-rees.com) for *Big 
 - **Big Red Launcher** runs the game's Windows 95 version on Windows 10 and 11, and on Linux (including the Steam Deck) through Wine or Proton. It can apply various fixes as detailed below, and even offers an optional "Modern" rendering engine.
 - **BRRPATCH** applies camera and joystick fixes to the game's DOS version, for an optimal experience on old PCs and in DOSBox.
 
-*Big Red Racing* was created by Big Red Software of Leamington Spa and published by Domark. While the game is officially considered "abandonware", this project contains no copyrighted assets and makes no claim as to the copyright of the game, which remains with the original rights holders.
+*Big Red Racing* was created by Big Red Software of Leamington Spa and published by Domark. While the game is officially considered "abandonware", the copyright to all *Big Red Racing* game assets remains with the original rights holders. You will need to provide an original copy of the game (details below) to use these tools.
 
 > **This project is under very active development.** Please report anything that doesn't work in [Issues](https://github.com/reeshub/brrfix/issues), with the `BRRFIX.LOG` file from next to `Big Red Racing.exe` (tick "Log" on the launcher's Advanced tab first).
 
@@ -46,12 +46,15 @@ Both fixes only support the v2.25 patched version of the game, the last (and onl
 - **"Original" vs. "Modern" renderer:** In addition to the above, there's a new "Modern" renderer option. OK, so it's still the game's original 1996 DirectPlay renderer wrapped in cnc-ddraw, but it does add a whole host of tweaks, like native widescreen support, full colour with improved gradients and shading, hugely improved draw distance, level geometry fixes (WIP), and a lot more. Again, the golden rule of development was to retain the original feel of the game even with this major overhaul, and I feel that I've succeeded in this.
 - **CD music:** Supports ripped tracks (FLAC, Ogg Vorbis or WAV). This is (optionally) supported in both the Original and Modern renderers, with the help of the included open source [dr_flac](https://github.com/mackron/dr_libs) and [stb_vorbis](https://github.com/nothings/stb) libraries. Or you can stick your original CD in the drive and listen to that - or indeed any audio CD of your choice, just like back in the day. Scripts are included to rip and convert these tracks from the myabandonware.com disc image.
 - **Other in-game audio improvements:** The DOS build of the game used the Miles Audio engine, which supported panning (ie, competitor vehicle audio moves left to right depending on their position relative to the player), and varying volume levels depending on their distance. It turns out that both were broken in the 1996 Windows DirectSound implementation - in fact, audio was pretty broken overall in Windows. There are now (optional) fixes for these issues and more. The game's 8 sound channels can also optionally be expanded to 16 or 32 for a more immersive experience.
-- **Modern controllers** (XInput), with remapped triggers for accelerate / brake, vibration, and menu navigation support.
+- **Modern controllers** (XInput), with remapped triggers for accelerate / brake, vibration, and menu navigation support. It's now possible to play the entire game without ever touching a keyboard or mouse - for the first time since 1996!
 - **A comprehensive settings window**, with "Period" and "Modern" defaults, and detailed help for every single setting.
+- **Bugfixes galore:** Sadly, nobody's perfect, and surprisingly that also applies to *Big Red Racing*. But we can certainly fix the original bugs I've discovered while mercilessly pulling this game apart - and it's all the better for it.
 
 Did I mention that all tweaks can be toggled on or off depending on how you'd like to experience the game? Big Red Launcher is also designed to support all versions of Windows from 95 onwards, and supports resolutions as low as 640x480. It also works in Wine and Proton.
 
 In all cases, the original game files are left as they are: the launcher creates and runs its own patched copies.
+
+This project is fast moving, so for the latest features and bugfixes please consult the release notes on the [Releases](https://github.com/reeshub/brrfix/releases) page.
 
 ### Install on Windows 10 or 11
 
